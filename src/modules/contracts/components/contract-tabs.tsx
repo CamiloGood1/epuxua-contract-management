@@ -19,7 +19,9 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ContractTimeline } from "./contract-timeline"
+import { ContractAlerts } from "./contract-alerts"
 import { resolveStatus, formatCOP, formatDate } from "../lib/status"
+import { computeAlerts } from "../lib/alerts"
 import type { Contract } from "@/types/contract"
 
 // ── Tab definition ────────────────────────────────────────────────────────────
@@ -227,14 +229,7 @@ function TabContent({ tabId, contract }: { tabId: string; contract: Contract }) 
         />
       )
     case "alertas":
-      return (
-        <EmptyTab
-          icon={Bell}
-          title="Sin alertas"
-          description="Las alertas automáticas de vencimiento y ejecución aparecerán aquí."
-          cta="+ Configurar alertas"
-        />
-      )
+      return <ContractAlerts contract={contract} />
     default:
       return null
   }
@@ -245,6 +240,10 @@ function TabContent({ tabId, contract }: { tabId: string; contract: Contract }) 
 export function ContractTabs({ contract }: { contract: Contract }) {
   const [activeTab, setActiveTab] = useState("info")
 
+  const alertCount = computeAlerts(contract).filter(
+    (a) => a.severity === "critica" || a.severity === "alta"
+  ).length
+
   return (
     <div className="flex flex-col gap-4">
       {/* Tab navigation */}
@@ -253,6 +252,7 @@ export function ContractTabs({ contract }: { contract: Contract }) {
           {TABS.map((tab) => {
             const Icon = tab.icon
             const isActive = tab.id === activeTab
+            const badge = tab.id === "alertas" && alertCount > 0 ? alertCount : null
             return (
               <button
                 key={tab.id}
@@ -273,9 +273,9 @@ export function ContractTabs({ contract }: { contract: Contract }) {
                 )}
                 <Icon size={13} className="relative z-10 shrink-0" />
                 <span className="relative z-10">{tab.label}</span>
-                {tab.badge != null && (
+                {badge != null && (
                   <span className="relative z-10 text-[10px] font-bold bg-destructive text-white px-1.5 rounded-full">
-                    {tab.badge}
+                    {badge}
                   </span>
                 )}
               </button>
