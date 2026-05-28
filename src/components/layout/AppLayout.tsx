@@ -6,9 +6,10 @@ import { Header } from "./Header"
 
 interface AppLayoutProps {
   children: React.ReactNode
+  userEmail: string
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children, userEmail }: AppLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -24,6 +25,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <Header
           onMobileMenuOpen={() => setMobileOpen(true)}
           sidebarCollapsed={collapsed}
+          userEmail={userEmail}
         />
         <main className="flex-1 overflow-y-auto scrollbar-thin p-4 md:p-6 lg:p-8">
           {children}
