@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import {
   FileText,
@@ -21,6 +21,7 @@ import { DonutChart } from "./DonutChart"
 import { BarByEntityChart } from "./BarByEntityChart"
 import { ContractCards } from "./ContractCards"
 import { ActivityTimeline } from "./ActivityTimeline"
+import { NewContractModal } from "@/modules/contracts/components/new-contract-modal"
 import type { DashboardMetrics, KPICardData, StatusSlice, EntityBar } from "@/types"
 import type { Contract } from "@/types/contract"
 
@@ -177,6 +178,7 @@ interface DashboardPageProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function DashboardPage({ metrics, contracts, fetchError }: DashboardPageProps) {
+  const [modalOpen, setModalOpen] = useState(false)
   const kpis = useMemo(() => buildKPIs(metrics, contracts), [metrics, contracts])
   const donutData = useMemo(() => buildDonut(contracts), [contracts])
   const entityBars = useMemo(() => buildEntityBars(contracts), [contracts])
@@ -199,12 +201,17 @@ export function DashboardPage({ metrics, contracts, fetchError }: DashboardPageP
             <RefreshCw size={13} />
             Actualizar
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:opacity-90 transition-all shadow-sm shadow-primary/20 active:scale-95">
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:opacity-90 transition-all shadow-sm shadow-primary/20 active:scale-95"
+          >
             <Plus size={13} />
             Nuevo contrato
           </button>
         </div>
       </motion.div>
+
+      <NewContractModal open={modalOpen} onClose={() => setModalOpen(false)} />
 
       {/* Error */}
       {fetchError && (
