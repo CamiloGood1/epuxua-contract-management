@@ -78,7 +78,7 @@ export function ContractCard({ contract, index = 0, physicalProgress }: Contract
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: index * 0.04, ease: "easeOut" }}
         whileHover={{ y: -3, transition: { duration: 0.18 } }}
-        className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 transition-all cursor-pointer"
+        className="group relative bg-white border border-[#EAEAEA] rounded-xl overflow-hidden hover:border-[var(--corporate-blue)]/25 hover:shadow-md transition-all cursor-pointer"
       >
         {/* Barra de color según estado */}
         <div className="h-1 w-full shrink-0" style={{ backgroundColor: cfg.color }} />

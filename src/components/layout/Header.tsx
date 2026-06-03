@@ -1,15 +1,33 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Bell, Menu, LogOut, ChevronDown, User } from "lucide-react"
+import { Menu, LogOut, ChevronDown } from "lucide-react"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
+import { MaterialIcon } from "@/components/ui/material-icon"
+import { cn } from "@/lib/utils"
 
-interface HeaderProps {
-  onMobileMenuOpen: () => void
-  sidebarCollapsed: boolean
-  userEmail: string
+const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
+  "/": { title: "Dashboard", subtitle: "Ejecución y monitoreo financiero" },
+  "/contracts": { title: "Contratos", subtitle: "Gestión de contratación pública" },
+  "/seguimiento": { title: "Seguimiento", subtitle: "Proyectos y avance de ejecución" },
+  "/alertas": { title: "Alertas", subtitle: "Centro de notificaciones" },
+  "/financiero": { title: "Financiero", subtitle: "Presupuesto y ejecución" },
+  "/facturacion": { title: "Facturación", subtitle: "Pagos y facturas" },
+  "/documentos": { title: "Documentos", subtitle: "Repositorio documental" },
+  "/usuarios": { title: "Usuarios", subtitle: "Administración de accesos" },
+  "/configuracion": { title: "Configuración", subtitle: "Parámetros del sistema" },
+}
+
+function getPageMeta(pathname: string) {
+  if (pathname.startsWith("/contracts/")) {
+    return { title: "Detalle de contrato", subtitle: "Ficha contractual" }
+  }
+  for (const [path, meta] of Object.entries(PAGE_TITLES)) {
+    if (path !== "/" && pathname.startsWith(path)) return meta
+  }
+  return PAGE_TITLES["/"] ?? { title: "EPUXUA", subtitle: "Gestión contractual" }
 }
 
 function getInitials(email: string): string {
@@ -19,12 +37,18 @@ function getInitials(email: string): string {
   return name.slice(0, 2).toUpperCase()
 }
 
+interface HeaderProps {
+  onMobileMenuOpen: () => void
+  sidebarCollapsed: boolean
+  userEmail: string
+}
+
 export function Header({ onMobileMenuOpen, userEmail }: HeaderProps) {
   const router = useRouter()
-  const [searchFocused, setSearchFocused] = useState(false)
+  const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
-
+  const meta = getPageMeta(pathname)
   const initials = getInitials(userEmail)
 
   async function handleLogout() {
@@ -36,119 +60,96 @@ export function Header({ onMobileMenuOpen, userEmail }: HeaderProps) {
   }
 
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center gap-3 px-4 md:px-6 shrink-0 shadow-sm">
-      {/* Mobile hamburger */}
+    <header className="h-16 bg-white border-b border-[#EAEAEA] flex items-center gap-4 px-6 lg:px-8 shrink-0 sticky top-0 z-40">
       <button
+        type="button"
         onClick={onMobileMenuOpen}
-        className="md:hidden p-2 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+        className="md:hidden p-2 rounded-lg hover:bg-muted text-muted-foreground"
         aria-label="Abrir menú"
       >
         <Menu className="w-5 h-5" />
       </button>
 
-      {/* Page context */}
-      <div className="hidden md:flex flex-col justify-center">
-        <h1 className="text-base font-semibold text-foreground leading-tight">Dashboard</h1>
-        <p className="text-[11px] text-muted-foreground leading-tight">
-          Contratos Interadministrativos
+      <div className="hidden md:block min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Área principal
         </p>
+        <h1 className="text-sm font-bold text-foreground leading-tight truncate">
+          {meta.title}
+        </h1>
       </div>
 
-      <div className="hidden md:block h-5 w-px bg-border mx-1" />
-      <div className="flex-1" />
+      <div className="flex-1 max-w-xl mx-auto hidden sm:block">
+        <div className="relative">
+          <MaterialIcon
+            name="search"
+            size={18}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
+          <input
+            type="search"
+            placeholder="Buscar contratos, expedientes o pagos..."
+            className="w-full h-10 pl-10 pr-4 text-sm bg-[#f6f8fc] border border-[#EAEAEA] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--corporate-blue)]/20 focus:border-[var(--corporate-blue)]/40"
+          />
+        </div>
+      </div>
 
-      {/* Search */}
-      <motion.div
-        animate={{ width: searchFocused ? 280 : 200 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className="relative hidden sm:block"
-      >
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-        <input
-          type="text"
-          placeholder="Buscar contratos..."
-          onFocus={() => setSearchFocused(true)}
-          onBlur={() => setSearchFocused(false)}
-          className="w-full pl-9 pr-4 py-2 text-sm bg-muted/60 rounded-xl border border-border focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-primary/50 focus:bg-card transition-all placeholder:text-muted-foreground/60"
-        />
-      </motion.div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-1.5">
-        {/* Notifications */}
-        <button className="relative p-2.5 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
-          <Bell size={18} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full ring-2 ring-card" />
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted"
+        >
+          <MaterialIcon name="help" size={18} />
+          Ayuda
         </button>
 
-        {/* User menu */}
-        <div className="relative">
+        <button
+          type="button"
+          className="relative p-2.5 rounded-lg hover:bg-muted text-muted-foreground"
+        >
+          <MaterialIcon name="notifications" size={20} />
+          <span className="absolute top-2 right-2 w-2 h-2 bg-[#EF4444] rounded-full ring-2 ring-white" />
+        </button>
+
+        <div className="relative ml-1">
           <button
+            type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex items-center gap-2 pl-2 pr-2 py-1 rounded-xl hover:bg-muted transition-colors group"
+            className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-muted"
           >
-            <div className="w-7 h-7 rounded-full bg-linear-to-br from-primary to-violet-600 flex items-center justify-center text-[11px] font-bold text-white shadow-sm">
+            <div
+              className="w-8 h-8 rounded-full bg-[var(--corporate-blue)] flex items-center justify-center text-[10px] font-bold text-white"
+            >
               {initials}
             </div>
-            <span className="text-xs font-medium text-foreground hidden sm:block max-w-30 truncate">
+            <span className="text-xs font-medium hidden lg:block max-w-[120px] truncate">
               {userEmail.split("@")[0]}
             </span>
-            <ChevronDown
-              size={13}
-              className={`text-muted-foreground transition-transform hidden sm:block ${menuOpen ? "rotate-180" : ""}`}
-            />
+            <ChevronDown size={14} className={cn("text-muted-foreground transition-transform", menuOpen && "rotate-180")} />
           </button>
 
           <AnimatePresence>
             {menuOpen && (
               <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setMenuOpen(false)}
-                />
+                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
                 <motion.div
-                  initial={{ opacity: 0, y: 4, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 4, scale: 0.97 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-xl shadow-xl z-20 overflow-hidden"
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  className="absolute right-0 top-full mt-2 w-52 bg-white border border-[#EAEAEA] rounded-xl shadow-xl z-20 p-1"
                 >
-                  {/* User info */}
-                  <div className="px-4 py-3 border-b border-border">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-linear-to-br from-primary to-violet-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
-                        {initials}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-foreground truncate">
-                          {userEmail.split("@")[0]}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground truncate">{userEmail}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Menu items */}
-                  <div className="p-1">
-                    <button
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      <User size={14} />
-                      Mi perfil
-                    </button>
-
-                    <div className="my-1 h-px bg-border" />
-
-                    <button
-                      onClick={handleLogout}
-                      disabled={loggingOut}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-60"
-                    >
-                      <LogOut size={14} />
-                      {loggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
-                    </button>
-                  </div>
+                  <p className="px-3 py-2 text-[10px] text-muted-foreground truncate border-b border-border mb-1">
+                    {userEmail}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                  >
+                    <LogOut size={14} />
+                    {loggingOut ? "Cerrando…" : "Cerrar sesión"}
+                  </button>
                 </motion.div>
               </>
             )}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import { motion } from "framer-motion"
 import {
   FileText,
@@ -8,14 +9,13 @@ import {
   Hourglass,
   Banknote,
   CalendarX2,
-  Clock,
   BarChart3,
-  PieChart,
-  RefreshCw,
   Plus,
   ArrowRight,
   AlertTriangle,
+  Download,
 } from "lucide-react"
+import { MaterialIcon } from "@/components/ui/material-icon"
 import { KPICard } from "./KPICard"
 import { DonutChart } from "./DonutChart"
 import { BarByEntityChart } from "./BarByEntityChart"
@@ -24,55 +24,72 @@ import { ActivityTimeline } from "./ActivityTimeline"
 import { NewContractModal } from "@/modules/contracts/components/new-contract-modal"
 import type { DashboardMetrics, KPICardData, StatusSlice, EntityBar } from "@/types"
 import type { Contract } from "@/types/contract"
-
-// ── Status config (nuevo esquema Supabase) ────────────────────────────────────
-import { STATUS_CONFIG as SC, resolveStatus as RS } from "@/modules/contracts/lib/status"
+import {
+  STATUS_CONFIG as SC,
+  resolveStatus as RS,
+  formatCOP,
+} from "@/modules/contracts/lib/status"
 
 export const STATUS_CONFIG = SC
 export const resolveStatus = RS
+export { formatCOP }
 export type StatusKey = keyof typeof STATUS_CONFIG
 
-// ── COP formatter ─────────────────────────────────────────────────────────────
-
-export function formatCOP(value: number | null | undefined): string {
-  if (value == null) return "—"
-  if (value >= 1_000_000_000)
-    return `$${(value / 1_000_000_000).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} B`
-  if (value >= 1_000_000)
-    return `$${(value / 1_000_000).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} M`
-  return `$${value.toLocaleString("es-CO")}`
-}
-
-// ── KPI computation ───────────────────────────────────────────────────────────
-
 function buildKPIs(metrics: DashboardMetrics | null, contracts: Contract[]): KPICardData[] {
-  const total       = metrics?.totalContracts      ?? contracts.length
-  const inProgress  = metrics?.inProgressContracts ?? contracts.filter(c => c.status === "EN_EJECUCION").length
-  const liquidated  = metrics?.liquidatedContracts ?? contracts.filter(c => c.status === "LIQUIDADO").length
-  const suspended   = metrics?.suspendedContracts  ?? contracts.filter(c => c.status === "SUSPENDIDO").length
-  const totalVal    = metrics?.totalValue          ?? contracts.reduce((s, c) => s + Number(c.initial_value), 0)
-  const expiring    = metrics?.expiring30Days      ?? 0
+  const total = metrics?.totalContracts ?? contracts.length
+  const inProgress =
+    metrics?.inProgressContracts ??
+    contracts.filter((c) => c.status === "EN_EJECUCION").length
+  const suspended =
+    metrics?.suspendedContracts ??
+    contracts.filter((c) => c.status === "SUSPENDIDO").length
+  const totalVal =
+    metrics?.activeContractedValue ??
+    metrics?.totalValue ??
+    contracts.reduce((s, c) => s + Number(c.final_value ?? c.initial_value), 0)
+  const paid = metrics?.totalPaidValue ?? contracts.reduce((s, c) => s + Number(c.paid_value), 0)
+  const expiring = metrics?.expiring30Days ?? 0
 
   return [
     {
-      label: "Total Contratos",
+      label: "Total contratos",
       value: total,
       formattedValue: String(total),
       isCurrency: false,
       change: 0,
       icon: FileText,
-      gradient: "bg-linear-to-br from-indigo-500 via-indigo-600 to-indigo-700",
-      iconBg: "bg-indigo-400/30",
+      gradient: "bg-indigo-500",
+      iconBg: "",
     },
     {
-      label: "En Ejecución",
+      label: "En ejecución",
       value: inProgress,
       formattedValue: String(inProgress),
       isCurrency: false,
       change: 0,
       icon: Activity,
-      gradient: "bg-linear-to-br from-emerald-500 via-emerald-600 to-teal-700",
-      iconBg: "bg-emerald-400/30",
+      gradient: "bg-emerald-500",
+      iconBg: "",
+    },
+    {
+      label: "Valor contratado",
+      value: totalVal,
+      formattedValue: formatCOP(totalVal),
+      isCurrency: true,
+      change: 0,
+      icon: Banknote,
+      gradient: "bg-violet-500",
+      iconBg: "",
+    },
+    {
+      label: "Ejecutado (pagos)",
+      value: paid,
+      formattedValue: formatCOP(paid),
+      isCurrency: true,
+      change: 0,
+      icon: BarChart3,
+      gradient: "bg-indigo-500",
+      iconBg: "",
     },
     {
       label: "Suspendidos",
@@ -81,38 +98,18 @@ function buildKPIs(metrics: DashboardMetrics | null, contracts: Contract[]): KPI
       isCurrency: false,
       change: 0,
       icon: Hourglass,
-      gradient: "bg-linear-to-br from-amber-500 via-orange-500 to-orange-600",
-      iconBg: "bg-amber-400/30",
+      gradient: "bg-amber-500",
+      iconBg: "",
     },
     {
-      label: "Valor Contratado",
-      value: totalVal,
-      formattedValue: formatCOP(totalVal),
-      isCurrency: true,
-      change: 0,
-      icon: Banknote,
-      gradient: "bg-linear-to-br from-violet-500 via-violet-600 to-purple-700",
-      iconBg: "bg-violet-400/30",
-    },
-    {
-      label: "Liquidados",
-      value: liquidated,
-      formattedValue: String(liquidated),
-      isCurrency: false,
-      change: 0,
-      icon: Clock,
-      gradient: "bg-linear-to-br from-purple-500 via-purple-600 to-purple-700",
-      iconBg: "bg-purple-400/30",
-    },
-    {
-      label: "Próx. a Vencer",
+      label: "Próx. a vencer",
       value: expiring,
       formattedValue: String(expiring),
       isCurrency: false,
       change: 0,
       icon: CalendarX2,
-      gradient: "bg-linear-to-br from-rose-500 via-red-500 to-rose-700",
-      iconBg: "bg-rose-400/30",
+      gradient: "bg-rose-500",
+      iconBg: "",
     },
   ]
 }
@@ -126,7 +123,9 @@ function buildDonut(contracts: Contract[]): StatusSlice[] {
     counts[key].count++
   }
   return Object.entries(counts).map(([name, { count, color }]) => ({
-    name, value: count, color,
+    name,
+    value: count,
+    color,
   }))
 }
 
@@ -142,15 +141,17 @@ function buildEntityBars(contracts: Contract[]): EntityBar[] {
     .slice(0, 7)
 }
 
-// ── Animation helper ──────────────────────────────────────────────────────────
-
-const fadeUp = (delay: number) => ({
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.4, delay, ease: "easeOut" as const },
-})
-
-// ── Props ─────────────────────────────────────────────────────────────────────
+function urgentContracts(contracts: Contract[]): Contract[] {
+  return contracts
+    .filter(
+      (c) =>
+        c.status === "EN_EJECUCION" &&
+        c.days_remaining != null &&
+        c.days_remaining <= 30
+    )
+    .sort((a, b) => (a.days_remaining ?? 99) - (b.days_remaining ?? 99))
+    .slice(0, 4)
+}
 
 interface DashboardPageProps {
   metrics: DashboardMetrics | null
@@ -158,116 +159,144 @@ interface DashboardPageProps {
   fetchError?: string
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 export function DashboardPage({ metrics, contracts, fetchError }: DashboardPageProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const kpis = useMemo(() => buildKPIs(metrics, contracts), [metrics, contracts])
   const donutData = useMemo(() => buildDonut(contracts), [contracts])
   const entityBars = useMemo(() => buildEntityBars(contracts), [contracts])
-
-  const today = new Date().toLocaleDateString("es-CO", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
-  })
+  const urgent = useMemo(() => urgentContracts(contracts), [contracts])
 
   return (
-    <div className="space-y-6 max-w-screen-2xl mx-auto pb-8">
-
-      {/* Header */}
-      <motion.div {...fadeUp(0)} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-foreground">Bienvenida, Camila</h2>
-          <p className="text-sm text-muted-foreground mt-0.5 capitalize">{today}</p>
+          <h2 className="text-2xl font-bold text-[#151c27] tracking-tight">
+            Ejecución y monitoreo
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Resumen de la actividad contractual y avance financiero.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-3 py-2 rounded-xl hover:bg-muted transition-colors">
-            <RefreshCw size={13} />
-            Actualizar
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#EAEAEA] bg-white text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            <Download size={14} />
+            Exportar
           </button>
           <button
+            type="button"
             onClick={() => setModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-medium hover:opacity-90 transition-all shadow-sm shadow-primary/20 active:scale-95"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--corporate-blue)] text-white text-xs font-semibold hover:opacity-90 shadow-sm"
           >
-            <Plus size={13} />
+            <Plus size={14} />
             Nuevo contrato
           </button>
         </div>
-      </motion.div>
+      </div>
 
       <NewContractModal open={modalOpen} onClose={() => setModalOpen(false)} />
 
-      {/* Error */}
       {fetchError && (
-        <motion.div {...fadeUp(0.05)} className="flex items-center gap-3 px-4 py-3 bg-destructive/10 border border-destructive/20 rounded-xl text-sm text-destructive">
+        <div className="flex items-center gap-3 px-4 py-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
           <AlertTriangle size={16} />
           Error al cargar datos: {fetchError}
-        </motion.div>
+        </div>
       )}
 
-      {/* KPIs — 3 cols mobile, 6 desktop */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
         {kpis.map((kpi, i) => (
           <KPICard key={kpi.label} {...kpi} index={i} />
         ))}
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        <motion.div {...fadeUp(0.3)} className="lg:col-span-2 bg-card border border-border rounded-2xl p-5 shadow-sm">
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center">
-                <PieChart size={15} className="text-violet-600" />
-              </div>
-              Estado de Contratos
-            </h3>
-            <p className="text-xs text-muted-foreground mt-0.5 ml-9">Distribución por estado actual</p>
+        <div className="lg:col-span-2 epuxua-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Estado por contrato</h3>
+              <p className="text-xs text-muted-foreground">Distribución actual</p>
+            </div>
+            <MaterialIcon name="more_vert" size={20} className="text-muted-foreground" />
           </div>
           <DonutChart data={donutData} total={contracts.length} />
-        </motion.div>
+        </div>
 
-        <motion.div {...fadeUp(0.38)} className="lg:col-span-3 bg-card border border-border rounded-2xl p-5 shadow-sm">
+        <div className="lg:col-span-3 epuxua-card p-5">
           <div className="mb-5">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center">
-                <BarChart3 size={15} className="text-indigo-600" />
-              </div>
-              Contratos por Entidad
+            <h3 className="text-sm font-bold text-foreground">
+              Contratos por área responsable
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5 ml-9">Top entidades contratantes</p>
+            <p className="text-xs text-muted-foreground">Top áreas</p>
           </div>
           <BarByEntityChart data={entityBars} />
-        </motion.div>
+        </div>
       </div>
 
-      {/* Contracts + Timeline */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <motion.div {...fadeUp(0.46)} className="xl:col-span-2 bg-card border border-border rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">Contratos Recientes</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {contracts.length > 0
-                  ? `${contracts.length} contrato${contracts.length !== 1 ? "s" : ""} registrado${contracts.length !== 1 ? "s" : ""}`
-                  : "Sin contratos registrados aún"}
-              </p>
-            </div>
-            {contracts.length > 6 && (
-              <button className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+        <div className="xl:col-span-2 space-y-5">
+          <div className="epuxua-card p-5">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Contratos recientes</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {contracts.length} en el sistema
+                </p>
+              </div>
+              <Link
+                href="/contracts"
+                className="text-xs font-semibold text-[var(--corporate-blue)] hover:underline inline-flex items-center gap-1"
+              >
                 Ver todos <ArrowRight size={13} />
-              </button>
-            )}
+              </Link>
+            </div>
+            <ContractCards contracts={contracts} />
           </div>
-          <ContractCards contracts={contracts} />
-        </motion.div>
+        </div>
 
-        <motion.div {...fadeUp(0.54)} className="bg-card border border-border rounded-2xl p-5 shadow-sm">
-          <div className="mb-5">
-            <h3 className="text-sm font-semibold text-foreground">Actividad Reciente</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Últimos eventos del sistema</p>
+        <div className="space-y-5">
+          <div className="epuxua-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <MaterialIcon name="warning" size={18} className="text-amber-500" />
+                Próximos a vencer
+              </h3>
+              <Link href="/alertas" className="text-[10px] font-semibold text-[var(--corporate-blue)]">
+                Ver todo
+              </Link>
+            </div>
+            <ul className="space-y-3">
+              {urgent.length === 0 ? (
+                <li className="text-xs text-muted-foreground py-4 text-center">
+                  Sin vencimientos críticos
+                </li>
+              ) : (
+                urgent.map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      href={`/contracts/${c.id}`}
+                      className="block p-3 rounded-lg border border-[#EAEAEA] hover:border-[var(--corporate-blue)]/30 transition-colors"
+                    >
+                      <p className="text-xs font-mono text-muted-foreground">{c.contract_number}</p>
+                      <p className="text-sm font-medium line-clamp-1 mt-0.5">{c.object}</p>
+                      <p className="text-[10px] text-rose-600 font-semibold mt-1">
+                        {c.days_remaining != null && c.days_remaining >= 0
+                          ? `${c.days_remaining} días restantes`
+                          : "Vencido"}
+                      </p>
+                    </Link>
+                  </li>
+                ))
+              )}
+            </ul>
           </div>
-          <ActivityTimeline contracts={contracts} />
-        </motion.div>
+
+          <div className="epuxua-card p-5">
+            <h3 className="text-sm font-bold text-foreground mb-4">Actividad reciente</h3>
+            <ActivityTimeline contracts={contracts} />
+          </div>
+        </div>
       </div>
     </div>
   )

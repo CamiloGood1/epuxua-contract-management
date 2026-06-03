@@ -23,7 +23,7 @@ export default async function ContractsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-screen-2xl mx-auto pb-8">
+    <div className="space-y-6">
       {loadError && (
         <div className="px-4 py-3 rounded-xl border border-destructive/30 bg-destructive/10 text-sm text-destructive">
           No se pudieron cargar los contratos desde Supabase: {loadError}

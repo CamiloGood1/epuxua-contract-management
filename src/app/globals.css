@@ -163,4 +163,12 @@
     line-height: 1;
     font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
   }
+  .sidebar-active {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-weight: 500;
+  }
+  .epuxua-card {
+    @apply bg-white border border-[#EAEAEA] rounded-xl shadow-sm;
+  }
 }
