@@ -1,15 +1,19 @@
 import type { LucideIcon } from "lucide-react"
 
-// ── Dashboard service return type ─────────────────────────────────────────────
-
 export interface DashboardMetrics {
   totalContracts: number
   inProgressContracts: number
   liquidationContracts: number
   totalValue: number
+  suspendedContracts: number
+  liquidatedContracts: number
+  expiring30Days: number
+  expiring15Days: number
+  overdueActive: number
+  totalPaidValue: number
+  totalPendingValue: number
+  activeContractedValue: number
 }
-
-// ── Dashboard derived types ──────────────────────────────────────────────────
 
 export interface KPICardData {
   label: string
@@ -34,15 +38,6 @@ export interface EntityBar {
   count: number
 }
 
-// ── Navigation ───────────────────────────────────────────────────────────────
-
-export type ContractStatus =
-  | "en_ejecucion"
-  | "en_liquidacion"
-  | "liquidado"
-  | "suspendido"
-  | "terminado"
-
 export interface NavItem {
   href: string
   label: string
@@ -50,8 +45,6 @@ export interface NavItem {
   badge?: number
   section?: string
 }
-
-// ── Chart data ───────────────────────────────────────────────────────────────
 
 export interface ChartDataPoint {
   month: string

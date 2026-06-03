@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   FileText,
   ClipboardList,
+  TrendingUp,
   DollarSign,
   Receipt,
   Folder,
@@ -27,7 +28,7 @@ const navSections: { label: string; items: NavItem[] }[] = [
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard },
       { href: "/contracts", label: "Contratos", icon: FileText },
-      { href: "/seguimientos", label: "Seguimientos", icon: ClipboardList },
+      { href: "/seguimiento", label: "Seguimiento", icon: TrendingUp },
     ],
   },
   {

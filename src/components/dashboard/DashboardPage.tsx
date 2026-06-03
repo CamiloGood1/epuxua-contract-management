@@ -25,24 +25,14 @@ import { NewContractModal } from "@/modules/contracts/components/new-contract-mo
 import type { DashboardMetrics, KPICardData, StatusSlice, EntityBar } from "@/types"
 import type { Contract } from "@/types/contract"
 
-// ── Status config (real Supabase values) ─────────────────────────────────────
+// ── Status config (nuevo esquema Supabase) ────────────────────────────────────
+import { STATUS_CONFIG as SC, resolveStatus as RS } from "@/modules/contracts/lib/status"
 
-export const STATUS_CONFIG = {
-  in_progress:   { label: "En Ejecución",     color: "#10B981", dot: "bg-emerald-400" },
-  liquidation:   { label: "En Liquidación",   color: "#F59E0B", dot: "bg-amber-400"   },
-  liquidated:    { label: "Liquidado",         color: "#7C3AED", dot: "bg-violet-400"  },
-  suspended:     { label: "Suspendido",        color: "#EF4444", dot: "bg-red-400"     },
-  pending_start: { label: "Pendiente de Inicio", color: "#3B82F6", dot: "bg-blue-400"  },
-} as const
-
+export const STATUS_CONFIG = SC
+export const resolveStatus = RS
 export type StatusKey = keyof typeof STATUS_CONFIG
 
-export function resolveStatus(raw: string | null | undefined): StatusKey {
-  if (raw && raw in STATUS_CONFIG) return raw as StatusKey
-  return "pending_start"
-}
-
-// ── COP formatter (shared) ────────────────────────────────────────────────────
+// ── COP formatter ─────────────────────────────────────────────────────────────
 
 export function formatCOP(value: number | null | undefined): string {
   if (value == null) return "—"
@@ -56,19 +46,12 @@ export function formatCOP(value: number | null | undefined): string {
 // ── KPI computation ───────────────────────────────────────────────────────────
 
 function buildKPIs(metrics: DashboardMetrics | null, contracts: Contract[]): KPICardData[] {
-  const total = metrics?.totalContracts ?? contracts.length
-  const inProgress = metrics?.inProgressContracts ?? contracts.filter(c => c.status === "in_progress").length
-  const inLiquidation = metrics?.liquidationContracts ?? contracts.filter(c => c.status === "liquidation").length
-  const totalVal = metrics?.totalValue ?? contracts.reduce((s, c) => s + Number(c.initial_value), 0)
-  const pendingStart = contracts.filter(c => c.status === "pending_start").length
-
-  const now = Date.now()
-  const in30 = now + 30 * 86_400_000
-  const expiring = contracts.filter(c => {
-    if (!c.end_date) return false
-    const d = new Date(c.end_date).getTime()
-    return d >= now && d <= in30
-  }).length
+  const total       = metrics?.totalContracts      ?? contracts.length
+  const inProgress  = metrics?.inProgressContracts ?? contracts.filter(c => c.status === "EN_EJECUCION").length
+  const liquidated  = metrics?.liquidatedContracts ?? contracts.filter(c => c.status === "LIQUIDADO").length
+  const suspended   = metrics?.suspendedContracts  ?? contracts.filter(c => c.status === "SUSPENDIDO").length
+  const totalVal    = metrics?.totalValue          ?? contracts.reduce((s, c) => s + Number(c.initial_value), 0)
+  const expiring    = metrics?.expiring30Days      ?? 0
 
   return [
     {
@@ -92,9 +75,9 @@ function buildKPIs(metrics: DashboardMetrics | null, contracts: Contract[]): KPI
       iconBg: "bg-emerald-400/30",
     },
     {
-      label: "En Liquidación",
-      value: inLiquidation,
-      formattedValue: String(inLiquidation),
+      label: "Suspendidos",
+      value: suspended,
+      formattedValue: String(suspended),
       isCurrency: false,
       change: 0,
       icon: Hourglass,
@@ -112,14 +95,14 @@ function buildKPIs(metrics: DashboardMetrics | null, contracts: Contract[]): KPI
       iconBg: "bg-violet-400/30",
     },
     {
-      label: "Pendientes Inicio",
-      value: pendingStart,
-      formattedValue: String(pendingStart),
+      label: "Liquidados",
+      value: liquidated,
+      formattedValue: String(liquidated),
       isCurrency: false,
       change: 0,
       icon: Clock,
-      gradient: "bg-linear-to-br from-blue-500 via-blue-600 to-blue-700",
-      iconBg: "bg-blue-400/30",
+      gradient: "bg-linear-to-br from-purple-500 via-purple-600 to-purple-700",
+      iconBg: "bg-purple-400/30",
     },
     {
       label: "Próx. a Vencer",
@@ -137,7 +120,7 @@ function buildKPIs(metrics: DashboardMetrics | null, contracts: Contract[]): KPI
 function buildDonut(contracts: Contract[]): StatusSlice[] {
   const counts: Record<string, { count: number; color: string }> = {}
   for (const c of contracts) {
-    const cfg = STATUS_CONFIG[resolveStatus(c.status)]
+    const cfg = resolveStatus(c.status)
     const key = cfg.label
     if (!counts[key]) counts[key] = { count: 0, color: cfg.color }
     counts[key].count++
@@ -150,7 +133,7 @@ function buildDonut(contracts: Contract[]): StatusSlice[] {
 function buildEntityBars(contracts: Contract[]): EntityBar[] {
   const map: Record<string, number> = {}
   for (const c of contracts) {
-    const key = c.contracting_entity?.trim() || "Sin entidad"
+    const key = c.area_name?.trim() || "Sin área"
     map[key] = (map[key] ?? 0) + 1
   }
   return Object.entries(map)

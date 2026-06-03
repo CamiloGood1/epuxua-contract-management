@@ -7,8 +7,6 @@ import { ContractCard } from "./contract-card"
 import { ContractsFilters, type FilterState } from "./contracts-filters"
 import type { Contract } from "@/types/contract"
 
-// ── Filter logic ──────────────────────────────────────────────────────────────
-
 function applyFilters(contracts: Contract[], f: FilterState): Contract[] {
   const query = f.search.toLowerCase().trim()
 
@@ -16,10 +14,12 @@ function applyFilters(contracts: Contract[], f: FilterState): Contract[] {
     if (query) {
       const haystack = [
         c.contract_number,
-        c.contract_name,
-        c.contracting_entity,
-        c.manager_name,
-        c.contractor_entity,
+        c.object,
+        c.contractor_name,
+        c.supervisor_name,
+        c.area_name,
+        c.secretaria,
+        String(c.year),
       ]
         .filter(Boolean)
         .join(" ")
@@ -28,14 +28,12 @@ function applyFilters(contracts: Contract[], f: FilterState): Contract[] {
     }
 
     if (f.status !== "all" && c.status !== f.status) return false
-    if (f.entity !== "all" && c.contracting_entity !== f.entity) return false
-    if (f.manager !== "all" && c.manager_name !== f.manager) return false
+    if (f.entity !== "all" && c.area_name !== f.entity) return false
+    if (f.manager !== "all" && c.supervisor_name !== f.manager) return false
 
     return true
   })
 }
-
-// ── Empty state ───────────────────────────────────────────────────────────────
 
 function EmptyState({ hasFilters }: { hasFilters: boolean }) {
   return (
@@ -47,14 +45,11 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
       <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-indigo-50 to-violet-50 border border-border flex items-center justify-center mb-4">
         <FileText size={28} className="text-muted-foreground/40" />
       </div>
-
       {hasFilters ? (
         <>
-          <h3 className="text-base font-semibold text-foreground mb-1.5">
-            Sin resultados
-          </h3>
+          <h3 className="text-base font-semibold text-foreground mb-1.5">Sin resultados</h3>
           <p className="text-sm text-muted-foreground max-w-xs">
-            Ningún contrato coincide con los filtros aplicados. Prueba con otros criterios.
+            Ningún contrato coincide con los filtros aplicados.
           </p>
         </>
       ) : (
@@ -63,21 +58,15 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
             No hay contratos registrados
           </h3>
           <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-            Registra el primer contrato para comenzar el seguimiento contractual.
+            Registra el primer contrato para comenzar el seguimiento.
           </p>
-          <button className="mt-5 inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shadow-sm shadow-primary/20 active:scale-95">
-            <Plus size={15} />
-            Registrar contrato
-          </button>
         </>
       )}
     </motion.div>
   )
 }
 
-// ── Grid skeleton ─────────────────────────────────────────────────────────────
-
-function CardSkeleton() {
+export function CardSkeleton() {
   return (
     <div className="bg-card border border-border rounded-2xl overflow-hidden animate-pulse">
       <div className="h-1 bg-muted" />
@@ -93,10 +82,9 @@ function CardSkeleton() {
           <div className="h-3 bg-muted rounded w-1/2" />
           <div className="h-3 bg-muted rounded w-1/3" />
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="h-14 bg-muted rounded-xl" />
-          ))}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="h-14 bg-muted rounded-xl" />
+          <div className="h-14 bg-muted rounded-xl" />
         </div>
         <div className="space-y-2">
           <div className="h-2 bg-muted rounded w-full" />
@@ -106,8 +94,6 @@ function CardSkeleton() {
     </div>
   )
 }
-
-// ── Main component ────────────────────────────────────────────────────────────
 
 interface ContractsGridProps {
   contracts: Contract[]
@@ -123,15 +109,12 @@ const INITIAL_FILTERS: FilterState = {
 export function ContractsGrid({ contracts }: ContractsGridProps) {
   const [filters, setFilters] = useState<FilterState>(INITIAL_FILTERS)
 
-  const entities = useMemo(
-    () =>
-      [...new Set(contracts.map((c) => c.contracting_entity).filter(Boolean))] as string[],
+  const areas = useMemo(
+    () => [...new Set(contracts.map((c) => c.area_name).filter(Boolean))] as string[],
     [contracts]
   )
-
-  const managers = useMemo(
-    () =>
-      [...new Set(contracts.map((c) => c.manager_name).filter(Boolean))] as string[],
+  const supervisors = useMemo(
+    () => [...new Set(contracts.map((c) => c.supervisor_name).filter(Boolean))] as string[],
     [contracts]
   )
 
@@ -145,17 +128,14 @@ export function ContractsGrid({ contracts }: ContractsGridProps) {
 
   return (
     <div className="space-y-5">
-      {/* Filters */}
       <ContractsFilters
         filters={filters}
         onFiltersChange={setFilters}
-        entities={entities}
-        managers={managers}
+        entities={areas}
+        managers={supervisors}
         totalCount={contracts.length}
         filteredCount={filtered.length}
       />
-
-      {/* Grid */}
       <AnimatePresence mode="wait">
         {filtered.length === 0 ? (
           <div key="empty">
@@ -179,5 +159,3 @@ export function ContractsGrid({ contracts }: ContractsGridProps) {
     </div>
   )
 }
-
-export { CardSkeleton }

@@ -11,6 +11,7 @@ import {
   type ContractAlert,
   type AlertSeverity,
 } from "@/modules/contracts/lib/alerts"
+import type { AlertContext } from "@/modules/contracts/lib/alerts"
 import type { Contract } from "@/types/contract"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -108,8 +109,8 @@ function AlertRow({ item, index }: { item: AlertWithContract; index: number }) {
         </div>
         <p className={cn("text-sm font-semibold", cfg.text)}>{item.title}</p>
         <p className="text-xs text-foreground/70 mt-0.5 leading-relaxed">{item.description}</p>
-        <p className="text-xs text-muted-foreground mt-1 truncate">
-          {item.contract.contract_name}
+        <p className="text-xs text-muted-foreground mt-1 truncate line-clamp-1">
+          {item.contract.object || item.contract.contract_number}
         </p>
       </div>
 
@@ -127,14 +128,20 @@ function AlertRow({ item, index }: { item: AlertWithContract; index: number }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-export function AlertsPageClient({ contracts }: { contracts: Contract[] }) {
+export function AlertsPageClient({
+  contracts,
+  trackingContext = {},
+}: {
+  contracts: Contract[]
+  trackingContext?: Record<string, AlertContext>
+}) {
   const [filter, setFilter] = useState<AlertSeverity | "all">("all")
 
   const allAlerts: AlertWithContract[] = useMemo(() => {
     return contracts.flatMap((c) =>
-      computeAlerts(c).map((a) => ({ ...a, contract: c }))
+      computeAlerts(c, trackingContext[c.id]).map((a) => ({ ...a, contract: c }))
     )
-  }, [contracts])
+  }, [contracts, trackingContext])
 
   const counts = useMemo(
     () => ({

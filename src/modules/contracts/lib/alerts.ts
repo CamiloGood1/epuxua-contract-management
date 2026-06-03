@@ -3,16 +3,16 @@ import {
   Clock,
   CalendarX2,
   TrendingDown,
-  ShieldAlert,
   Hourglass,
   CalendarClock,
   Info,
   CheckCircle2,
   Pause,
   CalendarDays,
+  ClipboardList,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import type { Contract } from "@/types/contract"
+import type { Contract, ContractStatus } from "@/types/contract"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -25,6 +25,11 @@ export interface ContractAlert {
   description: string
   icon: LucideIcon
   date?: string | null
+}
+
+export interface AlertContext {
+  physicalProgress?: number | null
+  hasFollowups?: boolean
 }
 
 export const SEVERITY_CONFIG: Record<AlertSeverity, {
@@ -85,6 +90,16 @@ export const SEVERITY_CONFIG: Record<AlertSeverity, {
 
 const SEVERITY_ORDER: AlertSeverity[] = ["critica", "alta", "media", "baja", "info"]
 
+const CLOSED_STATUSES: ContractStatus[] = [
+  "LIQUIDADO",
+  "CIERRE_CONTRACTUAL",
+  "TERMINADO",
+  "TERMINADO_ANTICIPADAMENTE",
+  "DECLARADO_FALLIDO",
+  "ACTA_NO_EJECUCION",
+  "NO_SUSCRIPCION",
+]
+
 function daysDiff(dateStr: string): number {
   const target = new Date(dateStr)
   const now = new Date()
@@ -102,21 +117,31 @@ function fmt(dateStr?: string | null): string {
   })
 }
 
+function isClosed(status: ContractStatus): boolean {
+  return CLOSED_STATUSES.includes(status)
+}
+
 // ── Core computation ──────────────────────────────────────────────────────────
 
-export function computeAlerts(contract: Contract): ContractAlert[] {
+export function computeAlerts(
+  contract: Contract,
+  ctx: AlertContext = {}
+): ContractAlert[] {
   const alerts: ContractAlert[] = []
   const status = contract.status
-  const isActive = status === "in_progress"
-  const phys = Number(contract.physical_progress ?? 0)
-  const fin = Number(contract.financial_progress ?? 0)
+  const isActive = status === "EN_EJECUCION"
+  const hasFollowups = ctx.hasFollowups ?? false
+  const physRaw = ctx.physicalProgress
+  const physKnown = physRaw != null
+  const phys = physKnown ? Number(physRaw) : null
+  const fin = Number(contract.financial_progress_pct ?? 0)
 
   // ── Vencimiento ───────────────────────────────────────────────────────────
 
   if (contract.end_date) {
     const days = daysDiff(contract.end_date)
 
-    if (days < 0 && status !== "liquidated") {
+    if (days < 0 && !isClosed(status)) {
       alerts.push({
         id: "expired",
         severity: "critica",
@@ -125,7 +150,7 @@ export function computeAlerts(contract: Contract): ContractAlert[] {
         icon: CalendarX2,
         date: contract.end_date,
       })
-    } else if (days >= 0 && days <= 15 && status !== "liquidated") {
+    } else if (days >= 0 && days <= 15 && !isClosed(status)) {
       alerts.push({
         id: "expiring-critical",
         severity: "critica",
@@ -134,7 +159,7 @@ export function computeAlerts(contract: Contract): ContractAlert[] {
         icon: AlertTriangle,
         date: contract.end_date,
       })
-    } else if (days > 15 && days <= 30 && status !== "liquidated") {
+    } else if (days > 15 && days <= 30 && !isClosed(status)) {
       alerts.push({
         id: "expiring-alta",
         severity: "alta",
@@ -143,7 +168,7 @@ export function computeAlerts(contract: Contract): ContractAlert[] {
         icon: Clock,
         date: contract.end_date,
       })
-    } else if (days > 30 && days <= 60 && status !== "liquidated") {
+    } else if (days > 30 && days <= 60 && !isClosed(status)) {
       alerts.push({
         id: "expiring-media",
         severity: "media",
@@ -153,7 +178,7 @@ export function computeAlerts(contract: Contract): ContractAlert[] {
         date: contract.end_date,
       })
     }
-  } else if (status !== "liquidated" && status !== "liquidation") {
+  } else if (!isClosed(status)) {
     alerts.push({
       id: "no-end-date",
       severity: "baja",
@@ -165,7 +190,7 @@ export function computeAlerts(contract: Contract): ContractAlert[] {
 
   // ── Estado del contrato ───────────────────────────────────────────────────
 
-  if (status === "suspended") {
+  if (status === "SUSPENDIDO") {
     alerts.push({
       id: "suspended",
       severity: "alta",
@@ -175,19 +200,31 @@ export function computeAlerts(contract: Contract): ContractAlert[] {
     })
   }
 
-  if (status === "liquidation") {
+  if (status === "CIERRE_CONTRACTUAL") {
     alerts.push({
       id: "in-liquidation",
       severity: "media",
-      title: "En proceso de liquidación",
-      description: "El contrato está en proceso de liquidación. Verificar que todos los documentos estén en orden.",
+      title: "Cierre contractual",
+      description: "El contrato está en cierre contractual. Verificar que todos los documentos estén en orden.",
       icon: Hourglass,
+    })
+  }
+
+  // ── Sin seguimientos ──────────────────────────────────────────────────────
+
+  if (isActive && !hasFollowups) {
+    alerts.push({
+      id: "no-followups",
+      severity: "media",
+      title: "Sin seguimientos registrados",
+      description: "No hay cortes de seguimiento en contract_followups. Registra el primer seguimiento para monitorear el avance físico.",
+      icon: ClipboardList,
     })
   }
 
   // ── Ejecución ─────────────────────────────────────────────────────────────
 
-  if (isActive && phys < 20) {
+  if (isActive && physKnown && phys! < 20) {
     alerts.push({
       id: "very-low-physical",
       severity: "alta",
@@ -195,7 +232,7 @@ export function computeAlerts(contract: Contract): ContractAlert[] {
       description: `El avance físico es de solo el ${phys}%. Se requiere seguimiento inmediato.`,
       icon: TrendingDown,
     })
-  } else if (isActive && phys < 40) {
+  } else if (isActive && physKnown && phys! < 40) {
     alerts.push({
       id: "low-physical",
       severity: "media",
@@ -210,7 +247,7 @@ export function computeAlerts(contract: Contract): ContractAlert[] {
       id: "very-low-financial",
       severity: "alta",
       title: "Ejecución financiera muy baja",
-      description: `El avance financiero es de solo el ${fin}%. Revisar el plan de pagos.`,
+      description: `El avance financiero es de solo el ${fin.toFixed(1)}%. Revisar el plan de pagos.`,
       icon: TrendingDown,
     })
   } else if (isActive && fin < 40) {
@@ -218,51 +255,29 @@ export function computeAlerts(contract: Contract): ContractAlert[] {
       id: "low-financial",
       severity: "media",
       title: "Baja ejecución financiera",
-      description: `El avance financiero es del ${fin}%. Verificar el flujo de pagos.`,
+      description: `El avance financiero es del ${fin.toFixed(1)}%. Verificar el flujo de pagos.`,
       icon: TrendingDown,
     })
   }
 
-  // Discrepancia física vs financiera > 20 puntos
-  if (isActive && Math.abs(phys - fin) > 20) {
-    const leader = phys > fin ? "física" : "financiera"
+  if (isActive && physKnown && Math.abs(phys! - fin) > 20) {
+    const leader = phys! > fin ? "física" : "financiera"
     alerts.push({
       id: "execution-gap",
       severity: "media",
       title: "Brecha entre ejecución física y financiera",
-      description: `Hay una diferencia de ${Math.abs(phys - fin)} puntos porcentuales entre el avance físico (${phys}%) y financiero (${fin}%). La ejecución ${leader} va más adelantada.`,
+      description: `Hay una diferencia de ${Math.abs(phys! - fin).toFixed(1)} puntos entre el avance físico (${phys}%) y financiero (${fin.toFixed(1)}%). La ejecución ${leader} va más adelantada.`,
       icon: TrendingDown,
     })
   }
 
-  // Casi completo → preparar liquidación
-  if (isActive && phys >= 90) {
+  if (isActive && physKnown && phys! >= 90) {
     alerts.push({
       id: "near-complete",
       severity: "info",
       title: "Contrato próximo a completarse",
       description: `El avance físico es del ${phys}%. Preparar la documentación para el proceso de liquidación.`,
       icon: CheckCircle2,
-    })
-  }
-
-  // ── Riesgo ────────────────────────────────────────────────────────────────
-
-  if (contract.risk_level === "critical") {
-    alerts.push({
-      id: "risk-critical",
-      severity: "critica",
-      title: "Nivel de riesgo crítico",
-      description: "El contrato tiene un nivel de riesgo crítico. Se requieren medidas inmediatas de mitigación.",
-      icon: ShieldAlert,
-    })
-  } else if (contract.risk_level === "high") {
-    alerts.push({
-      id: "risk-high",
-      severity: "alta",
-      title: "Nivel de riesgo alto",
-      description: "El contrato presenta un nivel de riesgo alto. Revisar el plan de gestión de riesgos.",
-      icon: ShieldAlert,
     })
   }
 
@@ -278,17 +293,15 @@ export function computeAlerts(contract: Contract): ContractAlert[] {
     })
   }
 
-  if (!contract.manager_name) {
+  if (!contract.supervisor_name) {
     alerts.push({
-      id: "no-manager",
+      id: "no-supervisor",
       severity: "baja",
-      title: "Sin gerente asignado",
-      description: "El contrato no tiene un gerente responsable asignado.",
+      title: "Sin supervisor asignado",
+      description: "El contrato no tiene un supervisor responsable registrado.",
       icon: Info,
     })
   }
-
-  // ── Ordenar por prioridad ─────────────────────────────────────────────────
 
   return alerts.sort(
     (a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity)
