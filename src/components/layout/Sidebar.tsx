@@ -22,6 +22,7 @@ const navSections: { label: string; items: NavLink[] }[] = [
     items: [
       { href: "/", label: "Dashboard", icon: "dashboard" },
       { href: "/contracts", label: "Contratos", icon: "description" },
+      { href: "/contratos-derivados", label: "Contratos Derivados", icon: "account_tree" },
       { href: "/seguimiento", label: "Seguimiento", icon: "query_stats" },
     ],
   },

@@ -11,6 +11,10 @@ import { cn } from "@/lib/utils"
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   "/": { title: "Dashboard", subtitle: "Ejecución y monitoreo financiero" },
   "/contracts": { title: "Contratos", subtitle: "Gestión de contratación pública" },
+  "/contratos-derivados": {
+    title: "Contratos derivados",
+    subtitle: "Vinculados a interadministrativos",
+  },
   "/seguimiento": { title: "Seguimiento", subtitle: "Proyectos y avance de ejecución" },
   "/alertas": { title: "Alertas", subtitle: "Centro de notificaciones" },
   "/financiero": { title: "Financiero", subtitle: "Presupuesto y ejecución" },
