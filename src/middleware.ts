@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { ensureUserProfile } from "@/lib/supabase/ensure-profile"
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -27,6 +28,10 @@ export async function middleware(request: NextRequest) {
 
   // Refresh session — must use getUser(), not getSession()
   const { data: { user } } = await supabase.auth.getUser()
+
+  if (user) {
+    await ensureUserProfile(supabase)
+  }
 
   const isLoginPage = request.nextUrl.pathname.startsWith("/login")
 

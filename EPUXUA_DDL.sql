@@ -646,6 +646,7 @@ CREATE INDEX idx_doc_type      ON documents (document_type);
 -- 10. USUARIOS Y ROLES
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+-- id = auth.users.id (generado por Supabase Auth; nunca lo introduce el usuario en la UI)
 CREATE TABLE user_profiles (
   id                  uuid           PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name           varchar(255)   NOT NULL,
@@ -678,6 +679,84 @@ $$;
 CREATE TRIGGER trg_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- Asegura perfil en primer login / sesiones sin trigger (id = auth.uid(), sin UUID manual)
+CREATE OR REPLACE FUNCTION ensure_user_profile()
+RETURNS user_profiles
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_auth   auth.users%ROWTYPE;
+  v_result user_profiles;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'No autenticado';
+  END IF;
+
+  SELECT * INTO v_auth FROM auth.users WHERE id = auth.uid();
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Usuario de auth no encontrado';
+  END IF;
+
+  INSERT INTO user_profiles (id, full_name, role)
+  VALUES (
+    v_auth.id,
+    COALESCE(v_auth.raw_user_meta_data->>'full_name', v_auth.email),
+    'ESPECTADOR'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = COALESCE(EXCLUDED.full_name, user_profiles.full_name),
+    updated_at = now();
+
+  SELECT * INTO v_result FROM user_profiles WHERE id = auth.uid();
+  RETURN v_result;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION ensure_user_profile() TO authenticated;
+
+CREATE OR REPLACE FUNCTION backfill_user_profiles_from_auth()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE v_count integer;
+BEGIN
+  INSERT INTO user_profiles (id, full_name, role)
+  SELECT
+    au.id,
+    COALESCE(au.raw_user_meta_data->>'full_name', au.email),
+    'ESPECTADOR'
+  FROM auth.users au
+  WHERE NOT EXISTS (
+    SELECT 1 FROM user_profiles up WHERE up.id = au.id
+  );
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN v_count;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION set_user_role_by_email(p_email text, p_role user_role_enum)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE v_updated integer;
+BEGIN
+  UPDATE user_profiles up
+  SET role = p_role, updated_at = now()
+  FROM auth.users au
+  WHERE up.id = au.id
+    AND lower(trim(au.email)) = lower(trim(p_email));
+
+  GET DIAGNOSTICS v_updated = ROW_COUNT;
+  RETURN v_updated > 0;
+END;
+$$;
 
 -- Asignación de contratos a gerentes (base del RLS de GERENTE)
 CREATE TABLE contract_assignments (
@@ -1155,6 +1234,10 @@ CREATE POLICY "espectador_documents" ON documents FOR SELECT TO authenticated
 CREATE POLICY "profile_own_select"
   ON user_profiles FOR SELECT TO authenticated
   USING (id = auth.uid() OR current_user_role() = 'ADMIN');
+
+CREATE POLICY "profile_self_insert"
+  ON user_profiles FOR INSERT TO authenticated
+  WITH CHECK (id = auth.uid() AND role = 'ESPECTADOR');
 
 CREATE POLICY "profile_own_update"
   ON user_profiles FOR UPDATE TO authenticated

@@ -28,7 +28,8 @@ export default async function ContractsPage() {
         <div className="px-4 py-3 rounded-xl border border-destructive/30 bg-destructive/10 text-sm text-destructive">
           No se pudieron cargar los contratos desde Supabase: {loadError}
           <span className="block mt-1 text-xs text-destructive/80">
-            Revisa variables en Vercel, ejecuta EPUXUA_VIEWS_GRANTS.sql y el rol en user_profiles (ADMIN/ESPECTADOR).
+            Revisa variables en Vercel, EPUXUA_VIEWS_GRANTS.sql y EPUXUA_USER_PROFILES_AUTO.sql.
+            Asigna rol con set_user_role_by_email (no hace falta introducir UUID).
           </span>
         </div>
       )}

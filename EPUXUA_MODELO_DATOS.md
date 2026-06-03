@@ -443,9 +443,11 @@ tienda_virtual IS-A contracts          (compra por acuerdo marco)
 ### Tabla: `user_profiles`
 **Descripción:** Extiende auth.users de Supabase con datos de negocio.
 
+El **`id` no lo introduce el usuario**: coincide con `auth.users.id` y se crea automáticamente al registrarse en Auth (`handle_new_user`) o al iniciar sesión (`ensure_user_profile()` en la app). Para usuarios ya existentes en Auth: `backfill_user_profiles_from_auth()`. Para asignar rol sin copiar UUID: `set_user_role_by_email(correo, rol)`.
+
 | Columna | Tipo | Restricción | Descripción |
 |---------|------|-------------|-------------|
-| id | uuid | PK FK → auth.users | Mismo ID de Supabase Auth |
+| id | uuid | PK FK → auth.users | Asignado por Supabase Auth (automático) |
 | full_name | varchar(255) | NOT NULL | |
 | role | user_role_enum | NOT NULL | 'ADMIN', 'GERENTE', 'ESPECTADOR' |
 | responsible_area_id | uuid | FK → responsible_areas (nullable) | Área del gerente |

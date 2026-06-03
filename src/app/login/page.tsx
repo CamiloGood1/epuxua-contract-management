@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Loader2, AlertCircle, Lock } from "lucide-react"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
+import { ensureUserProfile } from "@/lib/supabase/ensure-profile"
 import { MaterialIcon } from "@/components/ui/material-icon"
 
 export default function LoginPage() {
@@ -27,6 +28,8 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
+
+    await ensureUserProfile(supabase)
 
     router.push("/")
     router.refresh()

@@ -13,8 +13,13 @@ GRANT SELECT ON v_contract_tracking TO authenticated;
 GRANT SELECT ON v_contract_alerts TO authenticated;
 GRANT SELECT ON v_derived_contracts TO authenticated;
 
--- El usuario con el que inicias sesión debe poder leer contratos:
+-- Perfiles: el id se asigna solo (auth.users.id). Ejecutar también EPUXUA_USER_PROFILES_AUTO.sql
+-- si el proyecto ya existía antes de ensure_user_profile().
+
+-- Usuarios Auth sin fila en user_profiles:
+-- SELECT backfill_user_profiles_from_auth();
+
+-- Rol del usuario con el que inicias sesión (sin copiar UUID):
 --   ADMIN o ESPECTADOR → todos los contratos
---   GERENTE → solo contratos en contract_assignments
--- Ejemplo (reemplaza el UUID por auth.users.id del usuario):
--- UPDATE user_profiles SET role = 'ADMIN' WHERE id = '00000000-0000-0000-0000-000000000000';
+--   GERENTE → solo contract_assignments
+-- SELECT set_user_role_by_email('tu-correo@institucion.gov.co', 'ADMIN');
