@@ -153,8 +153,8 @@ function SidebarContent({
           !showLabel && "justify-center"
         )}
       >
-        <div className="w-9 h-9 rounded-xl bg-linear-to-br from-sidebar-primary to-violet-600 flex items-center justify-center shrink-0 shadow-lg">
-          <Building2 size={18} className="text-white" />
+        <div className="w-9 h-9 rounded-lg bg-[var(--institutional-gold)] flex items-center justify-center shrink-0 shadow-md">
+          <Building2 size={18} className="text-[var(--corporate-blue)]" />
         </div>
 
         <AnimatePresence mode="wait">
@@ -167,11 +167,11 @@ function SidebarContent({
               transition={{ duration: 0.15 }}
               className="flex-1 min-w-0"
             >
-              <p className="text-sidebar-primary-foreground font-bold text-sm leading-none tracking-tight">
-                Epuxua
+              <p className="text-white font-bold text-sm leading-none tracking-tight">
+                EPUXUA
               </p>
-              <p className="text-sidebar-foreground/45 text-[11px] leading-none mt-1">
-                Gestión Contractual
+              <p className="text-[#ADBDCC] text-[10px] uppercase tracking-wide leading-none mt-1 font-medium">
+                Gestión Pública
               </p>
             </motion.div>
           )}

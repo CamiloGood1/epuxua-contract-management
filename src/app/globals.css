@@ -73,14 +73,21 @@
   --chart-4: #F59E0B;
   --chart-5: #06B6D4;
   --radius: 0.625rem;
-  --sidebar: oklch(0.19 0.055 265);
-  --sidebar-foreground: oklch(0.85 0.025 265);
-  --sidebar-primary: oklch(0.52 0.22 265);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.27 0.065 265);
-  --sidebar-accent-foreground: oklch(0.92 0.015 265);
-  --sidebar-border: oklch(0.27 0.05 265);
-  --sidebar-ring: oklch(0.52 0.22 265);
+  /* Prototipo EPUXUA (codigo front.pages): azul corporativo + oro institucional */
+  --institutional-gold: #d9a520;
+  --corporate-blue: #002869;
+  --surface-container: #e7eefe;
+  --primary: #345bab;
+  --primary-foreground: #ffffff;
+  --sidebar: #002869;
+  --sidebar-foreground: #dce2fb;
+  --sidebar-primary: #d9a520;
+  --sidebar-primary-foreground: #002869;
+  --sidebar-accent: rgba(255, 255, 255, 0.1);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-ring: #d9a520;
+  --background: #f6f8fc;
 }
 
 .dark {
@@ -141,7 +148,19 @@
     background: transparent;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: oklch(0.35 0.05 265);
-    border-radius: 2px;
+    background-color: #cbd5e1;
+    border-radius: 4px;
+  }
+  .text-institutional-gold {
+    color: var(--institutional-gold);
+  }
+  .bg-institutional-gold {
+    background-color: var(--institutional-gold);
+  }
+  .material-symbols-outlined {
+    font-family: "Material Symbols Outlined";
+    font-size: 20px;
+    line-height: 1;
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
   }
 }

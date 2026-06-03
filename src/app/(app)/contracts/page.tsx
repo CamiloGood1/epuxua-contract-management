@@ -14,10 +14,24 @@ function GridSkeleton() {
 }
 
 export default async function ContractsPage() {
-  const contracts = await getContracts().catch(() => [])
+  let contracts: Awaited<ReturnType<typeof getContracts>> = []
+  let loadError: string | null = null
+  try {
+    contracts = await getContracts()
+  } catch (e) {
+    loadError = e instanceof Error ? e.message : "Error al cargar contratos"
+  }
 
   return (
     <div className="space-y-6 max-w-screen-2xl mx-auto pb-8">
+      {loadError && (
+        <div className="px-4 py-3 rounded-xl border border-destructive/30 bg-destructive/10 text-sm text-destructive">
+          No se pudieron cargar los contratos desde Supabase: {loadError}
+          <span className="block mt-1 text-xs text-destructive/80">
+            Revisa variables en Vercel, ejecuta EPUXUA_VIEWS_GRANTS.sql y el rol en user_profiles (ADMIN/ESPECTADOR).
+          </span>
+        </div>
+      )}
       <ContractsPageHeader count={contracts.length} />
       <Suspense fallback={<GridSkeleton />}>
         <ContractsGrid contracts={contracts} />
