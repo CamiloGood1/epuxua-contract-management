@@ -122,23 +122,30 @@ function buildDonut(contracts: Contract[]): StatusSlice[] {
     if (!counts[key]) counts[key] = { count: 0, color: cfg.color }
     counts[key].count++
   }
-  return Object.entries(counts).map(([name, { count, color }]) => ({
+  const slices = Object.entries(counts).map(([name, { count, color }]) => ({
     name,
     value: count,
     color,
   }))
+  slices.sort((a, b) => b.value - a.value)
+  if (slices.length <= 5) return slices
+  const top = slices.slice(0, 4)
+  const rest = slices.slice(4)
+  const otros = rest.reduce((s, x) => s + x.value, 0)
+  return [...top, { name: "Otros estados", value: otros, color: "#94a3b8" }]
 }
 
-function buildEntityBars(contracts: Contract[]): EntityBar[] {
+function buildSecretariatBars(contracts: Contract[]): EntityBar[] {
   const map: Record<string, number> = {}
   for (const c of contracts) {
-    const key = c.area_name?.trim() || "Sin área"
+    const key = c.secretaria?.trim()
+    if (!key) continue
     map[key] = (map[key] ?? 0) + 1
   }
   return Object.entries(map)
     .map(([entity, count]) => ({ entity, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 7)
+    .slice(0, 8)
 }
 
 function urgentContracts(contracts: Contract[]): Contract[] {
@@ -163,14 +170,14 @@ export function DashboardPage({ metrics, contracts, fetchError }: DashboardPageP
   const [modalOpen, setModalOpen] = useState(false)
   const kpis = useMemo(() => buildKPIs(metrics, contracts), [metrics, contracts])
   const donutData = useMemo(() => buildDonut(contracts), [contracts])
-  const entityBars = useMemo(() => buildEntityBars(contracts), [contracts])
+  const secretariatBars = useMemo(() => buildSecretariatBars(contracts), [contracts])
   const urgent = useMemo(() => urgentContracts(contracts), [contracts])
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[#151c27] tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold text-[#151c27] tracking-tight">
             Ejecución y monitoreo
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
@@ -211,8 +218,8 @@ export function DashboardPage({ metrics, contracts, fetchError }: DashboardPageP
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        <div className="lg:col-span-2 epuxua-card p-5">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-5">
+        <div className="lg:col-span-2 epuxua-card p-4 sm:p-5 min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-foreground">Estado por contrato</h3>
@@ -223,14 +230,16 @@ export function DashboardPage({ metrics, contracts, fetchError }: DashboardPageP
           <DonutChart data={donutData} total={contracts.length} />
         </div>
 
-        <div className="lg:col-span-3 epuxua-card p-5">
-          <div className="mb-5">
+        <div className="lg:col-span-3 epuxua-card p-4 sm:p-5 min-w-0 overflow-hidden">
+          <div className="mb-4 sm:mb-5">
             <h3 className="text-sm font-bold text-foreground">
-              Contratos por área responsable
+              Contratos por secretaría
             </h3>
-            <p className="text-xs text-muted-foreground">Top áreas</p>
+            <p className="text-xs text-muted-foreground">
+              Interadministrativos — contratante municipal
+            </p>
           </div>
-          <BarByEntityChart data={entityBars} />
+          <BarByEntityChart data={secretariatBars} />
         </div>
       </div>
 

@@ -16,6 +16,7 @@ import { StatusBadge } from "./status-badge"
 import { DualProgress } from "./progress-bar"
 import { resolveStatus, formatCOP, formatDate, pct } from "../lib/status"
 import type { Contract } from "@/types/contract"
+import { SecopLink } from "./secop-link"
 
 function MetaRow({ icon: Icon, text }: { icon: typeof Building2; text: string }) {
   if (!text) return null
@@ -151,8 +152,14 @@ export function ContractCard({ contract, index = 0, physicalProgress }: Contract
             animationDelay={0.3 + index * 0.04}
           />
 
+          {contract.secop_url && (
+            <div onClick={(e) => e.preventDefault()} className="pt-0.5">
+              <SecopLink url={contract.secop_url} className="text-[11px]" />
+            </div>
+          )}
+
           {/* Footer */}
-          <div className="flex items-center justify-between pt-1 border-t border-border">
+          <div className="flex items-center justify-between pt-1 border-t border-border gap-2 flex-wrap">
             {contract.end_date ? (
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <Calendar size={11} />

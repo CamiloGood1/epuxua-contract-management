@@ -28,7 +28,7 @@ export function AppLayout({ children, userEmail }: AppLayoutProps) {
           userEmail={userEmail}
         />
         <main className="flex-1 overflow-y-auto scrollbar-thin">
-          <div className="mx-auto w-full max-w-[1440px] px-4 py-6 md:px-8 md:py-8">
+          <div className="mx-auto w-full max-w-[1440px] px-3 py-4 sm:px-4 sm:py-6 md:px-8 md:py-8">
             {children}
           </div>
         </main>

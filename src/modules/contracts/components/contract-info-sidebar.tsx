@@ -17,6 +17,7 @@ import { ProgressBar } from "./progress-bar"
 import { resolveStatus, formatCOP, formatDate, pct } from "../lib/status"
 import { cn } from "@/lib/utils"
 import type { Contract } from "@/types/contract"
+import { SecopLink } from "./secop-link"
 
 function InfoRow({
   icon: Icon,
@@ -128,6 +129,8 @@ export function ContractInfoSidebar({
               : `Vencido hace ${Math.abs(contract.days_remaining)} días`}
           </p>
         )}
+
+        <SecopLink url={contract.secop_url} variant="button" className="mt-1" />
       </div>
 
       <div className="bg-card border border-border rounded-2xl p-5 space-y-3">

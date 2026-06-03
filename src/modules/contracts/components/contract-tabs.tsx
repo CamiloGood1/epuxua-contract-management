@@ -30,6 +30,7 @@ import {
 } from "../lib/status"
 import { computeAlerts, type AlertContext } from "../lib/alerts"
 import type { Contract, ContractFollowup, FollowupAlertLevel } from "@/types/contract"
+import { SecopLink } from "./secop-link"
 
 interface Tab {
   id: string
@@ -97,7 +98,15 @@ function InfoTab({
         <Field label="Objeto" value={contract.object} />
         <Field label="Estado" value={cfg.label} />
         <Field label="Área responsable" value={contract.area_name} />
-        <div className="grid grid-cols-2 gap-4">
+        {contract.secop_url && (
+          <div className="space-y-1 pt-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              SECOP II
+            </p>
+            <SecopLink url={contract.secop_url} />
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Inicio" value={formatDate(contract.start_date)} />
           <Field label="Fin" value={formatDate(contract.end_date)} />
         </div>

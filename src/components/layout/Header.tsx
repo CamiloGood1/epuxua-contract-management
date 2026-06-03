@@ -60,17 +60,26 @@ export function Header({ onMobileMenuOpen, userEmail }: HeaderProps) {
   }
 
   return (
-    <header className="h-16 bg-white border-b border-[#EAEAEA] flex items-center gap-4 px-6 lg:px-8 shrink-0 sticky top-0 z-40">
+    <header className="h-14 sm:h-16 bg-white border-b border-[#EAEAEA] flex items-center gap-2 sm:gap-4 px-3 sm:px-6 lg:px-8 shrink-0 sticky top-0 z-40">
       <button
         type="button"
         onClick={onMobileMenuOpen}
-        className="md:hidden p-2 rounded-lg hover:bg-muted text-muted-foreground"
+        className="md:hidden p-2 rounded-lg hover:bg-muted text-muted-foreground shrink-0"
         aria-label="Abrir menú"
       >
         <Menu className="w-5 h-5" />
       </button>
 
-      <div className="hidden md:block min-w-0">
+      <div className="min-w-0 flex-1 md:flex-none md:max-w-[200px] lg:max-w-none">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground md:hidden">
+          EPUXUA
+        </p>
+        <h1 className="text-sm font-bold text-foreground leading-tight truncate md:hidden">
+          {meta.title}
+        </h1>
+      </div>
+
+      <div className="hidden md:block min-w-0 shrink-0">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Área principal
         </p>
