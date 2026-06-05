@@ -1,19 +1,4 @@
--- Corrección jerarquía contractual (Supabase SQL Editor).
--- Regla de negocio:
---   · Hoja Interadministrativos → contract_type = INTERADMINISTRATIVO
---   · Hoja Contratación, Proyecto = número → DERIVADO + parent_contract_id
---   · Hoja Contratación, Proyecto = texto → DIRECTO (funcionamiento EPUXUA)
---
--- IMPORTANTE (PostgreSQL): el valor nuevo del ENUM debe confirmarse ANTES del UPDATE.
--- Opción A: ejecutar TODO este archivo (incluye COMMIT entre pasos).
--- Opción B: si falla, ejecutar solo el PASO 1, luego el PASO 2 en otra corrida.
-
--- ━━━ PASO 1 — Añadir valor al enum ━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ALTER TYPE contract_type_enum ADD VALUE IF NOT EXISTS 'DERIVADO';
-
-COMMIT;
-
--- ━━━ PASO 2 — Reclasificar, vista y permisos (después del COMMIT) ━━━
+-- PASO 2 de 2 — Ejecutar después de EPUXUA_CONTRACT_HIERARCHY_1_ENUM.sql
 
 UPDATE contracts
 SET contract_type = 'DERIVADO',
@@ -49,7 +34,6 @@ WHERE c.contract_type = 'DERIVADO'
 
 GRANT SELECT ON v_derived_contracts TO authenticated;
 
--- Verificación
 SELECT contract_type, COUNT(*) FROM contracts GROUP BY 1 ORDER BY 1;
 SELECT COUNT(*) AS derivados_con_padre FROM contracts WHERE contract_type = 'DERIVADO';
 SELECT COUNT(*) AS funcionamiento FROM contracts WHERE contract_type = 'DIRECTO';
