@@ -15,7 +15,7 @@ import uuid
 import math
 from datetime import date, datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import openpyxl
 import pandas as pd
@@ -593,11 +593,45 @@ def get_cell(row: tuple, col_idx: Optional[int], default=None):
     return val if val is not None else default
 
 def is_interadmin_ref(val: Optional[str]) -> bool:
-    """¿El campo PROYECTO apunta a un número de contrato interadmin?"""
+    """¿La columna Proyecto apunta a un número de contrato interadministrativo padre?"""
     if not val:
         return False
-    # Patrón: 4 dígitos - 4 dígitos (ej: 3407-2021, 4168-2022, 0499-2024)
-    return bool(re.match(r"^\d{3,5}-\d{4}$", str(val).strip()))
+    s = str(val).strip()
+    if re.match(r"^\d{4}\.0$", s):  # año suelto en encabezado 2024 (no es padre)
+        return False
+    return bool(re.match(r"^\d{3,5}-\d{4}$", s))
+
+def normalize_resource_type(raw: Optional[str]) -> Optional[str]:
+    """Proyecto = texto → recurso presupuestal de contratos de funcionamiento EPUXUA."""
+    if raw is None:
+        return None
+    s = re.sub(r"\s+", " ", str(raw).strip().upper())
+    if not s or s in ("NAN", "NONE", "N/A", "DFF"):
+        return None
+    if "FUNCIONAMIENTO" in s:
+        return "FUNCIONAMIENTO"
+    if "OPERACIÓN" in s or "OPERACION" in s:
+        return "GASTO DE OPERACIÓN COMERCIAL"
+    if "INVERSI" in s:
+        return "INVERSIÓN"
+    if "TRANSFERENCIA" in s or "TRASNFERENCIA" in s:
+        return "TRANSFERENCIAS MUNICIPALES"
+    return s.title() if len(s) <= 80 else s[:80]
+
+def parse_proyecto_column(proyecto_raw: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Hoja Contratación — columna Proyecto:
+      · número XXXX-YYYY → (parent_ref, None)  → contract_type DERIVADO
+      · texto            → (None, resource_type) → contract_type DIRECTO (funcionamiento EPUXUA)
+    """
+    if proyecto_raw is None:
+        return None, None
+    s = str(proyecto_raw).strip()
+    if not s or s in ("None", "nan"):
+        return None, None
+    if is_interadmin_ref(s):
+        return s, None
+    return None, normalize_resource_type(s)
 
 # Errores conocidos en columna PROYECTO / objeto (Excel)
 PARENT_REF_OVERRIDES = {
@@ -676,6 +710,46 @@ def fix_parent_contract_refs(df: pd.DataFrame) -> pd.DataFrame:
             print(f"    · {cn} → {pr} (falta contrato INTERADMINISTRATIVO en fuente)")
     return df
 
+def finalize_contract_hierarchy(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Cierra la jerarquía contractual según reglas de negocio:
+    - Hoja Interadministrativos → ya son INTERADMINISTRATIVO
+    - Hoja Contratación con Proyecto = número → DERIVADO + parent_contract_id
+    - Hoja Contratación con Proyecto = texto  → DIRECTO (funcionamiento EPUXUA)
+    """
+    interadmin_numbers = set(
+        df.loc[df["contract_type"] == "INTERADMINISTRATIVO", "contract_number"]
+        .astype(str).str.strip()
+    )
+    from_object = 0
+    for idx, row in df.iterrows():
+        if row["contract_type"] not in ("DIRECTO", "DERIVADO"):
+            continue
+        pref = row.get("parent_contract_ref")
+        has_pref = pref is not None and not (isinstance(pref, float) and pd.isna(pref))
+        has_pref = has_pref and str(pref).strip() not in ("", "nan", "None")
+        if has_pref:
+            continue
+        resolved = resolve_parent_ref("", row.get("object"), interadmin_numbers)
+        if resolved:
+            df.at[idx, "parent_contract_ref"] = resolved
+            from_object += 1
+    if from_object:
+        print(f"  parent_ref inferidos desde objeto del contrato: {from_object}")
+
+    df = fix_parent_contract_refs(df)
+
+    has_parent = (
+        df["parent_contract_ref"].notna()
+        & ~df["parent_contract_ref"].astype(str).str.strip().isin(["", "nan", "None"])
+    )
+    deriv_mask = has_parent & df["contract_type"].isin(["DIRECTO", "DERIVADO"])
+    df.loc[deriv_mask, "contract_type"] = "DERIVADO"
+    # Si Proyecto era el número del padre, resource_type no aplica
+    df.loc[deriv_mask, "resource_type"] = None
+
+    return df
+
 # Acumuladores
 contracts_rows       = []
 amendments_rows      = []
@@ -724,21 +798,10 @@ for year, (sheet_name, cfg) in YEAR_SHEETS.items():
             skipped += 1
             continue
 
-        # Recurso / proyecto padre
-        recurso_raw = get_cell(row, cols.get("recurso"))
-        parent_ref  = None
-        resource_type = None
-        if recurso_raw and is_interadmin_ref(recurso_raw):
-            parent_ref = str(recurso_raw).strip()  # Se resolverá como FK en migración
-        else:
-            resource_type = str(recurso_raw).strip() if recurso_raw else None
-            # Normalizar recurso
-            if resource_type:
-                resource_type = re.sub(r"\s+", " ", resource_type.upper().strip())
-                if "FUNCIONAMIENTO" in resource_type:
-                    resource_type = "FUNCIONAMIENTO"
-                elif "OPERACIÓN" in resource_type or "OPERACION" in resource_type:
-                    resource_type = "GASTO DE OPERACIÓN COMERCIAL"
+        # Columna Proyecto (col. 0 en hojas Contratación)
+        proyecto_raw = get_cell(row, cols.get("recurso"))  # alias histórico: recurso/proyecto
+        parent_ref, resource_type = parse_proyecto_column(proyecto_raw)
+        contract_type = "DERIVADO" if parent_ref else cfg["tipo"]
 
         # Valores financieros
         valor_inicial = clean_numeric(get_cell(row, cols.get("valor_inicial"))) or 0.0
@@ -784,7 +847,7 @@ for year, (sheet_name, cfg) in YEAR_SHEETS.items():
             "contract_number":       numero,
             "selection_process_number": str(get_cell(row, cols.get("proceso")) or "").strip() or None,
             "year":                  year,
-            "contract_type":         cfg["tipo"],
+            "contract_type":         contract_type,
             "selection_modality":    normalize_modality(get_cell(row, cols.get("modalidad"))),
             "contract_class":        str(clase).strip(),
             "resource_type":         resource_type,
@@ -1269,7 +1332,7 @@ df_contractors.to_csv(OUT_DIR / "contractors.csv", index=False)
 print(f"  contractors.csv      → {len(df_contractors)} registros")
 
 df_contracts = pd.DataFrame(contracts_rows)
-df_contracts = fix_parent_contract_refs(df_contracts)
+df_contracts = finalize_contract_hierarchy(df_contracts)
 df_contracts.to_csv(OUT_DIR / "contracts.csv", index=False)
 print(f"  contracts.csv        → {len(df_contracts)} registros")
 
@@ -1313,7 +1376,8 @@ print("\n" + "="*60)
 print("REPORTE DE CALIDAD")
 print("="*60)
 print(f"Contratos totales migrados:      {len(df_contracts)}")
-print(f"  - Directos:                    {(df_contracts.contract_type=='DIRECTO').sum()}")
+print(f"  - Funcionamiento (DIRECTO):    {(df_contracts.contract_type=='DIRECTO').sum()}")
+print(f"  - Derivados (DERIVADO):        {(df_contracts.contract_type=='DERIVADO').sum()}")
 print(f"  - Interadministrativos:        {(df_contracts.contract_type=='INTERADMINISTRATIVO').sum()}")
 print(f"  - Tienda Virtual:              {(df_contracts.contract_type=='TIENDA_VIRTUAL').sum()}")
 print(f"  - Pago contra Factura:         {(df_contracts.contract_type=='PAGO_FACTURA').sum()}")

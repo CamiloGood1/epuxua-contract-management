@@ -478,13 +478,26 @@ Ver archivo: `EPUXUA_DDL.sql`
 
 ## FASE 6 — MIGRACIÓN DEL EXCEL
 
-### Mapeo por hoja
+### Mapeo por hoja (jerarquía contractual)
+
+| Origen Excel | `contract_type` | Relación |
+|--------------|-----------------|----------|
+| **Contratos Interadministrativos** | `INTERADMINISTRATIVO` | Marco con Secretaría → `interadmin_contract_details` |
+| **Contratación_20XX**, col. **Proyecto** = número (`3437-2021`) | `DERIVADO` | Hijo → `parent_contract_id` al interadmin |
+| **Contratación_20XX**, col. **Proyecto** = texto (`FUNCIONAMIENTO`, etc.) | `DIRECTO` | Funcionamiento / operación EPUXUA → `resource_type` |
+| **Tienda_Virtual** | `TIENDA_VIRTUAL` | — |
+| **Pago contra Factura** | `PAGO_FACTURA` | — |
+
+La columna **Proyecto** (primera columna de las hojas Contratación) es la clave:
+- Si parece un contrato (`^\d{3,5}-\d{4}$`) → derivado del interadministrativo con ese número.
+- Si es texto → contrato de funcionamiento u otro recurso propio de EPUXUA.
 
 #### Hojas Contratación_2021 a Contratacion_2026 → `contracts`
 
 | Columna Excel | Columna BD | Transformación |
 |---------------|-----------|----------------|
-| Contrato / Número del Contrato | contract_number | Trim, UNIQUE por año |
+| **Proyecto** (col. 0) | `parent_contract_ref` o `resource_type` | Número → DERIVADO; texto → DIRECTO + resource_type |
+| Contrato / Número del Contrato | contract_number | Trim, UNIQUE por (número, año, tipo) |
 | Número Proceso de Selección | selection_process_number | Trim |
 | Modalidad De Selección | selection_modality | Normalizar (ver enum) |
 | Contratista | contractors.full_name | Crear o reusar por nombre |

@@ -1,6 +1,11 @@
 // Tipos que mapean exactamente la vista v_contract_detail de Supabase
 
-export type ContractType = 'DIRECTO' | 'INTERADMINISTRATIVO' | 'TIENDA_VIRTUAL' | 'PAGO_FACTURA'
+export type ContractType =
+  | 'DIRECTO'
+  | 'DERIVADO'
+  | 'INTERADMINISTRATIVO'
+  | 'TIENDA_VIRTUAL'
+  | 'PAGO_FACTURA'
 
 export type ContractStatus =
   | 'EN_EJECUCION'

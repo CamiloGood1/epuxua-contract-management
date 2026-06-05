@@ -15,7 +15,7 @@ export async function getAllDerivedContracts(): Promise<Contract[]> {
   const { data, error } = await supabase
     .from("v_contract_detail")
     .select("*")
-    .not("parent_contract_id", "is", null)
+    .eq("contract_type", "DERIVADO")
     .order("subscription_date", { ascending: false })
 
   if (error) throw new Error(error.message)

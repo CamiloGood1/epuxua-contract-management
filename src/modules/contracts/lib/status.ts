@@ -161,7 +161,8 @@ export const STATUS_OPTIONS = [
 ]
 
 export const CONTRACT_TYPE_OPTIONS = [
-  { value: "DIRECTO",           label: "Contratación Directa" },
+  { value: "DIRECTO",           label: "Funcionamiento EPUXUA" },
+  { value: "DERIVADO",          label: "Derivado (interadmin)" },
   { value: "INTERADMINISTRATIVO", label: "Interadministrativo" },
   { value: "TIENDA_VIRTUAL",    label: "Tienda Virtual" },
   { value: "PAGO_FACTURA",      label: "Pago contra Factura" },

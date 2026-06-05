@@ -33,12 +33,14 @@ CREATE EXTENSION IF NOT EXISTS "unaccent";
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 -- Tipo de instrumento contractual
--- DIRECTO        → contratación directa, invitación, concurso de méritos
--- INTERADMIN     → mandato sin representación con Secretarías de Gobierno
+-- DIRECTO        → contratos de funcionamiento EPUXUA (hoja Contratación, col. Proyecto = texto)
+-- DERIVADO       → contratos de ejecución vinculados a un interadmin (Proyecto = nro. padre)
+-- INTERADMIN     → hoja Contratos Interadministrativos (mandato con Secretarías)
 -- TIENDA_VIRTUAL → Acuerdo Marco / Colombia Compra Eficiente
 -- PAGO_FACTURA   → adquisición menor aprobada por comité, sin contrato formal
 CREATE TYPE contract_type_enum AS ENUM (
   'DIRECTO',
+  'DERIVADO',
   'INTERADMINISTRATIVO',
   'TIENDA_VIRTUAL',
   'PAGO_FACTURA'
@@ -273,8 +275,9 @@ CREATE TABLE contracts (
   resource_type            varchar(80),
 
   -- ── Jerarquía contractual ────────────────────────────────────
-  -- Contratos derivados de un interadministrativo usan este campo.
-  -- Fuente: columna "PROYECTO" del Excel cuando contiene un nro. de contrato.
+  -- contract_type = DERIVADO + parent_contract_id → hijo de interadministrativo.
+  -- Fuente: hoja Contratación, columna "Proyecto" = nro. interadmin (ej. 3437-2021).
+  -- contract_type = DIRECTO sin padre → funcionamiento u otros recursos EPUXUA.
   parent_contract_id       uuid                    REFERENCES contracts(id),
 
   -- ── Partes ──────────────────────────────────────────────────
@@ -1045,7 +1048,7 @@ LEFT JOIN responsible_areas ra ON c.responsible_area_id = ra.id
 WHERE c.status IN ('EN_EJECUCION','SUSPENDIDO')
   AND c.end_date IS NOT NULL;
 
--- ── v_derived_contracts — contratos derivados de un interadmin
+-- ── v_derived_contracts — hijos de interadministrativos (hoja Contratación)
 CREATE OR REPLACE VIEW v_derived_contracts AS
 SELECT
   c.parent_contract_id,
@@ -1061,11 +1064,16 @@ SELECT
   c.start_date,
   c.end_date,
   co.full_name                                AS contractor_name,
-  s.full_name                                 AS supervisor_name
+  s.full_name                                 AS supervisor_name,
+  pc.contract_number                          AS parent_contract_number,
+  icd.secretaria                              AS parent_secretaria
 FROM contracts c
 JOIN contractors co  ON c.contractor_id = co.id
 LEFT JOIN supervisors s ON c.supervisor_id = s.id
-WHERE c.parent_contract_id IS NOT NULL;
+LEFT JOIN contracts pc ON c.parent_contract_id = pc.id
+LEFT JOIN interadmin_contract_details icd ON icd.contract_id = pc.id
+WHERE c.contract_type = 'DERIVADO'
+   OR c.parent_contract_id IS NOT NULL;
 
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 -- 13. ROW LEVEL SECURITY
@@ -1322,14 +1330,14 @@ ON CONFLICT (norm_name) DO NOTHING;
 -- user_profiles ──1:N── audit_log
 --
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
--- NOTA SOBRE PROYECTOS
--- No existe tabla `projects` separada. Justificación:
--- • La columna "PROYECTO" del Excel contiene:
---     a) tipo de recurso: "FUNCIONAMIENTO", "GASTO DE OPERACIÓN COMERCIAL"
---        → migra a contracts.resource_type
---     b) número de contrato interadministrativo padre: "3437-2021"
---        → migra a contracts.parent_contract_id (lookup por contract_number)
--- • El contrato interadministrativo ES el proyecto que EPUXUA gestiona.
--- • Los contratos derivados son los "hijos" (74 casos confirmados en Excel).
--- • La jerarquía está resuelta por parent_contract_id + v_derived_contracts.
+-- NOTA SOBRE JERARQUÍA (Excel → BD)
+-- • Hoja "Contratos Interadministrativos" → contract_type INTERADMINISTRATIVO
+--       + interadmin_contract_details (secretaría, cuota admin., bolsa mandato).
+-- • Hoja "Contratación_20XX" → columna "Proyecto" (col. 0):
+--     a) Texto (FUNCIONAMIENTO, GASTO DE OPERACIÓN COMERCIAL, etc.)
+--        → contract_type DIRECTO + resource_type
+--     b) Número XXXX-YYYY (contrato interadmin padre)
+--        → contract_type DERIVADO + parent_contract_id
+-- • No existe tabla `projects`: el interadministrativo es el marco; los derivados ejecutan.
+-- • v_derived_contracts lista hijos; funcionamiento EPUXUA = DIRECTO sin padre.
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
