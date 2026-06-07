@@ -162,6 +162,7 @@ export interface ProjectFollowup {
 export interface ProjectDocument {
   id: string
   project_id: string
+  contract_id?: string | null
   document_type: string | null
   name: string
   sharepoint_url: string | null
