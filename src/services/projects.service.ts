@@ -443,55 +443,9 @@ export async function enrichProjectsWithManagers(
   }))
 }
 
-// ── Indicadores globales (project_indicators) ───────────────────────────────
+// ── Indicadores (v_project_indicators_app + fallback) ────────────────────────
 
-export async function getGlobalIndicators(filters?: {
-  year?: number
-  projectType?: ProjectType | "all"
-}) {
-  const supabase = await createSupabaseServerClient()
-
-  const query = supabase
-    .from("project_indicators")
-    .select(
-      `
-      *,
-      projects ( project_code, name, project_type, year )
-    `
-    )
-    .order("recorded_at", { ascending: false })
-
-  const { data, error } = await query
-  if (error) throw new Error(error.message)
-
-  let rows = data ?? []
-  if (filters?.year) {
-    rows = rows.filter((r) => {
-      const p = r.projects as { year?: number } | { year?: number }[] | null
-      const proj = Array.isArray(p) ? p[0] : p
-      return proj?.year === filters.year
-    })
-  }
-  if (filters?.projectType && filters.projectType !== "all") {
-    rows = rows.filter((r) => {
-      const p = r.projects as { project_type?: string } | { project_type?: string }[] | null
-      const proj = Array.isArray(p) ? p[0] : p
-      return proj?.project_type === filters.projectType
-    })
-  }
-
-  return rows
-}
-
-export async function getProjectIndicators(projectId: string) {
-  const supabase = await createSupabaseServerClient()
-
-  const { data, error } = await supabase
-    .from("project_indicators")
-    .select("*")
-    .eq("project_id", projectId)
-    .order("recorded_at", { ascending: false })
-
-  if (error) throw new Error(error.message)
-  return data ?? []
-}
+export {
+  getGlobalIndicators,
+  getProjectIndicators,
+} from "./project-indicators.service"

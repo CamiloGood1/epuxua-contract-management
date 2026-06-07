@@ -1,21 +1,11 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { ProjectFinancialSummary, ProjectPayment } from "@/types/project"
 
-export async function getProjectFinancialSummary(
+async function financialSummaryFromProjectDetail(
   projectId: string
 ): Promise<ProjectFinancialSummary | null> {
   const supabase = await createSupabaseServerClient()
 
-  const { data, error } = await supabase
-    .from("v_project_financial")
-    .select("*")
-    .eq("project_id", projectId)
-    .maybeSingle()
-
-  if (error) throw new Error(error.message)
-  if (data) return data as ProjectFinancialSummary
-
-  // Fallback: datos desde v_project_detail
   const { data: project, error: projectError } = await supabase
     .from("v_project_detail")
     .select(
@@ -41,6 +31,22 @@ export async function getProjectFinancialSummary(
   }
 }
 
+export async function getProjectFinancialSummary(
+  projectId: string
+): Promise<ProjectFinancialSummary | null> {
+  const supabase = await createSupabaseServerClient()
+
+  const { data, error } = await supabase
+    .from("v_project_financial")
+    .select("*")
+    .eq("project_id", projectId)
+    .maybeSingle()
+
+  if (!error && data) return data as ProjectFinancialSummary
+
+  return financialSummaryFromProjectDetail(projectId)
+}
+
 export async function getProjectPayments(projectId: string): Promise<ProjectPayment[]> {
   const supabase = await createSupabaseServerClient()
 
@@ -60,7 +66,7 @@ export async function getProjectPayments(projectId: string): Promise<ProjectPaym
     .eq("project_id", projectId)
     .order("payment_date", { ascending: false })
 
-  if (error) throw new Error(error.message)
+  if (error) return []
 
   return (data ?? []).map((row) => {
     const contract = row.contracts as

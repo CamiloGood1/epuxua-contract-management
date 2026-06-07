@@ -7,11 +7,18 @@ import type {
   ProjectExpedienteComputed,
   ProjectExpedienteData,
 } from "@/types/project-expediente"
-import { getProjectById, getProjectContractTree, getProjectFollowups, getProjectAssignments, getProjectIndicators } from "./projects.service"
-import { getProjectFinancialSummary, getProjectPayments, getBudgetCommitments } from "./project-financial.service"
+import {
+  getProjectById,
+  getProjectContractTree,
+  getProjectFollowups,
+  getProjectAssignments,
+} from "./projects.service"
+import { getProjectIndicators } from "./project-indicators.service"
+import { getProjectFinancialSummary, getProjectPayments } from "./project-financial.service"
 import { getProjectDocuments } from "./project-documents.service"
 import { getProjectAlerts } from "./user.service"
 import { getContractById } from "./contracts.service"
+import { safeExpedienteLoad } from "./project-expediente-resilience"
 
 function computeMetrics(
   tree: ExpedienteContractNode[],
@@ -155,7 +162,14 @@ async function enrichProjectManager(project: ProjectDetail): Promise<ProjectDeta
 export async function getProjectExpedienteData(
   projectId: string
 ): Promise<ProjectExpedienteData | null> {
-  const project = await getProjectById(projectId)
+  const warnings: string[] = []
+
+  const project = await safeExpedienteLoad(
+    "Proyecto",
+    () => getProjectById(projectId),
+    null,
+    warnings
+  )
   if (!project) return null
 
   const [
@@ -169,23 +183,83 @@ export async function getProjectExpedienteData(
     payments,
     primary_contract,
   ] = await Promise.all([
-    getProjectContractTree(projectId),
-    getProjectFollowups(projectId),
-    getProjectAssignments(projectId),
-    getProjectDocuments(projectId),
-    getProjectIndicators(projectId),
-    getProjectAlerts(projectId),
-    getProjectFinancialSummary(projectId),
-    getProjectPayments(projectId),
+    safeExpedienteLoad(
+      "Árbol contractual",
+      () => getProjectContractTree(projectId),
+      [],
+      warnings
+    ),
+    safeExpedienteLoad(
+      "Seguimiento",
+      () => getProjectFollowups(projectId),
+      [],
+      warnings
+    ),
+    safeExpedienteLoad(
+      "Asignaciones",
+      () => getProjectAssignments(projectId),
+      [],
+      warnings
+    ),
+    safeExpedienteLoad(
+      "Documentos",
+      () => getProjectDocuments(projectId),
+      [],
+      warnings
+    ),
+    safeExpedienteLoad(
+      "Indicadores",
+      () => getProjectIndicators(projectId),
+      [],
+      warnings
+    ),
+    safeExpedienteLoad(
+      "Alertas",
+      () => getProjectAlerts(projectId),
+      [],
+      warnings
+    ),
+    safeExpedienteLoad(
+      "Resumen financiero",
+      () => getProjectFinancialSummary(projectId),
+      null,
+      warnings
+    ),
+    safeExpedienteLoad(
+      "Pagos",
+      () => getProjectPayments(projectId),
+      [],
+      warnings
+    ),
     project.primary_contract_id
-      ? getContractById(project.primary_contract_id).catch(() => null)
+      ? safeExpedienteLoad(
+          "Contrato principal",
+          () => getContractById(project.primary_contract_id!),
+          null,
+          warnings
+        )
       : Promise.resolve(null),
   ])
 
-  const contract_tree = await enrichContractTree(projectId, rawTree)
+  const contract_tree = await safeExpedienteLoad(
+    "Detalle contractual",
+    () => enrichContractTree(projectId, rawTree),
+    [],
+    warnings
+  )
   const contractIds = contract_tree.map((n) => n.contract_id)
-  const movements = await loadBudgetMovements(projectId, contractIds)
-  const enrichedProject = await enrichProjectManager(project)
+  const movements = await safeExpedienteLoad(
+    "Movimientos presupuestales",
+    () => loadBudgetMovements(projectId, contractIds),
+    [],
+    warnings
+  )
+  const enrichedProject = await safeExpedienteLoad(
+    "Gerente de proyecto",
+    () => enrichProjectManager(project),
+    project,
+    warnings
+  )
 
   const computed = computeMetrics(contract_tree, alerts)
 
@@ -202,5 +276,6 @@ export async function getProjectExpedienteData(
     payments,
     movements,
     computed,
+    load_warnings: warnings.length > 0 ? warnings : undefined,
   }
 }

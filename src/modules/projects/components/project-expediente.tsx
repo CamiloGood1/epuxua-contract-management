@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { AlertTriangle, ArrowLeft } from "lucide-react"
 import { ExpedienteHeader } from "./expediente/expediente-header"
 import { ExpedienteKpis } from "./expediente/expediente-kpis"
 import { ExpedienteTabs } from "./expediente/expediente-tabs"
@@ -58,6 +58,22 @@ export function ProjectExpediente({
         <ArrowLeft size={14} />
         Volver a proyectos
       </Link>
+
+      {data.load_warnings && data.load_warnings.length > 0 && (
+        <div
+          role="status"
+          className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          <AlertTriangle size={18} className="shrink-0 mt-0.5 text-amber-600" />
+          <div>
+            <p className="font-medium">Algunas secciones no pudieron cargarse</p>
+            <p className="mt-1 text-amber-800/90">
+              El expediente se muestra con datos parciales. Secciones afectadas:{" "}
+              {data.load_warnings.join(", ")}.
+            </p>
+          </div>
+        </div>
+      )}
 
       <ExpedienteHeader
         project={project}

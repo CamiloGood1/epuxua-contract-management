@@ -55,6 +55,7 @@ export interface ProjectExpedienteData {
   payments: ProjectPayment[]
   movements: ProjectBudgetMovement[]
   computed: ProjectExpedienteComputed
+  load_warnings?: string[]
 }
 
 export type ExpedienteTabId =
