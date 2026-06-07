@@ -1,22 +1,23 @@
-import { getContracts, getContractTracking } from "@/services/contracts.service"
-import { AlertsPageClient } from "@/modules/alerts/components/alerts-page-client"
-import type { AlertContext } from "@/modules/contracts/lib/alerts"
+import { getProjectAlerts } from "@/services/user.service"
+import { ProjectAlertsPageClient } from "@/modules/projects/components/project-alerts-page-client"
 
 export default async function AlertasPage() {
-  const [contracts, tracking] = await Promise.all([
-    getContracts().catch(() => []),
-    getContractTracking().catch(() => []),
-  ])
+  let alerts: Awaited<ReturnType<typeof getProjectAlerts>> = []
+  let loadError: string | null = null
 
-  const trackingContext: Record<string, AlertContext> = {}
-  for (const row of tracking) {
-    trackingContext[row.id] = {
-      physicalProgress: row.last_physical_progress,
-      hasFollowups: row.last_followup_date != null,
-    }
+  try {
+    alerts = await getProjectAlerts()
+  } catch (e) {
+    loadError = e instanceof Error ? e.message : "Error al cargar alertas"
   }
 
-  return (
-    <AlertsPageClient contracts={contracts} trackingContext={trackingContext} />
-  )
+  if (loadError) {
+    return (
+      <div className="px-4 py-3 rounded-xl border border-destructive/30 bg-destructive/10 text-sm text-destructive">
+        {loadError}
+      </div>
+    )
+  }
+
+  return <ProjectAlertsPageClient alerts={alerts} />
 }

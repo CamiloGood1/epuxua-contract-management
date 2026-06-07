@@ -46,8 +46,4 @@ export interface NavItem {
   section?: string
 }
 
-export interface ChartDataPoint {
-  month: string
-  valor: number
-  contratos: number
-}
+export type { ProjectDashboardMetrics } from "@/types/project"

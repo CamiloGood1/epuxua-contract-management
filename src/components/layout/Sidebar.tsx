@@ -2,44 +2,77 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronLeft, ChevronRight, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MaterialIcon } from "@/components/ui/material-icon"
 
 const SIDEBAR_WIDTH = 260
 
-type NavLink = {
+type NavItem = {
   href: string
   label: string
-  icon: string
+  icon?: string
   badge?: number
 }
 
-const navSections: { label: string; items: NavLink[] }[] = [
+type NavSection = {
+  label: string
+  items: NavItem[]
+  collapsible?: boolean
+  defaultOpen?: boolean
+}
+
+const navSections: NavSection[] = [
   {
     label: "Principal",
+    items: [{ href: "/", label: "Dashboard", icon: "dashboard" }],
+  },
+  {
+    label: "Proyectos",
+    collapsible: true,
+    defaultOpen: true,
     items: [
-      { href: "/", label: "Dashboard", icon: "dashboard" },
-      { href: "/contracts", label: "Contratos", icon: "description" },
-      { href: "/contratos-derivados", label: "Contratos Derivados", icon: "account_tree" },
-      { href: "/seguimiento", label: "Seguimiento", icon: "query_stats" },
+      { href: "/proyectos", label: "Vista General", icon: "view_list" },
+      { href: "/proyectos/kanban", label: "Kanban", icon: "view_kanban" },
+      { href: "/proyectos/calendario", label: "Calendario", icon: "calendar_month" },
+    ],
+  },
+  {
+    label: "Contratación",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { href: "/contratacion/contratos", label: "Contratos", icon: "description" },
+      { href: "/contratacion/supervision", label: "Supervisión", icon: "supervisor_account" },
+    ],
+  },
+  {
+    label: "Financiero",
+    collapsible: true,
+    defaultOpen: false,
+    items: [
+      { href: "/financiero/presupuesto", label: "Presupuesto", icon: "account_balance_wallet" },
+      { href: "/financiero/pagos", label: "Pagos", icon: "payments" },
+      { href: "/financiero/facturacion", label: "Facturación", icon: "receipt_long" },
     ],
   },
   {
     label: "Gestión",
     items: [
-      { href: "/financiero", label: "Financiero", icon: "payments" },
-      { href: "/facturacion", label: "Facturación", icon: "receipt_long" },
       { href: "/documentos", label: "Documentos", icon: "folder" },
-      { href: "/alertas", label: "Alertas", icon: "notifications", badge: 3 },
+      { href: "/indicadores", label: "Indicadores", icon: "analytics" },
+      { href: "/alertas", label: "Alertas", icon: "notifications" },
     ],
   },
   {
-    label: "Sistema",
+    label: "Administración",
+    collapsible: true,
+    defaultOpen: false,
     items: [
-      { href: "/usuarios", label: "Usuarios", icon: "group" },
-      { href: "/configuracion", label: "Configuración", icon: "settings" },
+      { href: "/administracion/usuarios", label: "Usuarios", icon: "group" },
+      { href: "/administracion/configuracion", label: "Configuración", icon: "settings" },
     ],
   },
 ]
@@ -51,20 +84,24 @@ interface SidebarProps {
   onMobileClose: () => void
 }
 
+function isItemActive(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/"
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
 function NavItemRow({
   item,
   collapsed,
   isMobile,
+  nested = false,
 }: {
-  item: NavLink
+  item: NavItem
   collapsed: boolean
   isMobile: boolean
+  nested?: boolean
 }) {
   const pathname = usePathname()
-  const isActive =
-    item.href === "/"
-      ? pathname === "/"
-      : pathname === item.href || pathname.startsWith(`${item.href}/`)
+  const isActive = isItemActive(pathname, item.href)
   const showLabel = !collapsed || isMobile
 
   return (
@@ -72,19 +109,23 @@ function NavItemRow({
       <div
         className={cn(
           "relative flex items-center gap-3 rounded-lg transition-all duration-150",
-          showLabel ? "px-3 py-2.5" : "py-2.5 justify-center",
+          showLabel ? (nested ? "px-3 py-2 ml-2" : "px-3 py-2.5") : "py-2.5 justify-center",
           isActive
             ? "sidebar-active text-white font-medium"
             : "text-[#dce2fb]/80 hover:bg-white/10 hover:text-white"
         )}
       >
-        <MaterialIcon
-          name={item.icon}
-          size={20}
-          className={cn("shrink-0", isActive && "text-[var(--institutional-gold)]")}
-        />
+        {item.icon && (
+          <MaterialIcon
+            name={item.icon}
+            size={nested ? 18 : 20}
+            className={cn("shrink-0", isActive && "text-[var(--institutional-gold)]")}
+          />
+        )}
         {showLabel && (
-          <span className="text-sm flex-1 whitespace-nowrap">{item.label}</span>
+          <span className={cn("flex-1 whitespace-nowrap", nested ? "text-xs" : "text-sm")}>
+            {item.label}
+          </span>
         )}
         {item.badge != null && showLabel && (
           <span className="text-[10px] font-bold min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-[#EF4444] text-white px-1">
@@ -93,6 +134,80 @@ function NavItemRow({
         )}
       </div>
     </Link>
+  )
+}
+
+function NavSectionBlock({
+  section,
+  collapsed,
+  isMobile,
+}: {
+  section: NavSection
+  collapsed: boolean
+  isMobile: boolean
+}) {
+  const pathname = usePathname()
+  const showLabel = !collapsed || isMobile
+  const sectionActive = section.items.some((item) => isItemActive(pathname, item.href))
+  const [open, setOpen] = useState(section.defaultOpen ?? sectionActive)
+
+  if (section.collapsible && showLabel) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-white/35 hover:text-white/55"
+        >
+          <span>{section.label}</span>
+          <ChevronDown
+            size={14}
+            className={cn("transition-transform", open && "rotate-180")}
+          />
+        </button>
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="space-y-0.5 overflow-hidden"
+            >
+              {section.items.map((item) => (
+                <NavItemRow
+                  key={item.href}
+                  item={item}
+                  collapsed={collapsed}
+                  isMobile={isMobile}
+                  nested
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {showLabel && (
+        <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-white/35">
+          {section.label}
+        </p>
+      )}
+      <div className="space-y-0.5">
+        {section.items.map((item) => (
+          <NavItemRow
+            key={item.href}
+            item={item}
+            collapsed={collapsed}
+            isMobile={isMobile}
+            nested={section.collapsible && showLabel}
+          />
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -141,23 +256,12 @@ function SidebarContent({
 
       <nav className="flex-1 px-3 py-4 overflow-y-auto scrollbar-thin space-y-6">
         {navSections.map((section) => (
-          <div key={section.label}>
-            {showLabel && (
-              <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-white/35">
-                {section.label}
-              </p>
-            )}
-            <div className="space-y-0.5">
-              {section.items.map((item) => (
-                <NavItemRow
-                  key={item.href}
-                  item={item}
-                  collapsed={collapsed}
-                  isMobile={isMobile}
-                />
-              ))}
-            </div>
-          </div>
+          <NavSectionBlock
+            key={section.label}
+            section={section}
+            collapsed={collapsed}
+            isMobile={isMobile}
+          />
         ))}
       </nav>
 
