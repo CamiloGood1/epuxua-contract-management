@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo, useState } from "react"
 import Link from "next/link"
 import {
   BarChart,
@@ -17,21 +18,40 @@ import { KPICard } from "@/components/dashboard/KPICard"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { LIFECYCLE_CONFIG, LIFECYCLE_ORDER } from "../lib/lifecycle"
 import { projectTypeLabel } from "../lib/project-type"
-import type { ProjectDashboardMetrics, ProjectDetail } from "@/types/project"
+import type { ProjectDetail } from "@/types/project"
+import { ProjectDashboardFilters } from "./project-dashboard-filters"
+import {
+  DEFAULT_PROJECT_DASHBOARD_FILTERS,
+  applyDashboardProjectFilters,
+  computeMetricsFromProjects,
+  uniqueProjectYears,
+} from "../lib/dashboard-utils"
+import { projectEntityLabel } from "../lib/project-utils"
 
 const CHART_COLORS = ["#345bab", "#10B981", "#F59E0B", "#8B5CF6", "#EF4444", "#64748B"]
 
 interface ProjectDashboardViewProps {
-  metrics: ProjectDashboardMetrics | null
-  recentProjects: ProjectDetail[]
+  projects: ProjectDetail[]
+  entities: string[]
   fetchError?: string
 }
 
 export function ProjectDashboardView({
-  metrics,
-  recentProjects,
+  projects,
+  entities,
   fetchError,
 }: ProjectDashboardViewProps) {
+  const [filters, setFilters] = useState(DEFAULT_PROJECT_DASHBOARD_FILTERS)
+
+  const filtered = useMemo(
+    () => applyDashboardProjectFilters(projects, filters),
+    [projects, filters]
+  )
+
+  const metrics = useMemo(() => computeMetricsFromProjects(filtered), [filtered])
+
+  const years = useMemo(() => uniqueProjectYears(projects), [projects])
+
   const lifecycleData = LIFECYCLE_ORDER.map((s) => ({
     name: LIFECYCLE_CONFIG[s].label,
     value: metrics?.by_lifecycle[s] ?? 0,
@@ -110,6 +130,15 @@ export function ProjectDashboardView({
         </div>
       )}
 
+      <ProjectDashboardFilters
+        filters={filters}
+        onChange={setFilters}
+        years={years}
+        entities={entities}
+        filteredCount={filtered.length}
+        totalCount={projects.length}
+      />
+
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpis.map((kpi, i) => (
           <KPICard key={kpi.label} {...kpi} index={i} />
@@ -183,7 +212,7 @@ export function ProjectDashboardView({
           </Link>
         </div>
         <div className="divide-y divide-border">
-          {recentProjects.slice(0, 8).map((p) => (
+          {filtered.slice(0, 8).map((p) => (
             <Link
               key={p.id}
               href={`/proyectos/${p.id}`}
@@ -194,6 +223,9 @@ export function ProjectDashboardView({
                   {p.project_code}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">{p.name}</p>
+                <p className="text-[10px] text-muted-foreground/80 truncate">
+                  {projectEntityLabel(p)}
+                </p>
               </div>
               <div className="text-right shrink-0 ml-4">
                 <p className="text-xs font-medium">{formatCOP(p.total_value)}</p>

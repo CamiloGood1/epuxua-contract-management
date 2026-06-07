@@ -1,24 +1,30 @@
-import { getProjectDashboardMetrics, getProjects } from "@/services/projects.service"
+import {
+  getProjects,
+  getProjectFilterCatalogs,
+  enrichProjectsWithManagers,
+} from "@/services/projects.service"
 import { ProjectDashboardView } from "@/modules/projects/components/project-dashboard-view"
 
 export default async function Page() {
-  let metrics: Awaited<ReturnType<typeof getProjectDashboardMetrics>> | null = null
   let projects: Awaited<ReturnType<typeof getProjects>> = []
+  let entities: string[] = []
   let fetchError: string | undefined
 
   try {
-    ;[metrics, projects] = await Promise.all([
-      getProjectDashboardMetrics(),
+    const [raw, catalogs] = await Promise.all([
       getProjects(),
+      getProjectFilterCatalogs(),
     ])
+    projects = await enrichProjectsWithManagers(raw)
+    entities = catalogs.entities
   } catch (error) {
     fetchError = error instanceof Error ? error.message : "Error desconocido"
   }
 
   return (
     <ProjectDashboardView
-      metrics={metrics}
-      recentProjects={projects}
+      projects={projects}
+      entities={entities}
       fetchError={fetchError}
     />
   )

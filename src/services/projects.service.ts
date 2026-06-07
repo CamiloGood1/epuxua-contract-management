@@ -10,6 +10,16 @@ import type {
   ProjectType,
 } from "@/types/project"
 
+/** FK explícita: project_assignments.user_id y assigned_by apuntan a user_profiles */
+const PROFILE_VIA_USER_ID = "user_profiles!user_id"
+
+function profileFullName(
+  profile: { full_name: string | null } | { full_name: string | null }[] | null
+): string | null {
+  const p = Array.isArray(profile) ? profile[0] : profile
+  return p?.full_name ?? null
+}
+
 // ── Lista de proyectos (v_project_detail) ─────────────────────────────────────
 
 export async function getProjects(filters?: {
@@ -226,7 +236,7 @@ export async function getProjectAssignments(
       start_date,
       end_date,
       active,
-      user_profiles ( full_name )
+      ${PROFILE_VIA_USER_ID} ( full_name )
     `
     )
     .eq("project_id", projectId)
@@ -235,11 +245,12 @@ export async function getProjectAssignments(
   if (error) throw new Error(error.message)
 
   return (data ?? []).map((row) => {
-    const profile = row.user_profiles as
-      | { full_name: string | null }
-      | { full_name: string | null }[]
-      | null
-    const p = Array.isArray(profile) ? profile[0] : profile
+    const p = profileFullName(
+      row.user_profiles as
+        | { full_name: string | null }
+        | { full_name: string | null }[]
+        | null
+    )
     return {
       id: row.id,
       project_id: row.project_id,
@@ -248,7 +259,7 @@ export async function getProjectAssignments(
       start_date: row.start_date,
       end_date: row.end_date,
       active: row.active,
-      user_name: p?.full_name ?? null,
+      user_name: p,
       user_email: null,
     } as ProjectAssignment
   })
@@ -268,7 +279,7 @@ export async function getProjectFilterCatalogs(): Promise<{
       supabase.from("v_project_detail").select("year, area_name, secretaria"),
       supabase
         .from("project_assignments")
-        .select("user_profiles ( full_name )")
+        .select(`${PROFILE_VIA_USER_ID} ( full_name )`)
         .eq("active", true)
         .eq("assignment_role", "GERENTE_PROYECTO"),
     ])
@@ -287,11 +298,12 @@ export async function getProjectFilterCatalogs(): Promise<{
   }
 
   for (const row of assignments ?? []) {
-    const profile = row.user_profiles as
-      | { full_name: string | null }
-      | { full_name: string | null }[]
-      | null
-    const name = (Array.isArray(profile) ? profile[0] : profile)?.full_name
+    const name = profileFullName(
+      row.user_profiles as
+        | { full_name: string | null }
+        | { full_name: string | null }[]
+        | null
+    )
     if (name) managers.add(name)
   }
 
@@ -313,7 +325,7 @@ export async function enrichProjectsWithManagers(
 
   const { data, error } = await supabase
     .from("project_assignments")
-    .select("project_id, user_profiles ( full_name )")
+    .select(`project_id, ${PROFILE_VIA_USER_ID} ( full_name )`)
     .in("project_id", ids)
     .eq("active", true)
     .eq("assignment_role", "GERENTE_PROYECTO")
@@ -323,11 +335,12 @@ export async function enrichProjectsWithManagers(
   const managerByProject = new Map<string, string>()
   for (const row of data ?? []) {
     if (managerByProject.has(row.project_id)) continue
-    const profile = row.user_profiles as
-      | { full_name: string | null }
-      | { full_name: string | null }[]
-      | null
-    const name = (Array.isArray(profile) ? profile[0] : profile)?.full_name
+    const name = profileFullName(
+      row.user_profiles as
+        | { full_name: string | null }
+        | { full_name: string | null }[]
+        | null
+    )
     if (name) managerByProject.set(row.project_id, name)
   }
 
