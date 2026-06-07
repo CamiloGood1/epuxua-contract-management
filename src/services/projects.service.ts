@@ -38,11 +38,8 @@ export async function getProjects(filters?: {
   }
   if (filters?.entity && filters.entity !== "all") {
     query = query.or(
-      `area_name.eq.${filters.entity},secretaria.eq.${filters.entity},entity_name.eq.${filters.entity}`
+      `area_name.eq.${filters.entity},secretaria.eq.${filters.entity}`
     )
-  }
-  if (filters?.manager && filters.manager !== "all") {
-    query = query.eq("manager_name", filters.manager)
   }
 
   const { data, error } = await query
@@ -266,22 +263,36 @@ export async function getProjectFilterCatalogs(): Promise<{
 }> {
   const supabase = await createSupabaseServerClient()
 
-  const { data, error } = await supabase
-    .from("v_project_detail")
-    .select("year, area_name, secretaria, entity_name, manager_name")
+  const [{ data: projects, error: projectsError }, { data: assignments, error: assignError }] =
+    await Promise.all([
+      supabase.from("v_project_detail").select("year, area_name, secretaria"),
+      supabase
+        .from("project_assignments")
+        .select("user_profiles ( full_name )")
+        .eq("active", true)
+        .eq("assignment_role", "GERENTE_PROYECTO"),
+    ])
 
-  if (error) throw new Error(error.message)
+  if (projectsError) throw new Error(projectsError.message)
+  if (assignError) throw new Error(assignError.message)
 
   const entities = new Set<string>()
   const managers = new Set<string>()
   const years = new Set<number>()
 
-  for (const row of data ?? []) {
+  for (const row of projects ?? []) {
     if (row.area_name) entities.add(row.area_name)
     if (row.secretaria) entities.add(row.secretaria)
-    if (row.entity_name) entities.add(row.entity_name)
-    if (row.manager_name) managers.add(row.manager_name)
     if (row.year) years.add(row.year)
+  }
+
+  for (const row of assignments ?? []) {
+    const profile = row.user_profiles as
+      | { full_name: string | null }
+      | { full_name: string | null }[]
+      | null
+    const name = (Array.isArray(profile) ? profile[0] : profile)?.full_name
+    if (name) managers.add(name)
   }
 
   return {
@@ -289,6 +300,41 @@ export async function getProjectFilterCatalogs(): Promise<{
     managers: [...managers].sort(),
     years: [...years].sort((a, b) => b - a),
   }
+}
+
+/** Añade manager_name desde project_assignments (no existe en v_project_detail) */
+export async function enrichProjectsWithManagers(
+  projects: ProjectDetail[]
+): Promise<ProjectDetail[]> {
+  if (projects.length === 0) return projects
+
+  const supabase = await createSupabaseServerClient()
+  const ids = projects.map((p) => p.id)
+
+  const { data, error } = await supabase
+    .from("project_assignments")
+    .select("project_id, user_profiles ( full_name )")
+    .in("project_id", ids)
+    .eq("active", true)
+    .eq("assignment_role", "GERENTE_PROYECTO")
+
+  if (error) throw new Error(error.message)
+
+  const managerByProject = new Map<string, string>()
+  for (const row of data ?? []) {
+    if (managerByProject.has(row.project_id)) continue
+    const profile = row.user_profiles as
+      | { full_name: string | null }
+      | { full_name: string | null }[]
+      | null
+    const name = (Array.isArray(profile) ? profile[0] : profile)?.full_name
+    if (name) managerByProject.set(row.project_id, name)
+  }
+
+  return projects.map((p) => ({
+    ...p,
+    manager_name: managerByProject.get(p.id) ?? null,
+  }))
 }
 
 // ── Indicadores globales (project_indicators) ───────────────────────────────

@@ -12,6 +12,7 @@ import {
   INITIAL_PROJECT_FILTERS,
 } from "./projects-filters"
 import type { ProjectDetail } from "@/types/project"
+import { projectEntityLabel, projectContractsCount } from "../lib/project-utils"
 
 const PAGE_SIZE = 15
 
@@ -23,7 +24,7 @@ interface ProjectsTableProps {
 }
 
 function entityLabel(p: ProjectDetail): string {
-  return p.entity_name ?? p.secretaria ?? p.area_name ?? "—"
+  return projectEntityLabel(p)
 }
 
 export function ProjectsTable({
@@ -185,7 +186,7 @@ export function ProjectsTable({
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center tabular-nums">
-                      {p.contracts_count ?? "—"}
+                      {projectContractsCount(p) ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {(p.active_alerts_count ?? 0) > 0 ? (

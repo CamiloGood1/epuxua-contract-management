@@ -86,7 +86,7 @@ export function ProjectExpediente({
 }: ProjectExpedienteProps) {
   const [tab, setTab] = useState<TabId>("resumen")
 
-  const entity = project.entity_name ?? project.secretaria ?? project.area_name ?? "—"
+  const entity = project.secretaria ?? project.area_name ?? "—"
   const activeManagers = assignments.filter(
     (a) => a.active && a.assignment_role === "GERENTE_PROYECTO"
   )
@@ -196,7 +196,7 @@ export function ProjectExpediente({
                 <Field label="Saldo disponible" value={formatCOP(project.available_balance)} />
                 <Field
                   label="Contratos asociados"
-                  value={project.contracts_count ?? contractTree.length}
+                  value={contractTree.length || (project.derived_count ?? 0) + (project.primary_contract_id ? 1 : 0)}
                 />
               </div>
               {project.observations && (
@@ -210,9 +210,7 @@ export function ProjectExpediente({
               </div>
               {activeManagers.length === 0 && assignments.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  {project.manager_name
-                    ? `Gerente: ${project.manager_name}`
-                    : "Sin asignaciones registradas."}
+                  Sin asignaciones registradas.
                 </p>
               ) : (
                 <ul className="space-y-2">

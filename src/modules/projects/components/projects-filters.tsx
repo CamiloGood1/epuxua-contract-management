@@ -145,7 +145,6 @@ export function applyProjectFilters<T extends {
   year: number
   area_name?: string | null
   secretaria?: string | null
-  entity_name?: string | null
   manager_name?: string | null
 }>(
   projects: T[],
@@ -160,7 +159,6 @@ export function applyProjectFilters<T extends {
         p.name,
         p.area_name,
         p.secretaria,
-        p.entity_name,
         p.manager_name,
         String(p.year),
       ]
@@ -173,7 +171,7 @@ export function applyProjectFilters<T extends {
     if (filters.type !== "all" && p.project_type !== filters.type) return false
     if (filters.year !== "all" && p.year !== Number(filters.year)) return false
     if (filters.entity !== "all") {
-      const entity = p.entity_name ?? p.secretaria ?? p.area_name
+      const entity = p.secretaria ?? p.area_name
       if (entity !== filters.entity) return false
     }
     if (filters.manager !== "all" && p.manager_name !== filters.manager) return false

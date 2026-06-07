@@ -40,7 +40,6 @@ export interface ProjectDetail {
   area_name: string | null
   secretaria: string | null
   primary_contract_id: string | null
-  primary_contract_number: string | null
   total_value: number
   goods_services_value: number
   management_fee_type: ManagementFeeType | null
@@ -54,11 +53,12 @@ export interface ProjectDetail {
   observations: string | null
   created_at: string
   updated_at: string
-  // Campos enriquecidos por la vista
-  manager_name: string | null
-  manager_email: string | null
-  contracts_count: number | null
-  entity_name: string | null
+  // Campos enriquecidos por v_project_detail
+  primary_contract_number: string | null
+  derived_count: number | null
+  assigned_users_count: number | null
+  // Enriquecido en app (project_assignments), no viene de la vista
+  manager_name?: string | null
 }
 
 // ── v_project_kanban ──────────────────────────────────────────────────────────

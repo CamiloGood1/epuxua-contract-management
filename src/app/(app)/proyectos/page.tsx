@@ -1,6 +1,10 @@
 import Link from "next/link"
 import { PageShell } from "@/components/ui/page-shell"
-import { getProjects, getProjectFilterCatalogs } from "@/services/projects.service"
+import {
+  getProjects,
+  getProjectFilterCatalogs,
+  enrichProjectsWithManagers,
+} from "@/services/projects.service"
 import { ProjectsTable } from "@/modules/projects/components/projects-table"
 
 export default async function ProyectosPage() {
@@ -9,7 +13,12 @@ export default async function ProyectosPage() {
   let loadError: string | null = null
 
   try {
-    ;[projects, catalogs] = await Promise.all([getProjects(), getProjectFilterCatalogs()])
+    const [raw, catalogsResult] = await Promise.all([
+      getProjects(),
+      getProjectFilterCatalogs(),
+    ])
+    projects = await enrichProjectsWithManagers(raw)
+    catalogs = catalogsResult
   } catch (e) {
     loadError = e instanceof Error ? e.message : "Error al cargar proyectos"
   }
