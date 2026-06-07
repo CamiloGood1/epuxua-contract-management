@@ -1,164 +1,33 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import Link from "next/link"
-import { motion } from "framer-motion"
-import {
-  FileText,
-  Activity,
-  Hourglass,
-  Banknote,
-  CalendarX2,
-  BarChart3,
-  Plus,
-  ArrowRight,
-  AlertTriangle,
-  Download,
-} from "lucide-react"
-import { MaterialIcon } from "@/components/ui/material-icon"
-import { KPICard } from "./KPICard"
-import { DonutChart } from "./DonutChart"
-import { BarByEntityChart } from "./BarByEntityChart"
-import { ContractCards } from "./ContractCards"
-import { ActivityTimeline } from "./ActivityTimeline"
+import { Plus, Download, AlertTriangle } from "lucide-react"
 import { NewContractModal } from "@/modules/contracts/components/new-contract-modal"
-import type { DashboardMetrics, KPICardData, StatusSlice, EntityBar } from "@/types"
+import { DashboardFilters } from "./DashboardFilters"
+import { DashboardSection } from "./DashboardSection"
+import {
+  DEFAULT_DASHBOARD_FILTERS,
+  applyDashboardFilters,
+  splitBySegment,
+  buildSectionKPIs,
+  buildDonutSlices,
+  buildSecretariatBars,
+  buildParentInteradminBars,
+  uniqueYears,
+} from "./dashboard-utils"
 import type { Contract } from "@/types/contract"
+import type { DashboardMetrics } from "@/types"
 import {
   STATUS_CONFIG as SC,
   resolveStatus as RS,
   formatCOP,
 } from "@/modules/contracts/lib/status"
+import { FileText, GitBranch } from "lucide-react"
 
 export const STATUS_CONFIG = SC
 export const resolveStatus = RS
 export { formatCOP }
 export type StatusKey = keyof typeof STATUS_CONFIG
-
-function buildKPIs(metrics: DashboardMetrics | null, contracts: Contract[]): KPICardData[] {
-  const total = metrics?.totalContracts ?? contracts.length
-  const inProgress =
-    metrics?.inProgressContracts ??
-    contracts.filter((c) => c.status === "EN_EJECUCION").length
-  const suspended =
-    metrics?.suspendedContracts ??
-    contracts.filter((c) => c.status === "SUSPENDIDO").length
-  const totalVal =
-    metrics?.activeContractedValue ??
-    metrics?.totalValue ??
-    contracts.reduce((s, c) => s + Number(c.final_value ?? c.initial_value), 0)
-  const paid = metrics?.totalPaidValue ?? contracts.reduce((s, c) => s + Number(c.paid_value), 0)
-  const expiring = metrics?.expiring30Days ?? 0
-
-  return [
-    {
-      label: "Total contratos",
-      value: total,
-      formattedValue: String(total),
-      isCurrency: false,
-      change: 0,
-      icon: FileText,
-      gradient: "bg-indigo-500",
-      iconBg: "",
-    },
-    {
-      label: "En ejecución",
-      value: inProgress,
-      formattedValue: String(inProgress),
-      isCurrency: false,
-      change: 0,
-      icon: Activity,
-      gradient: "bg-emerald-500",
-      iconBg: "",
-    },
-    {
-      label: "Valor contratado",
-      value: totalVal,
-      formattedValue: formatCOP(totalVal),
-      isCurrency: true,
-      change: 0,
-      icon: Banknote,
-      gradient: "bg-violet-500",
-      iconBg: "",
-    },
-    {
-      label: "Ejecutado (pagos)",
-      value: paid,
-      formattedValue: formatCOP(paid),
-      isCurrency: true,
-      change: 0,
-      icon: BarChart3,
-      gradient: "bg-indigo-500",
-      iconBg: "",
-    },
-    {
-      label: "Suspendidos",
-      value: suspended,
-      formattedValue: String(suspended),
-      isCurrency: false,
-      change: 0,
-      icon: Hourglass,
-      gradient: "bg-amber-500",
-      iconBg: "",
-    },
-    {
-      label: "Próx. a vencer",
-      value: expiring,
-      formattedValue: String(expiring),
-      isCurrency: false,
-      change: 0,
-      icon: CalendarX2,
-      gradient: "bg-rose-500",
-      iconBg: "",
-    },
-  ]
-}
-
-function buildDonut(contracts: Contract[]): StatusSlice[] {
-  const counts: Record<string, { count: number; color: string }> = {}
-  for (const c of contracts) {
-    const cfg = resolveStatus(c.status)
-    const key = cfg.label
-    if (!counts[key]) counts[key] = { count: 0, color: cfg.color }
-    counts[key].count++
-  }
-  const slices = Object.entries(counts).map(([name, { count, color }]) => ({
-    name,
-    value: count,
-    color,
-  }))
-  slices.sort((a, b) => b.value - a.value)
-  if (slices.length <= 5) return slices
-  const top = slices.slice(0, 4)
-  const rest = slices.slice(4)
-  const otros = rest.reduce((s, x) => s + x.value, 0)
-  return [...top, { name: "Otros estados", value: otros, color: "#94a3b8" }]
-}
-
-function buildSecretariatBars(contracts: Contract[]): EntityBar[] {
-  const map: Record<string, number> = {}
-  for (const c of contracts) {
-    const key = c.secretaria?.trim()
-    if (!key) continue
-    map[key] = (map[key] ?? 0) + 1
-  }
-  return Object.entries(map)
-    .map(([entity, count]) => ({ entity, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8)
-}
-
-function urgentContracts(contracts: Contract[]): Contract[] {
-  return contracts
-    .filter(
-      (c) =>
-        c.status === "EN_EJECUCION" &&
-        c.days_remaining != null &&
-        c.days_remaining <= 30
-    )
-    .sort((a, b) => (a.days_remaining ?? 99) - (b.days_remaining ?? 99))
-    .slice(0, 4)
-}
 
 interface DashboardPageProps {
   metrics: DashboardMetrics | null
@@ -166,12 +35,38 @@ interface DashboardPageProps {
   fetchError?: string
 }
 
-export function DashboardPage({ metrics, contracts, fetchError }: DashboardPageProps) {
+export function DashboardPage({ contracts, fetchError }: DashboardPageProps) {
   const [modalOpen, setModalOpen] = useState(false)
-  const kpis = useMemo(() => buildKPIs(metrics, contracts), [metrics, contracts])
-  const donutData = useMemo(() => buildDonut(contracts), [contracts])
-  const secretariatBars = useMemo(() => buildSecretariatBars(contracts), [contracts])
-  const urgent = useMemo(() => urgentContracts(contracts), [contracts])
+  const [filters, setFilters] = useState(DEFAULT_DASHBOARD_FILTERS)
+
+  const filtered = useMemo(
+    () => applyDashboardFilters(contracts, filters),
+    [contracts, filters]
+  )
+
+  const { main, derived } = useMemo(
+    () => splitBySegment(filtered, filters.segment),
+    [filtered, filters.segment]
+  )
+
+  const years = useMemo(() => uniqueYears(contracts), [contracts])
+
+  const mainKpis = useMemo(
+    () => buildSectionKPIs(main, { total: "Total contratos", icon: FileText }),
+    [main]
+  )
+  const derivedKpis = useMemo(
+    () => buildSectionKPIs(derived, { total: "Total derivados", icon: GitBranch }),
+    [derived]
+  )
+
+  const mainDonut = useMemo(() => buildDonutSlices(main), [main])
+  const derivedDonut = useMemo(() => buildDonutSlices(derived), [derived])
+  const mainBars = useMemo(() => buildSecretariatBars(main), [main])
+  const derivedBars = useMemo(() => buildParentInteradminBars(derived), [derived])
+
+  const showMain = filters.segment !== "derivados"
+  const showDerived = filters.segment !== "contratos"
 
   return (
     <div className="space-y-6">
@@ -181,7 +76,7 @@ export function DashboardPage({ metrics, contracts, fetchError }: DashboardPageP
             Ejecución y monitoreo
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Resumen de la actividad contractual y avance financiero.
+            Contratos EPUXUA y derivados de interadministrativos, por separado.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -212,100 +107,46 @@ export function DashboardPage({ metrics, contracts, fetchError }: DashboardPageP
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
-        {kpis.map((kpi, i) => (
-          <KPICard key={kpi.label} {...kpi} index={i} />
-        ))}
-      </div>
+      <DashboardFilters
+        filters={filters}
+        onChange={setFilters}
+        years={years}
+        mainCount={main.length}
+        derivedCount={derived.length}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-5">
-        <div className="lg:col-span-2 epuxua-card p-4 sm:p-5 min-w-0 overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm font-bold text-foreground">Estado por contrato</h3>
-              <p className="text-xs text-muted-foreground">Distribución actual</p>
-            </div>
-            <MaterialIcon name="more_vert" size={20} className="text-muted-foreground" />
-          </div>
-          <DonutChart data={donutData} total={contracts.length} />
-        </div>
+      <div className="space-y-6">
+        {showMain && (
+          <DashboardSection
+            variant="main"
+            title="Contratos EPUXUA"
+            subtitle="Funcionamiento, interadministrativos, tienda virtual y pago contra factura"
+            contracts={main}
+            kpis={mainKpis}
+            donutData={mainDonut}
+            barData={mainBars}
+            barTitle="Por secretaría"
+            barSubtitle="Contratos interadministrativos (marco con el municipio)"
+            listHref="/contracts"
+            listLabel="Ver contratos"
+          />
+        )}
 
-        <div className="lg:col-span-3 epuxua-card p-4 sm:p-5 min-w-0 overflow-hidden">
-          <div className="mb-4 sm:mb-5">
-            <h3 className="text-sm font-bold text-foreground">
-              Contratos por secretaría
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Interadministrativos — contratante municipal
-            </p>
-          </div>
-          <BarByEntityChart data={secretariatBars} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        <div className="xl:col-span-2 space-y-5">
-          <div className="epuxua-card p-5">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Contratos recientes</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {contracts.length} en el sistema
-                </p>
-              </div>
-              <Link
-                href="/contracts"
-                className="text-xs font-semibold text-[var(--corporate-blue)] hover:underline inline-flex items-center gap-1"
-              >
-                Ver todos <ArrowRight size={13} />
-              </Link>
-            </div>
-            <ContractCards contracts={contracts} />
-          </div>
-        </div>
-
-        <div className="space-y-5">
-          <div className="epuxua-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <MaterialIcon name="warning" size={18} className="text-amber-500" />
-                Próximos a vencer
-              </h3>
-              <Link href="/alertas" className="text-[10px] font-semibold text-[var(--corporate-blue)]">
-                Ver todo
-              </Link>
-            </div>
-            <ul className="space-y-3">
-              {urgent.length === 0 ? (
-                <li className="text-xs text-muted-foreground py-4 text-center">
-                  Sin vencimientos críticos
-                </li>
-              ) : (
-                urgent.map((c) => (
-                  <li key={c.id}>
-                    <Link
-                      href={`/contracts/${c.id}`}
-                      className="block p-3 rounded-lg border border-[#EAEAEA] hover:border-[var(--corporate-blue)]/30 transition-colors"
-                    >
-                      <p className="text-xs font-mono text-muted-foreground">{c.contract_number}</p>
-                      <p className="text-sm font-medium line-clamp-1 mt-0.5">{c.object}</p>
-                      <p className="text-[10px] text-rose-600 font-semibold mt-1">
-                        {c.days_remaining != null && c.days_remaining >= 0
-                          ? `${c.days_remaining} días restantes`
-                          : "Vencido"}
-                      </p>
-                    </Link>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-
-          <div className="epuxua-card p-5">
-            <h3 className="text-sm font-bold text-foreground mb-4">Actividad reciente</h3>
-            <ActivityTimeline contracts={contracts} />
-          </div>
-        </div>
+        {showDerived && (
+          <DashboardSection
+            variant="derived"
+            title="Contratos derivados"
+            subtitle="Ejecución vinculada a un contrato interadministrativo padre"
+            contracts={derived}
+            kpis={derivedKpis}
+            donutData={derivedDonut}
+            barData={derivedBars}
+            barTitle="Por interadmin padre"
+            barSubtitle="Agrupados por número de contrato interadministrativo"
+            listHref="/contratos-derivados"
+            listLabel="Ver derivados"
+          />
+        )}
       </div>
     </div>
   )

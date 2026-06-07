@@ -209,12 +209,18 @@ function EmptyState() {
   )
 }
 
-export function ContractCards({ contracts }: { contracts: Contract[] }) {
+export function ContractCards({
+  contracts,
+  limit = 6,
+}: {
+  contracts: Contract[]
+  limit?: number
+}) {
   if (contracts.length === 0) return <EmptyState />
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {contracts.slice(0, 6).map((c, i) => (
+      {contracts.slice(0, limit).map((c, i) => (
         <ContractCard key={c.id} contract={c} index={i} />
       ))}
     </div>

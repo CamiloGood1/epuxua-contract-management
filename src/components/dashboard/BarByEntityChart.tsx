@@ -16,6 +16,7 @@ import { useIsMobile } from "@/hooks/use-breakpoint"
 
 interface BarByEntityChartProps {
   data: EntityBar[]
+  emptyMessage?: string
 }
 
 const COLORS = [
@@ -52,7 +53,10 @@ function truncate(str: string, max: number) {
   return str.length > max ? `${str.slice(0, max)}…` : str
 }
 
-export function BarByEntityChart({ data }: BarByEntityChartProps) {
+export function BarByEntityChart({
+  data,
+  emptyMessage = "No hay contratos interadministrativos con secretaría registrada.",
+}: BarByEntityChartProps) {
   const [mounted, setMounted] = useState(false)
   const isMobile = useIsMobile()
   useEffect(() => {
@@ -71,9 +75,7 @@ export function BarByEntityChart({ data }: BarByEntityChartProps) {
 
   if (isEmpty) {
     return (
-      <p className="text-sm text-muted-foreground text-center py-12">
-        No hay contratos interadministrativos con secretaría registrada.
-      </p>
+      <p className="text-sm text-muted-foreground text-center py-12">{emptyMessage}</p>
     )
   }
 
