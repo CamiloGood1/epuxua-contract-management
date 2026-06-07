@@ -8,7 +8,9 @@ import { StatusBadge } from "@/modules/contracts/components/status-badge"
 import type { ProjectContractTreeNode } from "@/types/project"
 
 interface ContractTreeProps {
+  projectId: string
   nodes: ProjectContractTreeNode[]
+  projectCode?: string
 }
 
 const ROLE_LABELS = {
@@ -17,17 +19,34 @@ const ROLE_LABELS = {
   OPERATIVO: "Operativo",
 } as const
 
-function TreeNode({ node }: { node: ProjectContractTreeNode }) {
-  const indent = node.depth * 24
+function TreeNode({
+  node,
+  projectId,
+  isLast,
+}: {
+  node: ProjectContractTreeNode
+  projectId: string
+  isLast?: boolean
+}) {
+  const href = `/proyectos/${projectId}/contratos/${node.contract_id}`
+  const indent = node.depth * 28
 
   return (
-    <div
+    <Link
+      href={href}
       className={cn(
-        "group flex items-start gap-3 p-3 rounded-xl border border-border bg-card hover:border-[var(--corporate-blue)]/30 transition-colors",
-        node.depth > 0 && "ml-4"
+        "group flex items-start gap-3 p-3 rounded-xl border border-border bg-card hover:border-[var(--corporate-blue)]/40 hover:shadow-sm transition-all",
+        node.depth > 0 && "relative"
       )}
       style={{ marginLeft: indent > 0 ? indent : undefined }}
     >
+      {node.depth > 0 && (
+        <span
+          className="absolute left-0 top-0 bottom-0 w-px bg-border"
+          style={{ left: indent - 14 }}
+          aria-hidden
+        />
+      )}
       <div
         className={cn(
           "w-1 self-stretch rounded-full shrink-0",
@@ -60,29 +79,37 @@ function TreeNode({ node }: { node: ProjectContractTreeNode }) {
       </div>
       <div className="flex items-center gap-1 shrink-0">
         {node.secop_url && (
-          <a
-            href={node.secop_url}
-            target="_blank"
-            rel="noopener noreferrer"
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              window.open(node.secop_url!, "_blank", "noopener,noreferrer")
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault()
+                e.stopPropagation()
+                window.open(node.secop_url!, "_blank", "noopener,noreferrer")
+              }
+            }}
             className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
             title="Ver en SECOP"
           >
             <ExternalLink size={14} />
-          </a>
+          </span>
         )}
-        <Link
-          href={`/contracts/${node.contract_id}`}
-          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
-          title="Ver contrato"
-        >
-          <ChevronRight size={16} />
-        </Link>
+        <ChevronRight
+          size={16}
+          className="text-muted-foreground group-hover:text-[var(--corporate-blue)]"
+        />
       </div>
-    </div>
+    </Link>
   )
 }
 
-export function ContractTree({ nodes }: ContractTreeProps) {
+export function ContractTree({ projectId, nodes, projectCode }: ContractTreeProps) {
   if (nodes.length === 0) {
     return (
       <div className="text-center py-12 text-sm text-muted-foreground">
@@ -91,11 +118,53 @@ export function ContractTree({ nodes }: ContractTreeProps) {
     )
   }
 
+  const principal = nodes.find((n) => n.contract_role === "PRINCIPAL")
+  const derived = nodes.filter((n) => n.contract_role === "DERIVADO")
+  const operativos = nodes.filter((n) => n.contract_role === "OPERATIVO")
+
   return (
-    <div className="space-y-2">
-      {nodes.map((node) => (
-        <TreeNode key={node.contract_id} node={node} />
-      ))}
+    <div className="space-y-4">
+      {projectCode && (
+        <p className="text-sm font-semibold text-foreground">
+          Proyecto <span className="text-[var(--corporate-blue)]">{projectCode}</span>
+        </p>
+      )}
+
+      {principal && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Contrato principal
+          </p>
+          <TreeNode node={principal} projectId={projectId} />
+        </div>
+      )}
+
+      {derived.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Contratos derivados ({derived.length})
+          </p>
+          {derived.map((node, i) => (
+            <TreeNode
+              key={node.contract_id}
+              node={node}
+              projectId={projectId}
+              isLast={i === derived.length - 1}
+            />
+          ))}
+        </div>
+      )}
+
+      {operativos.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Contratos operativos ({operativos.length})
+          </p>
+          {operativos.map((node) => (
+            <TreeNode key={node.contract_id} node={node} projectId={projectId} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

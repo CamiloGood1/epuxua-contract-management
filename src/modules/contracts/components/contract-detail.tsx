@@ -9,6 +9,10 @@ interface ContractDetailProps {
   physicalProgress?: number | null
   followups: ContractFollowup[]
   derivedContracts?: Contract[]
+  backHref?: string
+  backLabel?: string
+  /** Si se abre desde un proyecto, los derivados enlazan dentro del mismo contexto */
+  projectId?: string
 }
 
 export function ContractDetail({
@@ -16,6 +20,9 @@ export function ContractDetail({
   physicalProgress,
   followups,
   derivedContracts = [],
+  backHref,
+  backLabel,
+  projectId,
 }: ContractDetailProps) {
   return (
     <div className="max-w-screen-2xl mx-auto pb-6 sm:pb-10">
@@ -24,6 +31,8 @@ export function ContractDetail({
           <ContractInfoSidebar
             contract={contract}
             physicalProgress={physicalProgress}
+            backHref={backHref}
+            backLabel={backLabel}
           />
         </div>
 
@@ -33,6 +42,7 @@ export function ContractDetail({
             physicalProgress={physicalProgress}
             followups={followups}
             derivedContracts={derivedContracts}
+            projectId={projectId}
           />
         </div>
       </div>

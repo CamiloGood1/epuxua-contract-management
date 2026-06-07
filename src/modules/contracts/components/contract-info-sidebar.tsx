@@ -73,11 +73,15 @@ function contractingPartyLabel(contract: Contract): string {
 interface ContractInfoSidebarProps {
   contract: Contract
   physicalProgress?: number | null
+  backHref?: string
+  backLabel?: string
 }
 
 export function ContractInfoSidebar({
   contract,
   physicalProgress,
+  backHref = "/contracts",
+  backLabel = "Todos los contratos",
 }: ContractInfoSidebarProps) {
   const cfg = resolveStatus(contract.status)
   const finPct = pct(contract.financial_progress_pct)
@@ -94,11 +98,11 @@ export function ContractInfoSidebar({
       className="flex flex-col gap-5"
     >
       <Link
-        href="/contracts"
+        href={backHref}
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors group w-fit"
       >
         <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
-        Todos los contratos
+        {backLabel}
       </Link>
 
       <div className="bg-card border border-border rounded-2xl p-5 space-y-3">

@@ -183,7 +183,97 @@ export async function getProjectDashboardMetrics(): Promise<ProjectDashboardMetr
   }
 }
 
-// ── Árbol contractual (v_project_contract_tree) ───────────────────────────────
+// ── Árbol contractual (v_project_contract_tree + fallback) ────────────────────
+
+type ContractRole = ProjectContractTreeNode["contract_role"]
+
+function mapToTreeNode(
+  projectId: string,
+  row: Record<string, unknown>,
+  depth: number,
+  role: ContractRole
+): ProjectContractTreeNode {
+  return {
+    project_id: projectId,
+    contract_id: row.id as string,
+    contract_number: row.contract_number as string,
+    contract_role: role,
+    parent_contract_id: (row.parent_contract_id as string | null) ?? null,
+    depth,
+    contractor_name: (row.contractor_name as string | null) ?? null,
+    status: (row.status as string | null) ?? null,
+    final_value: row.final_value != null ? Number(row.final_value) : null,
+    paid_value: row.paid_value != null ? Number(row.paid_value) : null,
+    object: (row.object as string | null) ?? null,
+    secop_url: (row.secop_url as string | null) ?? null,
+  }
+}
+
+async function buildContractTreeFallback(
+  projectId: string
+): Promise<ProjectContractTreeNode[]> {
+  const supabase = await createSupabaseServerClient()
+
+  const { data: project, error: projectError } = await supabase
+    .from("v_project_detail")
+    .select("id, primary_contract_id, project_type")
+    .eq("id", projectId)
+    .single()
+
+  if (projectError || !project) return []
+
+  const nodes: ProjectContractTreeNode[] = []
+
+  if (project.primary_contract_id) {
+    const { data: principal } = await supabase
+      .from("v_contract_detail")
+      .select("*")
+      .eq("id", project.primary_contract_id)
+      .maybeSingle()
+
+    if (principal) {
+      nodes.push(mapToTreeNode(projectId, principal, 0, "PRINCIPAL"))
+    }
+
+    const { data: derived } = await supabase
+      .from("v_contract_detail")
+      .select("*")
+      .eq("parent_contract_id", project.primary_contract_id)
+      .order("contract_number", { ascending: true })
+
+    for (const row of derived ?? []) {
+      nodes.push(mapToTreeNode(projectId, row, 1, "DERIVADO"))
+    }
+  }
+
+  // Contratos operativos del proyecto (funcionamiento, TV, etc.)
+  let operativosQuery = supabase
+    .from("contracts")
+    .select("id")
+    .eq("project_id", projectId)
+    .is("parent_contract_id", null)
+
+  if (project.primary_contract_id) {
+    operativosQuery = operativosQuery.neq("id", project.primary_contract_id)
+  }
+
+  const { data: operativoIds } = await operativosQuery
+
+  if (operativoIds?.length) {
+    const ids = operativoIds.map((r) => r.id)
+    const { data: details } = await supabase
+      .from("v_contract_detail")
+      .select("*")
+      .in("id", ids)
+      .order("contract_number", { ascending: true })
+
+    for (const row of details ?? []) {
+      nodes.push(mapToTreeNode(projectId, row, 0, "OPERATIVO"))
+    }
+  }
+
+  return nodes
+}
 
 export async function getProjectContractTree(
   projectId: string
@@ -197,8 +287,11 @@ export async function getProjectContractTree(
     .order("depth", { ascending: true })
     .order("contract_number", { ascending: true })
 
-  if (error) throw new Error(error.message)
-  return (data ?? []) as ProjectContractTreeNode[]
+  if (!error && data && data.length > 0) {
+    return data as ProjectContractTreeNode[]
+  }
+
+  return buildContractTreeFallback(projectId)
 }
 
 // ── Seguimiento (project_followups) ───────────────────────────────────────────

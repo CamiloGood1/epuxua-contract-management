@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Download, FileSpreadsheet, ChevronLeft, ChevronRight } from "lucide-react"
 import { formatCOP, pct } from "@/modules/contracts/lib/status"
 import { LifecycleBadge } from "./lifecycle-badge"
@@ -33,6 +33,7 @@ export function ProjectsTable({
   managers,
   years,
 }: ProjectsTableProps) {
+  const router = useRouter()
   const [filters, setFilters] = useState(INITIAL_PROJECT_FILTERS)
   const [page, setPage] = useState(0)
 
@@ -136,23 +137,24 @@ export function ProjectsTable({
                 pageItems.map((p) => (
                   <tr
                     key={p.id}
-                    className="border-b border-border/60 hover:bg-muted/20 transition-colors"
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => router.push(`/proyectos/${p.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        router.push(`/proyectos/${p.id}`)
+                      }
+                    }}
+                    className="border-b border-border/60 hover:bg-muted/20 transition-colors cursor-pointer"
                   >
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/proyectos/${p.id}`}
-                        className="font-semibold text-[var(--corporate-blue)] hover:underline"
-                      >
+                      <span className="font-semibold text-[var(--corporate-blue)]">
                         {p.project_code}
-                      </Link>
+                      </span>
                     </td>
                     <td className="px-4 py-3 max-w-xs">
-                      <Link
-                        href={`/proyectos/${p.id}`}
-                        className="line-clamp-2 hover:text-[var(--corporate-blue)]"
-                      >
-                        {p.name}
-                      </Link>
+                      <span className="line-clamp-2">{p.name}</span>
                     </td>
                     <td className="px-4 py-3 text-xs whitespace-nowrap">
                       {projectTypeLabel(p.project_type)}

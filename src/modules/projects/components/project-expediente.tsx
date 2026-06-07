@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { formatCOP, formatDate, pct } from "@/modules/contracts/lib/status"
 import { LifecycleBadge } from "./lifecycle-badge"
 import { ContractTree } from "./contract-tree"
+import { DerivedContractsList } from "./derived-contracts-list"
 import { projectTypeLabel } from "../lib/project-type"
 import type {
   ProjectDetail,
@@ -128,9 +129,9 @@ export function ProjectExpediente({
           </h1>
           <p className="text-sm text-muted-foreground mt-1">{entity}</p>
         </div>
-        {project.primary_contract_number && (
+        {project.primary_contract_number && project.primary_contract_id && (
           <Link
-            href={`/contracts/${project.primary_contract_id}`}
+            href={`/proyectos/${project.id}/contratos/${project.primary_contract_id}`}
             className="text-xs font-medium text-[var(--corporate-blue)] hover:underline"
           >
             Contrato principal: {project.primary_contract_number}
@@ -183,6 +184,7 @@ export function ProjectExpediente({
 
       <div className="min-h-[320px]">
         {tab === "resumen" && (
+          <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="epuxua-card p-5 space-y-4">
               <h3 className="text-sm font-bold">Información general</h3>
@@ -243,9 +245,36 @@ export function ProjectExpediente({
               )}
             </div>
           </div>
+
+          {(project.project_type === "INTERADMINISTRATIVO" || contractTree.some((n) => n.contract_role === "DERIVADO")) && (
+            <div className="epuxua-card p-5 space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-bold">Contratos derivados</h3>
+                <button
+                  type="button"
+                  onClick={() => setTab("estructura")}
+                  className="text-xs font-semibold text-[var(--corporate-blue)] hover:underline"
+                >
+                  Ver estructura completa
+                </button>
+              </div>
+              <DerivedContractsList
+                projectId={project.id}
+                nodes={contractTree}
+                includePrincipal={!!project.primary_contract_id}
+              />
+            </div>
+          )}
+          </div>
         )}
 
-        {tab === "estructura" && <ContractTree nodes={contractTree} />}
+        {tab === "estructura" && (
+          <ContractTree
+            projectId={project.id}
+            nodes={contractTree}
+            projectCode={project.project_code}
+          />
+        )}
 
         {tab === "financiero" && (
           <div className="space-y-6">

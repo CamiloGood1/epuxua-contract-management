@@ -34,7 +34,7 @@ const navSections: NavSection[] = [
     collapsible: true,
     defaultOpen: true,
     items: [
-      { href: "/proyectos", label: "Vista General", icon: "view_list" },
+      { href: "/proyectos", label: "Proyectos", icon: "folder_special" },
       { href: "/proyectos/kanban", label: "Kanban", icon: "view_kanban" },
       { href: "/proyectos/calendario", label: "Calendario", icon: "calendar_month" },
     ],
@@ -44,7 +44,7 @@ const navSections: NavSection[] = [
     collapsible: true,
     defaultOpen: true,
     items: [
-      { href: "/contratacion/contratos", label: "Contratos", icon: "description" },
+      { href: "/contratacion/derivados", label: "Derivados", icon: "account_tree" },
       { href: "/contratacion/supervision", label: "Supervisión", icon: "supervisor_account" },
     ],
   },

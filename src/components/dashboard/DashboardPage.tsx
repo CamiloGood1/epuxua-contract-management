@@ -127,8 +127,8 @@ export function DashboardPage({ contracts, fetchError }: DashboardPageProps) {
             barData={mainBars}
             barTitle="Por secretaría"
             barSubtitle="Contratos interadministrativos (marco con el municipio)"
-            listHref="/contracts"
-            listLabel="Ver contratos"
+            listHref="/proyectos"
+            listLabel="Ver proyectos"
           />
         )}
 
@@ -143,7 +143,7 @@ export function DashboardPage({ contracts, fetchError }: DashboardPageProps) {
             barData={derivedBars}
             barTitle="Por interadmin padre"
             barSubtitle="Agrupados por número de contrato interadministrativo"
-            listHref="/contratos-derivados"
+            listHref="/contratacion/derivados"
             listLabel="Ver derivados"
           />
         )}

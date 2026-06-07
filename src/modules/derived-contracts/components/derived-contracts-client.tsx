@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import {
@@ -11,7 +12,11 @@ import { cn } from "@/lib/utils"
 import { StatusBadge } from "@/modules/contracts/components/status-badge"
 import { resolveStatus, formatCOP, formatDate, STATUS_OPTIONS } from "@/modules/contracts/lib/status"
 import type { Contract, ContractType } from "@/types/contract"
-import type { DerivedContractsKPIs } from "@/services/derived-contracts.service"
+import type {
+  DerivedContractRow,
+  DerivedContractsKPIs,
+} from "@/services/derived-contracts.service"
+import { derivedContractHref } from "../lib/derived-contract-utils"
 
 // ── KPI card ──────────────────────────────────────────────────────────────────
 
@@ -76,11 +81,12 @@ const EMPTY_FILTERS: Filters = {
 // ── Main client component ─────────────────────────────────────────────────────
 
 interface Props {
-  contracts: Contract[]
+  contracts: DerivedContractRow[]
   kpis: DerivedContractsKPIs
 }
 
 export function DerivedContractsClient({ contracts, kpis }: Props) {
+  const router = useRouter()
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
 
   const set = (partial: Partial<Filters>) =>
@@ -104,7 +110,13 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
 
     return contracts.filter((c) => {
       if (q) {
-        const hay = [c.contract_number, c.object, c.contractor_name, c.parent_contract_number]
+        const hay = [
+          c.contract_number,
+          c.object,
+          c.contractor_name,
+          c.parent_contract_number,
+          c.project_code,
+        ]
           .filter(Boolean).join(" ").toLowerCase()
         if (!hay.includes(q)) return false
       }
@@ -159,25 +171,41 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
         />
       </div>
 
-      {/* Filter panel */}
+      {/* Búsqueda principal */}
+      <div className="bg-white border border-[#EAEAEA] rounded-xl p-4">
+        <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Buscar derivado
+        </label>
+        <div className="relative mt-1.5">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Número de contrato, objeto, contratista o convenio padre..."
+            value={filters.search}
+            onChange={(e) => set({ search: e.target.value })}
+            className="w-full h-11 pl-10 pr-10 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-[var(--corporate-blue)]/30"
+          />
+          {filters.search && (
+            <button
+              type="button"
+              onClick={() => set({ search: "" })}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Limpiar búsqueda"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Filtros avanzados */}
       <div className="bg-white border border-[#EAEAEA] rounded-xl p-5 space-y-4">
         <div className="flex items-center gap-2 mb-1">
           <Search size={15} className="text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">Panel de Filtros Avanzados</span>
+          <span className="text-sm font-semibold text-foreground">Filtros adicionales</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* Búsqueda libre */}
-          <div className="relative sm:col-span-2 lg:col-span-1">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Número, objeto, contratista..."
-              value={filters.search}
-              onChange={(e) => set({ search: e.target.value })}
-              className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
-            />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
 
           {/* Contrato interadministrativo padre */}
           <select
@@ -265,7 +293,7 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
             <thead>
               <tr className="border-b border-[#EAEAEA] bg-[#F8FAFC] text-left text-[10px] uppercase tracking-wider text-muted-foreground">
                 <th className="px-4 py-3 font-semibold">Número de Contrato</th>
-                <th className="px-4 py-3 font-semibold">Convenio Padre</th>
+                <th className="px-4 py-3 font-semibold">Proyecto / Convenio</th>
                 <th className="px-4 py-3 font-semibold">Contratista</th>
                 <th className="px-4 py-3 font-semibold">Objeto</th>
                 <th className="px-4 py-3 font-semibold">Tipología</th>
@@ -291,28 +319,42 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.02 }}
-                    className="border-b border-[#EAEAEA] last:border-0 hover:bg-[#F8FAFC] transition-colors group"
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => router.push(derivedContractHref(c))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        router.push(derivedContractHref(c))
+                      }
+                    }}
+                    className="border-b border-[#EAEAEA] last:border-0 hover:bg-[#F8FAFC] transition-colors group cursor-pointer"
                   >
                     {/* Número */}
                     <td className="px-4 py-3.5">
-                      <Link
-                        href={`/contracts/${c.id}`}
-                        className="font-bold text-[var(--corporate-blue)] hover:underline underline-offset-2 font-mono text-xs"
+                      <span
+                        className="font-bold text-[var(--corporate-blue)] font-mono text-xs"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {c.contract_number}
-                      </Link>
+                      </span>
                       <p className="text-[10px] text-muted-foreground mt-0.5">{c.year}</p>
                     </td>
 
-                    {/* Convenio padre */}
+                    {/* Proyecto / convenio padre */}
                     <td className="px-4 py-3.5">
-                      {c.parent_contract_number ? (
+                      {c.project_id && c.project_code ? (
                         <Link
-                          href={`/contracts/${c.parent_contract_id}`}
-                          className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+                          href={`/proyectos/${c.project_id}`}
+                          className="text-xs font-semibold text-[var(--corporate-blue)] hover:underline"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          {c.parent_contract_number}
+                          {c.project_code}
                         </Link>
+                      ) : c.parent_contract_number ? (
+                        <span className="text-xs font-mono text-muted-foreground">
+                          {c.parent_contract_number}
+                        </span>
                       ) : (
                         <span className="text-muted-foreground/50 text-xs">—</span>
                       )}
@@ -365,12 +407,12 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
 
                     {/* Acción */}
                     <td className="px-4 py-3.5">
-                      <Link
-                        href={`/contracts/${c.id}`}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+                      <span
+                        className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-muted-foreground"
+                        aria-hidden
                       >
                         <ExternalLink size={13} />
-                      </Link>
+                      </span>
                     </td>
                   </motion.tr>
                 ))

@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils"
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   "/": { title: "Dashboard", subtitle: "Ejecución y monitoreo financiero" },
-  "/contracts": { title: "Contratos", subtitle: "Gestión de contratación pública" },
-  "/contratos-derivados": {
+  "/proyectos": { title: "Proyectos", subtitle: "Cartera de proyectos EPUXUA" },
+  "/contratacion/derivados": {
     title: "Contratos derivados",
     subtitle: "Vinculados a interadministrativos",
   },
@@ -25,6 +25,12 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
 }
 
 function getPageMeta(pathname: string) {
+  if (pathname.match(/^\/proyectos\/[^/]+\/contratos\//)) {
+    return { title: "Detalle de contrato", subtitle: "Dentro del expediente del proyecto" }
+  }
+  if (pathname.startsWith("/proyectos/")) {
+    return { title: "Expediente del proyecto", subtitle: "Información y estructura contractual" }
+  }
   if (pathname.startsWith("/contracts/")) {
     return { title: "Detalle de contrato", subtitle: "Ficha contractual" }
   }

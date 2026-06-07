@@ -5,7 +5,7 @@ import {
   getProjectFilterCatalogs,
   enrichProjectsWithManagers,
 } from "@/services/projects.service"
-import { ProjectsTable } from "@/modules/projects/components/projects-table"
+import { ProjectsPageClient } from "@/modules/projects/components/projects-page-client"
 
 export default async function ProyectosPage() {
   let projects: Awaited<ReturnType<typeof getProjects>> = []
@@ -26,7 +26,7 @@ export default async function ProyectosPage() {
   return (
     <PageShell
       title="Proyectos"
-      subtitle="Vista general de la cartera de proyectos EPUXUA."
+      subtitle="Cartera de proyectos EPUXUA — interadministrativos, funcionamiento y operativos."
       icon="folder_special"
       actions={
         <Link
@@ -42,7 +42,7 @@ export default async function ProyectosPage() {
           No se pudieron cargar los proyectos: {loadError}
         </div>
       )}
-      <ProjectsTable
+      <ProjectsPageClient
         projects={projects}
         entities={catalogs.entities}
         managers={catalogs.managers}

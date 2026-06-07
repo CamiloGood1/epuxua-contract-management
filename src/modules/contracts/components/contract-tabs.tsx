@@ -251,7 +251,19 @@ function FollowupsTab({ followups }: { followups: ContractFollowup[] }) {
   )
 }
 
-function DerivedTab({ contracts }: { contracts: Contract[] }) {
+function contractHref(contractId: string, projectId?: string): string {
+  return projectId
+    ? `/proyectos/${projectId}/contratos/${contractId}`
+    : `/contracts/${contractId}`
+}
+
+function DerivedTab({
+  contracts,
+  projectId,
+}: {
+  contracts: Contract[]
+  projectId?: string
+}) {
   if (contracts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -269,7 +281,7 @@ function DerivedTab({ contracts }: { contracts: Contract[] }) {
       {contracts.map((c) => (
         <Link
           key={c.id}
-          href={`/contracts/${c.id}`}
+          href={contractHref(c.id, projectId)}
           className="block bg-card border border-border rounded-2xl p-4 hover:border-primary/30 transition-colors"
         >
           <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -321,11 +333,13 @@ export function ContractTabs({
   physicalProgress,
   followups,
   derivedContracts = [],
+  projectId,
 }: {
   contract: Contract
   physicalProgress?: number | null
   followups: ContractFollowup[]
   derivedContracts?: Contract[]
+  projectId?: string
 }) {
   const [activeTab, setActiveTab] = useState("info")
 
@@ -406,7 +420,9 @@ export function ContractTabs({
             <InfoTab contract={contract} physicalProgress={physicalProgress} />
           )}
           {activeTab === "seguimiento" && <FollowupsTab followups={followups} />}
-          {activeTab === "derivados" && <DerivedTab contracts={derivedContracts} />}
+          {activeTab === "derivados" && (
+            <DerivedTab contracts={derivedContracts} projectId={projectId} />
+          )}
           {activeTab === "alertas" && (
             <ContractAlerts contract={contract} alertContext={alertContext} />
           )}
