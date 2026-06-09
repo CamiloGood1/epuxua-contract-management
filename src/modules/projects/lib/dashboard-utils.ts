@@ -6,6 +6,19 @@ import type {
 } from "@/types/project"
 import { projectEntityLabel } from "./project-utils"
 
+// Tipos activos en el negocio actual
+export const ACTIVE_PROJECT_TYPES: ProjectType[] = ["INTERADMINISTRATIVO", "FUNCIONAMIENTO"]
+
+export interface SectionMetrics {
+  totalProjects: number
+  totalValue: number
+  executedValue: number
+  paidValue: number
+  derivedCount: number
+  alertsCount: number
+  activeProjects: number
+}
+
 export type ProjectDashboardFilterState = {
   year: string
   lifecycle: string
@@ -101,4 +114,33 @@ export function computeMetricsFromProjects(
 
 export function uniqueProjectYears(projects: ProjectDetail[]): number[] {
   return [...new Set(projects.map((p) => p.year))].sort((a, b) => b - a)
+}
+
+export function computeSectionMetrics(projects: ProjectDetail[]): SectionMetrics {
+  let totalValue = 0
+  let executedValue = 0
+  let paidValue = 0
+  let derivedCount = 0
+  let alertsCount = 0
+
+  for (const p of projects) {
+    totalValue += Number(p.total_value ?? 0)
+    executedValue += Number(p.executed_value ?? 0)
+    paidValue += Number(p.paid_value ?? 0)
+    derivedCount += Number(p.derived_count ?? 0)
+    alertsCount += Number(p.active_alerts_count ?? 0)
+  }
+
+  const activeStatuses: ProjectLifecycle[] = ["PLANEACION", "CONTRATACION", "EJECUCION", "SEGUIMIENTO"]
+  const activeProjects = projects.filter((p) => activeStatuses.includes(p.lifecycle_status)).length
+
+  return {
+    totalProjects: projects.length,
+    totalValue,
+    executedValue,
+    paidValue,
+    derivedCount,
+    alertsCount,
+    activeProjects,
+  }
 }

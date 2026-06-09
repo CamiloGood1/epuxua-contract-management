@@ -3,7 +3,7 @@
 import { X, SlidersHorizontal, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { LIFECYCLE_ORDER, LIFECYCLE_CONFIG } from "../lib/lifecycle"
-import { PROJECT_TYPE_OPTIONS } from "../lib/project-type"
+import { ACTIVE_PROJECT_TYPE_OPTIONS } from "../lib/project-type"
 import type { ProjectDashboardFilterState } from "../lib/dashboard-utils"
 
 interface ProjectDashboardFiltersProps {
@@ -120,7 +120,7 @@ export function ProjectDashboardFilters({
           value={filters.type}
           onChange={(v) => set({ type: v })}
           placeholder="Todos los tipos"
-          options={PROJECT_TYPE_OPTIONS}
+          options={ACTIVE_PROJECT_TYPE_OPTIONS}
         />
         <SelectField
           value={filters.entity}

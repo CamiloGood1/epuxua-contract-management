@@ -23,7 +23,7 @@ export default async function ProyectosKanbanPage() {
   return (
     <PageShell
       title="Kanban de proyectos"
-      subtitle="Arrastre las tarjetas entre columnas para actualizar el ciclo de vida."
+      subtitle="Proyectos interadministrativos — arrastre las tarjetas entre columnas para actualizar el ciclo de vida."
       icon="view_kanban"
     >
       {loadError && (

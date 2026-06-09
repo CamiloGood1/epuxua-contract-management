@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { PageShell } from "@/components/ui/page-shell"
-import { PROJECT_TYPE_OPTIONS } from "@/modules/projects/lib/project-type"
+import { ACTIVE_PROJECT_TYPE_OPTIONS } from "@/modules/projects/lib/project-type"
 
 interface IndicatorRow {
   id: string
@@ -85,7 +85,7 @@ export function IndicatorsPageClient({ indicators, years }: IndicatorsPageClient
           className="h-9 rounded-lg border border-border px-3 text-sm"
         >
           <option value="all">Todos los tipos</option>
-          {PROJECT_TYPE_OPTIONS.map((o) => (
+          {ACTIVE_PROJECT_TYPE_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>

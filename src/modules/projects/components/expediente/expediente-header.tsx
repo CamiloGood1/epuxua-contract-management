@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ExternalLink, Calendar, User2, Building2 } from "lucide-react"
+import { ExternalLink, Calendar, User2, Building2, FileText, Presentation } from "lucide-react"
 import { formatDate } from "@/modules/contracts/lib/status"
 import { LifecycleBadge } from "../lifecycle-badge"
 import { projectTypeLabel } from "../../lib/project-type"
@@ -102,6 +102,23 @@ export function ExpedienteHeader({
         </div>
 
         <div className="flex flex-col gap-2 shrink-0">
+          {/* Generación de reportes */}
+          <a
+            href={`/api/reports/word/${project.id}`}
+            download
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition-colors"
+          >
+            <FileText size={14} />
+            Generar Informe Word
+          </a>
+          <a
+            href={`/api/reports/ppt/${project.id}`}
+            download
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-orange-200 bg-orange-50 text-xs font-semibold text-orange-700 hover:bg-orange-100 transition-colors"
+          >
+            <Presentation size={14} />
+            Generar Presentación
+          </a>
           {secopUrl && (
             <a
               href={secopUrl}

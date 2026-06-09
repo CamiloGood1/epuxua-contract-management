@@ -26,7 +26,7 @@ export default async function ProyectosPage() {
   return (
     <PageShell
       title="Proyectos"
-      subtitle="Cartera de proyectos EPUXUA — interadministrativos, funcionamiento y operativos."
+      subtitle="Cartera de proyectos EPUXUA — interadministrativos y funcionamiento."
       icon="folder_special"
       actions={
         <Link

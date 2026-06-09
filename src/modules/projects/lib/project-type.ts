@@ -16,3 +16,8 @@ export function projectTypeLabel(type: ProjectType | string | null | undefined):
 export const PROJECT_TYPE_OPTIONS = Object.entries(PROJECT_TYPE_LABELS).map(
   ([value, label]) => ({ value, label })
 )
+
+// Solo los tipos activos en el negocio actual
+export const ACTIVE_PROJECT_TYPE_OPTIONS = PROJECT_TYPE_OPTIONS.filter(
+  ({ value }) => value === "INTERADMINISTRATIVO" || value === "FUNCIONAMIENTO"
+)

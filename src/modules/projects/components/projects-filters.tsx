@@ -3,7 +3,7 @@
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { LIFECYCLE_ORDER, LIFECYCLE_CONFIG } from "../lib/lifecycle"
-import { PROJECT_TYPE_OPTIONS } from "../lib/project-type"
+import { ACTIVE_PROJECT_TYPE_OPTIONS } from "../lib/project-type"
 
 export interface ProjectFilterState {
   search: string
@@ -103,7 +103,7 @@ export function ProjectsFilters({
           label="Tipo"
           value={filters.type}
           onChange={(v) => set("type", v)}
-          options={[{ value: "all", label: "Todos los tipos" }, ...PROJECT_TYPE_OPTIONS]}
+          options={[{ value: "all", label: "Todos los tipos" }, ...ACTIVE_PROJECT_TYPE_OPTIONS]}
         />
         <SelectField
           label="Año"

@@ -2,7 +2,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type {
   ProjectDetail,
   ProjectKanbanCard,
-  ProjectDashboardMetrics,
   ProjectContractTreeNode,
   ProjectFollowup,
   ProjectAssignment,
@@ -42,6 +41,8 @@ export async function getProjects(filters?: {
   }
   if (filters?.type && filters.type !== "all") {
     query = query.eq("project_type", filters.type)
+  } else {
+    query = query.in("project_type", ["INTERADMINISTRATIVO", "FUNCIONAMIENTO"])
   }
   if (filters?.year) {
     query = query.eq("year", filters.year)
@@ -80,107 +81,11 @@ export async function getProjectKanbanCards(): Promise<ProjectKanbanCard[]> {
   const { data, error } = await supabase
     .from("v_project_kanban")
     .select("*")
+    .eq("project_type", "INTERADMINISTRATIVO")
     .order("project_code", { ascending: true })
 
   if (error) throw new Error(error.message)
   return (data ?? []) as ProjectKanbanCard[]
-}
-
-// ── Dashboard (v_project_dashboard) ─────────────────────────────────────────
-
-function emptyLifecycleCounts(): Record<ProjectLifecycle, number> {
-  return {
-    PLANEACION: 0,
-    CONTRATACION: 0,
-    EJECUCION: 0,
-    SEGUIMIENTO: 0,
-    LIQUIDACION: 0,
-    CERRADO: 0,
-  }
-}
-
-function emptyTypeCounts(): Record<ProjectType, number> {
-  return {
-    INTERADMINISTRATIVO: 0,
-    FUNCIONAMIENTO: 0,
-    OPERACION_COMERCIAL: 0,
-    TIENDA_VIRTUAL: 0,
-    PAGO_FACTURA: 0,
-  }
-}
-
-export async function getProjectDashboardMetrics(): Promise<ProjectDashboardMetrics> {
-  const supabase = await createSupabaseServerClient()
-
-  const { data, error } = await supabase.from("v_project_dashboard").select("*")
-
-  if (error) throw new Error(error.message)
-
-  const rows = data ?? []
-
-  // Vista puede ser filas agregadas o una sola fila KPI
-  if (rows.length === 1 && rows[0].total_projects != null) {
-    const row = rows[0]
-    return {
-      total_projects: row.total_projects ?? 0,
-      active_projects: row.active_projects ?? 0,
-      closed_projects: row.closed_projects ?? 0,
-      total_value: Number(row.total_value ?? 0),
-      total_executed: Number(row.total_executed ?? row.executed_value ?? 0),
-      total_available: Number(row.total_available ?? row.available_balance ?? 0),
-      avg_execution_pct: Number(row.avg_execution_pct ?? row.execution_pct ?? 0),
-      projects_with_alerts: row.projects_with_alerts ?? row.active_alerts ?? 0,
-      by_lifecycle: {
-        ...emptyLifecycleCounts(),
-        ...(row.by_lifecycle ?? {}),
-      },
-      by_type: {
-        ...emptyTypeCounts(),
-        ...(row.by_type ?? {}),
-      },
-    }
-  }
-
-  // Filas por lifecycle/type — agregar desde proyectos si la vista es desnormalizada
-  const byLifecycle = emptyLifecycleCounts()
-  const byType = emptyTypeCounts()
-  let totalValue = 0
-  let totalExecuted = 0
-  let totalAvailable = 0
-  let executionSum = 0
-  let withAlerts = 0
-
-  for (const row of rows) {
-    const lifecycle = row.lifecycle_status as ProjectLifecycle | undefined
-    const type = row.project_type as ProjectType | undefined
-    if (lifecycle && lifecycle in byLifecycle) {
-      byLifecycle[lifecycle] += row.project_count ?? row.count ?? 1
-    }
-    if (type && type in byType) {
-      byType[type] += row.project_count ?? row.count ?? 1
-    }
-    totalValue += Number(row.total_value ?? 0)
-    totalExecuted += Number(row.executed_value ?? row.total_executed ?? 0)
-    totalAvailable += Number(row.available_balance ?? 0)
-    executionSum += Number(row.execution_pct ?? row.avg_execution_pct ?? 0)
-    if ((row.active_alerts_count ?? 0) > 0) withAlerts += 1
-  }
-
-  const totalProjects =
-    rows.reduce((s, r) => s + (r.project_count ?? r.count ?? 0), 0) || rows.length
-
-  return {
-    total_projects: totalProjects,
-    active_projects: byLifecycle.EJECUCION + byLifecycle.SEGUIMIENTO + byLifecycle.CONTRATACION,
-    closed_projects: byLifecycle.CERRADO,
-    total_value: totalValue,
-    total_executed: totalExecuted,
-    total_available: totalAvailable,
-    avg_execution_pct: rows.length ? executionSum / rows.length : 0,
-    projects_with_alerts: withAlerts,
-    by_lifecycle: byLifecycle,
-    by_type: byType,
-  }
 }
 
 // ── Árbol contractual (v_project_contract_tree + fallback) ────────────────────
@@ -369,7 +274,10 @@ export async function getProjectFilterCatalogs(): Promise<{
 
   const [{ data: projects, error: projectsError }, { data: assignments, error: assignError }] =
     await Promise.all([
-      supabase.from("v_project_detail").select("year, area_name, secretaria"),
+      supabase
+        .from("v_project_detail")
+        .select("year, area_name, secretaria")
+        .in("project_type", ["INTERADMINISTRATIVO", "FUNCIONAMIENTO"]),
       supabase
         .from("project_assignments")
         .select(`${PROFILE_VIA_USER_ID} ( full_name )`)

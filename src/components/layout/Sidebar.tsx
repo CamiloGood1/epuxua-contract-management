@@ -49,6 +49,14 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    label: "Funcionamiento",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { href: "/funcionamiento", label: "Árbol de Contratos", icon: "corporate_fare" },
+    ],
+  },
+  {
     label: "Financiero",
     collapsible: true,
     defaultOpen: false,
