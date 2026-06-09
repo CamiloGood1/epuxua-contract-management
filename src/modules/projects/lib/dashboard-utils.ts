@@ -4,7 +4,40 @@ import type {
   ProjectLifecycle,
   ProjectType,
 } from "@/types/project"
+import type { FuncionamientoContract } from "@/services/funcionamiento.service"
 import { projectEntityLabel } from "./project-utils"
+
+/**
+ * Enriquece proyectos FUNCIONAMIENTO con los valores reales de sus contratos.
+ * Los proyectos contenedor se crean con total_value=0; esta función corrige
+ * total_value, executed_value y paid_value sumando desde los contratos DIRECTO.
+ */
+export function enrichFuncionamientoProjects(
+  projects: ProjectDetail[],
+  contracts: FuncionamientoContract[]
+): ProjectDetail[] {
+  const sumsByProject = new Map<string, { total: number; paid: number }>()
+  for (const c of contracts) {
+    if (!c.project_id) continue
+    const prev = sumsByProject.get(c.project_id) ?? { total: 0, paid: 0 }
+    sumsByProject.set(c.project_id, {
+      total: prev.total + c.final_value,
+      paid: prev.paid + c.paid_value,
+    })
+  }
+
+  return projects.map((p) => {
+    if (p.project_type !== "FUNCIONAMIENTO") return p
+    const sums = sumsByProject.get(p.id)
+    if (!sums) return p
+    return {
+      ...p,
+      total_value: sums.total,
+      executed_value: sums.paid,
+      paid_value: sums.paid,
+    }
+  })
+}
 
 // Tipos activos en el negocio actual
 export const ACTIVE_PROJECT_TYPES: ProjectType[] = ["INTERADMINISTRATIVO", "FUNCIONAMIENTO"]

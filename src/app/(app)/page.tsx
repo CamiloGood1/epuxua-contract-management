@@ -3,6 +3,8 @@ import {
   getProjectFilterCatalogs,
   enrichProjectsWithManagers,
 } from "@/services/projects.service"
+import { getFuncionamientoContracts } from "@/services/funcionamiento.service"
+import { enrichFuncionamientoProjects } from "@/modules/projects/lib/dashboard-utils"
 import { ProjectDashboardView } from "@/modules/projects/components/project-dashboard-view"
 
 export default async function Page() {
@@ -11,11 +13,13 @@ export default async function Page() {
   let fetchError: string | undefined
 
   try {
-    const [raw, catalogs] = await Promise.all([
+    const [raw, catalogs, funcContracts] = await Promise.all([
       getProjects(),
       getProjectFilterCatalogs(),
+      getFuncionamientoContracts(),
     ])
-    projects = await enrichProjectsWithManagers(raw)
+    const withManagers = await enrichProjectsWithManagers(raw)
+    projects = enrichFuncionamientoProjects(withManagers, funcContracts)
     entities = catalogs.entities
   } catch (error) {
     fetchError = error instanceof Error ? error.message : "Error desconocido"

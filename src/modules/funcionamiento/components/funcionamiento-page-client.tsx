@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
-import { Search, Plus } from "lucide-react"
+import { Search, Plus, ChevronDown } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { NewFuncionamientoContractModal } from "./new-funcionamiento-contract-modal"
 import type { FuncionamientoContract } from "@/services/funcionamiento.service"
@@ -56,6 +58,102 @@ function fmt(d: string | null): string {
   return new Date(d).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
 }
 
+// ── Detalle expandible ────────────────────────────────────────────────────────
+
+function ContractDetail({ c }: { c: FuncionamientoContract }) {
+  return (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="overflow-hidden"
+    >
+      <div className="bg-muted/30 border-t border-border px-6 py-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 text-sm">
+
+        {/* Objeto */}
+        <div className="sm:col-span-2 lg:col-span-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Objeto del contrato</p>
+          <p className="text-sm text-foreground leading-relaxed">{c.object ?? "—"}</p>
+        </div>
+
+        {/* Identificación del contrato */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Información general</p>
+          <div className="space-y-1.5">
+            <Row label="Clase" value={c.contract_class ?? "—"} />
+            <Row label="Modalidad" value={modalityLabel(c.selection_modality)} />
+            <Row label="Área responsable" value={c.area_name ?? "—"} />
+            <Row label="Supervisor" value={c.supervisor_name ?? "—"} />
+            <Row label="Año" value={String(c.year)} />
+          </div>
+        </div>
+
+        {/* Fechas */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Fechas</p>
+          <div className="space-y-1.5">
+            <Row label="Suscripción" value={fmt(c.subscription_date)} />
+            <Row label="Inicio" value={fmt(c.start_date)} />
+            <Row label="Terminación" value={fmt(c.end_date)} />
+            {c.days_remaining != null && (
+              <Row
+                label="Días restantes"
+                value={c.days_remaining > 0 ? `${c.days_remaining} días` : "Vencido"}
+                valueClass={c.days_remaining <= 0 ? "text-red-600 font-semibold" : c.days_remaining <= 30 ? "text-amber-600 font-semibold" : ""}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Financiero */}
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Información financiera</p>
+          <div className="space-y-1.5">
+            <Row label="Valor inicial contratado" value={formatCOP(c.initial_value)} valueClass="font-semibold" />
+            {c.total_additions_value > 0 && (
+              <Row label="Valor de adición" value={formatCOP(c.total_additions_value)} valueClass="text-amber-700 font-semibold" />
+            )}
+            <div className="pt-1 border-t border-border/60">
+              <Row
+                label={c.total_additions_value > 0 ? "Total (inicial + adición)" : "Valor total contratado"}
+                value={formatCOP(c.final_value)}
+                valueClass="font-bold text-foreground"
+              />
+            </div>
+            <Row label="Valor pagado" value={formatCOP(c.paid_value)} />
+          </div>
+        </div>
+
+        {/* Estado y proyecto contenedor */}
+        <div className="sm:col-span-2 lg:col-span-3 flex items-center gap-4 pt-2 border-t border-border/60">
+          <div className="flex items-center gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Estado:</p>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusClass(c.status)}`}>
+              {statusLabel(c.status)}
+            </span>
+          </div>
+          {c.project_code && (
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Proyecto contenedor:</p>
+              <span className="text-xs font-semibold text-teal-700">{c.project_code}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function Row({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) {
+  return (
+    <div className="flex justify-between gap-3">
+      <span className="text-xs text-muted-foreground shrink-0">{label}</span>
+      <span className={cn("text-xs text-right", valueClass ?? "text-foreground")}>{value}</span>
+    </div>
+  )
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
 interface Props {
@@ -69,6 +167,7 @@ export function FuncionamientoPageClient({ contracts, availableProjects }: Props
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterArea, setFilterArea] = useState("all")
   const [showNewModal, setShowNewModal] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const years = useMemo(
     () => [...new Set(contracts.map((c) => c.year))].sort((a, b) => b - a),
@@ -114,6 +213,10 @@ export function FuncionamientoPageClient({ contracts, availableProjects }: Props
       .map(([year, count]) => ({ year: String(year), count }))
   }, [contracts])
 
+  function toggleExpand(id: string) {
+    setExpandedId((prev) => (prev === id ? null : id))
+  }
+
   if (contracts.length === 0) {
     return (
       <div className="epuxua-card flex flex-col items-center justify-center py-20 text-center">
@@ -146,6 +249,7 @@ export function FuncionamientoPageClient({ contracts, availableProjects }: Props
         <p className="text-sm text-muted-foreground">
           {filtered.length} contrato{filtered.length !== 1 ? "s" : ""}
           {filterYear !== "all" ? ` · ${filterYear}` : ""}
+          <span className="ml-2 text-[10px] text-muted-foreground/60">Clic en una fila para ver el detalle</span>
         </p>
         <button
           type="button"
@@ -209,9 +313,7 @@ export function FuncionamientoPageClient({ contracts, availableProjects }: Props
           className="h-9 rounded-lg border border-border px-3 text-sm"
         >
           <option value="all">Todos los años</option>
-          {years.map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
+          {years.map((y) => <option key={y} value={y}>{y}</option>)}
         </select>
         <select
           value={filterStatus}
@@ -219,9 +321,7 @@ export function FuncionamientoPageClient({ contracts, availableProjects }: Props
           className="h-9 rounded-lg border border-border px-3 text-sm"
         >
           <option value="all">Todos los estados</option>
-          {statuses.map((s) => (
-            <option key={s} value={s}>{statusLabel(s)}</option>
-          ))}
+          {statuses.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
         </select>
         <select
           value={filterArea}
@@ -229,34 +329,32 @@ export function FuncionamientoPageClient({ contracts, availableProjects }: Props
           className="h-9 rounded-lg border border-border px-3 text-sm"
         >
           <option value="all">Todas las áreas</option>
-          {areas.map((a) => (
-            <option key={a} value={a}>{a}</option>
-          ))}
+          {areas.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
 
-      {/* Tabla de contratos */}
+      {/* Tabla con filas expandibles */}
       <div className="epuxua-card overflow-x-auto">
-        <table className="w-full text-sm min-w-[1200px]">
+        <table className="w-full text-sm min-w-[1100px]">
           <thead>
             <tr className="border-b border-border bg-muted/40 text-left">
+              <th className="w-8 px-3 py-3" />
               {[
-                { label: "N° Contrato", align: "" },
-                { label: "Contratista", align: "" },
-                { label: "Clase", align: "" },
-                { label: "Modalidad", align: "" },
-                { label: "Área responsable", align: "" },
-                { label: "Objeto", align: "" },
+                { label: "N° Contrato" },
+                { label: "Contratista" },
+                { label: "Clase" },
+                { label: "Modalidad" },
+                { label: "Área" },
                 { label: "Valor inicial", align: "text-right" },
                 { label: "Adición", align: "text-right" },
                 { label: "Total contratado", align: "text-right" },
-                { label: "Inicio", align: "" },
-                { label: "Terminación", align: "" },
-                { label: "Estado", align: "" },
+                { label: "Inicio" },
+                { label: "Terminación" },
+                { label: "Estado" },
               ].map((h) => (
                 <th
                   key={h.label}
-                  className={`px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap ${h.align}`}
+                  className={`px-4 py-3 text-xs font-semibold text-muted-foreground whitespace-nowrap ${h.align ?? ""}`}
                 >
                   {h.label}
                 </th>
@@ -266,66 +364,83 @@ export function FuncionamientoPageClient({ contracts, availableProjects }: Props
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td
-                  colSpan={12}
-                  className="px-4 py-12 text-center text-sm text-muted-foreground"
-                >
+                <td colSpan={12} className="px-4 py-12 text-center text-sm text-muted-foreground">
                   No hay contratos que coincidan con los filtros.
                 </td>
               </tr>
             ) : (
-              filtered.map((c) => (
-                <tr
-                  key={c.id}
-                  className="border-b border-border/60 hover:bg-muted/20 transition-colors"
-                >
-                  <td className="px-4 py-3 font-semibold text-teal-700 whitespace-nowrap">
-                    {c.contract_number}
-                  </td>
-                  <td className="px-4 py-3 max-w-[160px]">
-                    <p className="truncate">{c.contractor_name}</p>
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {c.contract_class ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {modalityLabel(c.selection_modality)}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground max-w-[140px]">
-                    <p className="truncate">{c.area_name ?? "—"}</p>
-                  </td>
-                  <td className="px-4 py-3 max-w-[220px]">
-                    <p
-                      className="truncate text-xs text-muted-foreground"
-                      title={c.object ?? ""}
+              filtered.map((c) => {
+                const isOpen = expandedId === c.id
+                return (
+                  <>
+                    <tr
+                      key={c.id}
+                      onClick={() => toggleExpand(c.id)}
+                      className={cn(
+                        "border-b border-border/60 cursor-pointer transition-colors",
+                        isOpen ? "bg-teal-50/60" : "hover:bg-muted/20"
+                      )}
                     >
-                      {c.object ?? "—"}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">
-                    {formatCOP(c.initial_value)}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground whitespace-nowrap">
-                    {c.total_additions_value > 0 ? formatCOP(c.total_additions_value) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums font-semibold whitespace-nowrap">
-                    {formatCOP(c.final_value)}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {fmt(c.start_date)}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {fmt(c.end_date)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusClass(c.status)}`}
-                    >
-                      {statusLabel(c.status)}
-                    </span>
-                  </td>
-                </tr>
-              ))
+                      {/* Chevron */}
+                      <td className="px-3 py-3 text-center">
+                        <ChevronDown
+                          size={14}
+                          className={cn(
+                            "text-muted-foreground transition-transform",
+                            isOpen && "rotate-180"
+                          )}
+                        />
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-teal-700 whitespace-nowrap">
+                        {c.contract_number}
+                      </td>
+                      <td className="px-4 py-3 max-w-[160px]">
+                        <p className="truncate">{c.contractor_name}</p>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {c.contract_class ?? "—"}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {modalityLabel(c.selection_modality)}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground max-w-[140px]">
+                        <p className="truncate">{c.area_name ?? "—"}</p>
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums font-medium whitespace-nowrap">
+                        {formatCOP(c.initial_value)}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums text-muted-foreground whitespace-nowrap">
+                        {c.total_additions_value > 0 ? formatCOP(c.total_additions_value) : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold whitespace-nowrap">
+                        {formatCOP(c.final_value)}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {fmt(c.start_date)}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {fmt(c.end_date)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusClass(c.status)}`}>
+                          {statusLabel(c.status)}
+                        </span>
+                      </td>
+                    </tr>
+
+                    {/* Fila de detalle expandible — span de toda la tabla */}
+                    {isOpen && (
+                      <tr key={`${c.id}-detail`} className="border-b border-teal-200/60">
+                        <td colSpan={12} className="p-0">
+                          <AnimatePresence initial={false}>
+                            <ContractDetail c={c} />
+                          </AnimatePresence>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )
+              })
             )}
           </tbody>
         </table>

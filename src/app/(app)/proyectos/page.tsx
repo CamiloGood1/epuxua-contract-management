@@ -5,6 +5,8 @@ import {
   getProjectFilterCatalogs,
   enrichProjectsWithManagers,
 } from "@/services/projects.service"
+import { getFuncionamientoContracts } from "@/services/funcionamiento.service"
+import { enrichFuncionamientoProjects } from "@/modules/projects/lib/dashboard-utils"
 import { ProjectsPageClient } from "@/modules/projects/components/projects-page-client"
 
 export default async function ProyectosPage() {
@@ -13,11 +15,13 @@ export default async function ProyectosPage() {
   let loadError: string | null = null
 
   try {
-    const [raw, catalogsResult] = await Promise.all([
+    const [raw, catalogsResult, funcContracts] = await Promise.all([
       getProjects(),
       getProjectFilterCatalogs(),
+      getFuncionamientoContracts(),
     ])
-    projects = await enrichProjectsWithManagers(raw)
+    const withManagers = await enrichProjectsWithManagers(raw)
+    projects = enrichFuncionamientoProjects(withManagers, funcContracts)
     catalogs = catalogsResult
   } catch (e) {
     loadError = e instanceof Error ? e.message : "Error al cargar proyectos"
