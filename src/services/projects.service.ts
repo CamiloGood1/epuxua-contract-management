@@ -53,7 +53,7 @@ export async function getProjects(filters?: {
     )
   }
 
-  const { data, error } = await query
+  const { data, error } = await query.limit(5000)
   if (error) throw new Error(error.message)
   return (data ?? []) as ProjectDetail[]
 }
@@ -83,6 +83,7 @@ export async function getProjectKanbanCards(): Promise<ProjectKanbanCard[]> {
     .select("*")
     .eq("project_type", "INTERADMINISTRATIVO")
     .order("project_code", { ascending: true })
+    .limit(5000)
 
   if (error) throw new Error(error.message)
   return (data ?? []) as ProjectKanbanCard[]
@@ -277,12 +278,14 @@ export async function getProjectFilterCatalogs(): Promise<{
       supabase
         .from("v_project_detail")
         .select("year, area_name, secretaria")
-        .in("project_type", ["INTERADMINISTRATIVO", "FUNCIONAMIENTO"]),
+        .in("project_type", ["INTERADMINISTRATIVO", "FUNCIONAMIENTO"])
+        .limit(5000),
       supabase
         .from("project_assignments")
         .select(`${PROFILE_VIA_USER_ID} ( full_name )`)
         .eq("active", true)
-        .eq("assignment_role", "GERENTE_PROYECTO"),
+        .eq("assignment_role", "GERENTE_PROYECTO")
+        .limit(5000),
     ])
 
   if (projectsError) throw new Error(projectsError.message)
@@ -330,6 +333,7 @@ export async function enrichProjectsWithManagers(
     .in("project_id", ids)
     .eq("active", true)
     .eq("assignment_role", "GERENTE_PROYECTO")
+    .limit(5000)
 
   if (error) throw new Error(error.message)
 

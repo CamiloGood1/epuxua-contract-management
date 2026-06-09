@@ -38,11 +38,13 @@ export async function getFuncionamientoContracts(): Promise<FuncionamientoContra
   const projectIds = projects.map((p) => p.id)
   const projectMap = new Map(projects.map((p) => [p.id as string, p.project_code as string]))
 
-  // contracts tiene project_id; v_contract_detail no lo expone — se hace en dos pasos
+  // contracts tiene project_id; v_contract_detail no lo expone — se hace en dos pasos.
+  // Se usa limit alto explícito para no depender del max_rows configurado en el proyecto.
   const { data: contractRefs, error: refsError } = await supabase
     .from("contracts")
     .select("id, project_id")
     .in("project_id", projectIds)
+    .limit(5000)
 
   if (refsError) throw new Error(refsError.message)
   if (!contractRefs?.length) return []
@@ -58,6 +60,7 @@ export async function getFuncionamientoContracts(): Promise<FuncionamientoContra
     .in("id", contractIds)
     .order("year", { ascending: false })
     .order("contract_number", { ascending: true })
+    .limit(5000)
 
   if (error) throw new Error(error.message)
 
