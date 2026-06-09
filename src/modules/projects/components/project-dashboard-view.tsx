@@ -106,9 +106,9 @@ function SectionHeader({
 function InteradminKPIs({ metrics }: { metrics: SectionMetrics }) {
   const cards = [
     {
-      label: "Total proyectos",
-      value: metrics.totalProjects,
-      formattedValue: String(metrics.totalProjects),
+      label: "Proyectos activos",
+      value: metrics.activeProjects,
+      formattedValue: String(metrics.activeProjects),
       isCurrency: false,
       change: 0,
       icon: FolderKanban,
