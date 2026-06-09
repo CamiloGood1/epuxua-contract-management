@@ -38,13 +38,24 @@ export async function getFuncionamientoContracts(): Promise<FuncionamientoContra
   const projectIds = projects.map((p) => p.id)
   const projectMap = new Map(projects.map((p) => [p.id as string, p.project_code as string]))
 
-  // v_contract_detail expone project_id — se filtra con .or() igual que en las rutas de reportes
-  const orFilter = projectIds.map((id) => `project_id.eq.${id}`).join(",")
+  // contracts tiene project_id; v_contract_detail no lo expone — se hace en dos pasos
+  const { data: contractRefs, error: refsError } = await supabase
+    .from("contracts")
+    .select("id, project_id")
+    .in("project_id", projectIds)
+
+  if (refsError) throw new Error(refsError.message)
+  if (!contractRefs?.length) return []
+
+  const contractIds = contractRefs.map((r) => r.id as string)
+  const contractProjectMap = new Map(
+    contractRefs.map((r) => [r.id as string, r.project_id as string])
+  )
 
   const { data, error } = await supabase
     .from("v_contract_detail")
     .select("*")
-    .or(orFilter)
+    .in("id", contractIds)
     .order("year", { ascending: false })
     .order("contract_number", { ascending: true })
 
@@ -70,7 +81,10 @@ export async function getFuncionamientoContracts(): Promise<FuncionamientoContra
     paid_value: Number(c.paid_value ?? 0),
     status: String(c.status ?? ""),
     days_remaining: c.days_remaining != null ? Number(c.days_remaining) : null,
-    project_id: c.project_id ? String(c.project_id) : null,
-    project_code: c.project_id ? (projectMap.get(String(c.project_id)) ?? null) : null,
+    project_id: contractProjectMap.get(String(c.id)) ?? null,
+    project_code: (() => {
+      const pid = contractProjectMap.get(String(c.id))
+      return pid ? (projectMap.get(pid) ?? null) : null
+    })(),
   }))
 }
