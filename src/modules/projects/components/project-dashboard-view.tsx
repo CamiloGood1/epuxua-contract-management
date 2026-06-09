@@ -31,9 +31,11 @@ import {
   DEFAULT_PROJECT_DASHBOARD_FILTERS,
   applyDashboardProjectFilters,
   computeSectionMetrics,
+  computeFuncionamientoContractMetrics,
   uniqueProjectYears,
   type SectionMetrics,
 } from "../lib/dashboard-utils"
+import type { FuncionamientoContract } from "@/services/funcionamiento.service"
 import { projectEntityLabel } from "../lib/project-utils"
 import { cn } from "@/lib/utils"
 import { NewInteradminProjectModal } from "./new-interadmin-project-modal"
@@ -46,6 +48,7 @@ interface ProjectDashboardViewProps {
   projects: ProjectDetail[]
   entities: string[]
   fetchError?: string
+  funcionamientoActiveContracts?: FuncionamientoContract[]
 }
 
 function YearFilter({
@@ -179,7 +182,7 @@ function InteradminKPIs({ metrics }: { metrics: SectionMetrics }) {
 function FuncionamientoKPIs({ metrics }: { metrics: SectionMetrics }) {
   const cards = [
     {
-      label: "Total contratos",
+      label: "Contratos en ejecución",
       value: metrics.totalProjects,
       formattedValue: String(metrics.totalProjects),
       isCurrency: false,
@@ -243,6 +246,7 @@ export function ProjectDashboardView({
   projects,
   entities: _entities,
   fetchError,
+  funcionamientoActiveContracts,
 }: ProjectDashboardViewProps) {
   const [year, setYear] = useState("all")
   const [showNewInteradmin, setShowNewInteradmin] = useState(false)
@@ -269,7 +273,16 @@ export function ProjectDashboardView({
   )
 
   const interadminMetrics = useMemo(() => computeSectionMetrics(interadmin), [interadmin])
-  const funcionamientoMetrics = useMemo(() => computeSectionMetrics(funcionamiento), [funcionamiento])
+
+  // Métricas FUNCIONAMIENTO: si vienen contratos activos del servidor, úsalos directamente.
+  // Esto garantiza que los KPIs reflejan solo contratos EN_EJECUCION.
+  const funcionamientoMetrics = useMemo(
+    () =>
+      funcionamientoActiveContracts && funcionamientoActiveContracts.length >= 0
+        ? computeFuncionamientoContractMetrics(funcionamientoActiveContracts)
+        : computeSectionMetrics(funcionamiento),
+    [funcionamientoActiveContracts, funcionamiento]
+  )
 
   const years = useMemo(() => uniqueProjectYears(projects), [projects])
 

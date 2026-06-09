@@ -8,6 +8,32 @@ import type { FuncionamientoContract } from "@/services/funcionamiento.service"
 import { projectEntityLabel } from "./project-utils"
 
 /**
+ * Computa métricas de la sección FUNCIONAMIENTO directamente desde contratos DIRECTO.
+ * Se usa en el dashboard pasando solo los contratos EN_EJECUCION.
+ */
+export function computeFuncionamientoContractMetrics(
+  contracts: FuncionamientoContract[]
+): SectionMetrics {
+  let totalValue = 0
+  let paidValue = 0
+
+  for (const c of contracts) {
+    totalValue += c.final_value
+    paidValue += c.paid_value
+  }
+
+  return {
+    totalProjects: contracts.length,
+    totalValue,
+    executedValue: paidValue,
+    paidValue,
+    derivedCount: 0,
+    alertsCount: 0,
+    activeProjects: contracts.length,
+  }
+}
+
+/**
  * Enriquece proyectos FUNCIONAMIENTO con los valores reales de sus contratos.
  * Los proyectos contenedor se crean con total_value=0; esta función corrige
  * total_value, executed_value y paid_value sumando desde los contratos DIRECTO.
