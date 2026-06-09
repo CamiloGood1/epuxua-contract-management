@@ -1,12 +1,17 @@
-import { PageShell } from "@/components/ui/page-shell"
 import { getFuncionamientoContracts } from "@/services/funcionamiento.service"
 import { getProjects } from "@/services/projects.service"
 import { FuncionamientoPageClient } from "@/modules/funcionamiento/components/funcionamiento-page-client"
 
-export default async function FuncionamientoPage() {
+interface PageProps {
+  searchParams: Promise<{ status?: string }>
+}
+
+export default async function FuncionamientoPage({ searchParams }: PageProps) {
   let contracts: Awaited<ReturnType<typeof getFuncionamientoContracts>> = []
   let availableProjects: Awaited<ReturnType<typeof getProjects>> = []
   let loadError: string | null = null
+
+  const params = await searchParams
 
   try {
     ;[contracts, availableProjects] = await Promise.all([
@@ -18,20 +23,19 @@ export default async function FuncionamientoPage() {
   }
 
   return (
-    <PageShell
-      title="Funcionamiento"
-      subtitle="Contratos de apoyo con recursos propios EPUXUA — personal contratado por la entidad."
-      icon="corporate_fare"
-    >
+    <>
       {loadError && (
-        <div className="px-4 py-3 rounded-xl border border-destructive/30 bg-destructive/10 text-sm text-destructive mb-4">
-          {loadError}
+        <div className="px-6 pt-4">
+          <div className="px-4 py-3 rounded-xl border border-destructive/30 bg-destructive/10 text-sm text-destructive">
+            {loadError}
+          </div>
         </div>
       )}
       <FuncionamientoPageClient
         contracts={contracts}
         availableProjects={availableProjects}
+        initialStatusFilter={params.status}
       />
-    </PageShell>
+    </>
   )
 }

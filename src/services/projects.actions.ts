@@ -264,14 +264,41 @@ export async function createDerivedContract(
 export interface NewFuncionamientoContractInput {
   project_id: string
   contract_number: string
-  object: string
-  contractor_name: string
-  supervisor_name: string
-  subscription_date: string
-  start_date: string
-  end_date: string
-  initial_value: number
   year: number
+  // Tipo y clase
+  contract_type: string              // DIRECTO por defecto
+  contract_class: string             // OPS, Apoyo técnico, etc.
+  selection_modality: string         // CONTRATACION_DIRECTA por defecto
+  resource_type?: string
+  // Descripción
+  object: string
+  // Contratista
+  contractor_name: string
+  contractor_document?: string
+  contractor_person_type: "NATURAL" | "JURIDICA"
+  // Responsables
+  supervisor_name: string
+  area_name?: string
+  interventor?: string
+  // Estado
+  status: string
+  // Fechas
+  subscription_date: string
+  publication_date?: string
+  start_date?: string
+  end_date?: string
+  initial_term_text?: string
+  initial_term_days?: number
+  // Valores
+  initial_value: number
+  monthly_value?: number
+  // PAA
+  paa_code?: string
+  paa_description?: string
+  paa_estimated_value?: number
+  // Externos
+  secop_url?: string
+  observations?: string
 }
 
 export async function createFuncionamientoContract(
@@ -325,26 +352,59 @@ export async function createFuncionamientoContract(
     }
   }
 
+  // Buscar o crear área responsable
+  let responsible_area_id: string | null = null
+  if (input.area_name?.trim()) {
+    const { data: existingArea } = await supabase
+      .from("responsible_areas")
+      .select("id")
+      .ilike("name", input.area_name.trim())
+      .limit(1)
+      .maybeSingle()
+    if (existingArea) {
+      responsible_area_id = existingArea.id
+    } else {
+      const { data: newArea } = await supabase
+        .from("responsible_areas")
+        .insert({ name: input.area_name.trim() })
+        .select("id")
+        .single()
+      responsible_area_id = newArea?.id ?? null
+    }
+  }
+
   const { data, error } = await supabase
     .from("contracts")
     .insert({
       contract_number: input.contract_number.trim(),
       year: input.year,
-      contract_type: "DIRECTO",
-      selection_modality: "CONTRATACION_DIRECTA",
-      contract_class: "Prestación de servicios profesionales",
+      contract_type: input.contract_type || "DIRECTO",
+      selection_modality: input.selection_modality || "CONTRATACION_DIRECTA",
+      contract_class: input.contract_class?.trim() || "Prestación de servicios profesionales",
+      resource_type: input.resource_type?.trim() || null,
       object: input.object.trim(),
       contractor_id,
       supervisor_id,
+      responsible_area_id,
       project_id: input.project_id,
-      status: "EN_EJECUCION",
+      status: input.status || "EN_EJECUCION",
       subscription_date: input.subscription_date,
+      publication_date: input.publication_date || null,
       start_date: input.start_date || null,
       end_date: input.end_date || null,
+      initial_term_text: input.initial_term_text?.trim() || null,
+      initial_term_days: input.initial_term_days || null,
       initial_value: Number(input.initial_value),
+      monthly_value: input.monthly_value || null,
       total_additions_value: 0,
       paid_value: 0,
       future_validity: 0,
+      paa_code: input.paa_code?.trim() || null,
+      paa_description: input.paa_description?.trim() || null,
+      paa_estimated_value: input.paa_estimated_value || null,
+      secop_url: input.secop_url?.trim() || null,
+      observations: input.observations?.trim() || null,
+      interventor: input.interventor?.trim() || null,
     })
     .select("id")
     .single()

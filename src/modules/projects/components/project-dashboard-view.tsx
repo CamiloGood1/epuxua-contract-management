@@ -21,6 +21,7 @@ import {
   CreditCard,
   CheckCircle2,
   Plus,
+  Clock,
 } from "lucide-react"
 import { KPICard } from "@/components/dashboard/KPICard"
 import { formatCOP } from "@/modules/contracts/lib/status"
@@ -182,9 +183,9 @@ function InteradminKPIs({ metrics }: { metrics: SectionMetrics }) {
 function FuncionamientoKPIs({ metrics }: { metrics: SectionMetrics }) {
   const cards = [
     {
-      label: "Contratos en ejecución",
-      value: metrics.totalProjects,
-      formattedValue: String(metrics.totalProjects),
+      label: "Contratos activos",
+      value: metrics.activeProjects,
+      formattedValue: String(metrics.activeProjects),
       isCurrency: false,
       change: 0,
       icon: Users,
@@ -192,7 +193,7 @@ function FuncionamientoKPIs({ metrics }: { metrics: SectionMetrics }) {
       iconBg: "bg-slate-50",
     },
     {
-      label: "Valor total funcionamiento",
+      label: "Valor total contratado",
       value: metrics.totalValue,
       formattedValue: formatCOP(metrics.totalValue),
       isCurrency: true,
@@ -202,34 +203,34 @@ function FuncionamientoKPIs({ metrics }: { metrics: SectionMetrics }) {
       iconBg: "bg-teal-50",
     },
     {
-      label: "Valor ejecutado",
-      value: metrics.executedValue,
-      formattedValue: formatCOP(metrics.executedValue),
+      label: "Valor promedio contrato",
+      value: metrics.avgValue ?? 0,
+      formattedValue: formatCOP(metrics.avgValue ?? 0),
       isCurrency: true,
       change: 0,
       icon: TrendingUp,
-      gradient: "from-green-500 to-emerald-600",
-      iconBg: "bg-green-50",
+      gradient: "from-violet-500 to-purple-600",
+      iconBg: "bg-violet-50",
     },
     {
-      label: "Valor pagado",
-      value: metrics.paidValue,
-      formattedValue: formatCOP(metrics.paidValue),
-      isCurrency: true,
+      label: "Próximos a vencer",
+      value: metrics.soonExpiring ?? 0,
+      formattedValue: String(metrics.soonExpiring ?? 0),
+      isCurrency: false,
       change: 0,
-      icon: CreditCard,
-      gradient: "from-sky-500 to-blue-600",
-      iconBg: "bg-sky-50",
+      icon: Clock,
+      gradient: (metrics.soonExpiring ?? 0) > 0 ? "from-amber-500 to-orange-500" : "from-slate-400 to-slate-500",
+      iconBg: (metrics.soonExpiring ?? 0) > 0 ? "bg-amber-50" : "bg-slate-50",
     },
     {
-      label: "Con alertas",
-      value: metrics.alertsCount,
-      formattedValue: String(metrics.alertsCount),
+      label: "Contratos vencidos",
+      value: metrics.expired ?? 0,
+      formattedValue: String(metrics.expired ?? 0),
       isCurrency: false,
       change: 0,
       icon: AlertTriangle,
-      gradient: "from-orange-500 to-amber-600",
-      iconBg: "bg-orange-50",
+      gradient: (metrics.expired ?? 0) > 0 ? "from-red-500 to-rose-600" : "from-slate-400 to-slate-500",
+      iconBg: (metrics.expired ?? 0) > 0 ? "bg-red-50" : "bg-slate-50",
     },
   ]
 

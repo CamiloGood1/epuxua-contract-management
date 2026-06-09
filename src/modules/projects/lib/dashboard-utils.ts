@@ -16,11 +16,19 @@ export function computeFuncionamientoContractMetrics(
 ): SectionMetrics {
   let totalValue = 0
   let paidValue = 0
+  let soonExpiring = 0
+  let expired = 0
 
   for (const c of contracts) {
     totalValue += c.final_value
     paidValue += c.paid_value
+    if (c.days_remaining != null) {
+      if (c.days_remaining <= 0) expired++
+      else if (c.days_remaining <= 30) soonExpiring++
+    }
   }
+
+  const avgValue = contracts.length ? totalValue / contracts.length : 0
 
   return {
     totalProjects: contracts.length,
@@ -28,8 +36,11 @@ export function computeFuncionamientoContractMetrics(
     executedValue: paidValue,
     paidValue,
     derivedCount: 0,
-    alertsCount: 0,
+    alertsCount: soonExpiring + expired,
     activeProjects: contracts.length,
+    avgValue,
+    soonExpiring,
+    expired,
   }
 }
 
@@ -76,6 +87,10 @@ export interface SectionMetrics {
   derivedCount: number
   alertsCount: number
   activeProjects: number
+  // Campos adicionales para FUNCIONAMIENTO
+  avgValue?: number
+  soonExpiring?: number   // activos con days_remaining entre 1 y 30
+  expired?: number        // activos con days_remaining <= 0
 }
 
 export type ProjectDashboardFilterState = {

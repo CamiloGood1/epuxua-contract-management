@@ -53,7 +53,10 @@ const navSections: NavSection[] = [
     collapsible: true,
     defaultOpen: true,
     items: [
-      { href: "/funcionamiento", label: "Árbol de Contratos", icon: "corporate_fare" },
+      { href: "/funcionamiento", label: "Todos los contratos", icon: "corporate_fare" },
+      { href: "/funcionamiento?status=activos", label: "Activos", icon: "play_circle" },
+      { href: "/funcionamiento?status=proximos", label: "Próximos a vencer", icon: "schedule" },
+      { href: "/funcionamiento?status=finalizados", label: "Finalizados", icon: "check_circle" },
     ],
   },
   {
