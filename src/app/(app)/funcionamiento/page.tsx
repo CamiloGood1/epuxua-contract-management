@@ -1,15 +1,18 @@
 import { PageShell } from "@/components/ui/page-shell"
+import { getFuncionamientoContracts } from "@/services/funcionamiento.service"
 import { getProjects } from "@/services/projects.service"
-import { getProjectContractTree } from "@/services/projects.service"
 import { FuncionamientoPageClient } from "@/modules/funcionamiento/components/funcionamiento-page-client"
-import type { ProjectDetail } from "@/types/project"
 
 export default async function FuncionamientoPage() {
-  let projects: ProjectDetail[] = []
+  let contracts: Awaited<ReturnType<typeof getFuncionamientoContracts>> = []
+  let availableProjects: Awaited<ReturnType<typeof getProjects>> = []
   let loadError: string | null = null
 
   try {
-    projects = await getProjects({ type: "FUNCIONAMIENTO" })
+    ;[contracts, availableProjects] = await Promise.all([
+      getFuncionamientoContracts(),
+      getProjects({ type: "FUNCIONAMIENTO" }),
+    ])
   } catch (e) {
     loadError = e instanceof Error ? e.message : "Error al cargar Funcionamiento"
   }
@@ -17,7 +20,7 @@ export default async function FuncionamientoPage() {
   return (
     <PageShell
       title="Funcionamiento"
-      subtitle="Contratos de apoyo con recursos propios EPUXUA — agrupados por proyecto contenedor anual."
+      subtitle="Contratos de apoyo con recursos propios EPUXUA — personal contratado por la entidad."
       icon="corporate_fare"
     >
       {loadError && (
@@ -25,7 +28,10 @@ export default async function FuncionamientoPage() {
           {loadError}
         </div>
       )}
-      <FuncionamientoPageClient projects={projects} />
+      <FuncionamientoPageClient
+        contracts={contracts}
+        availableProjects={availableProjects}
+      />
     </PageShell>
   )
 }
