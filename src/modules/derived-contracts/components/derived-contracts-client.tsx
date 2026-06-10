@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatCOP } from "@/modules/contracts/lib/status"
+import { ContractDetailDrawer } from "@/modules/contracts/components/contract-detail-drawer"
 import type { DerivedContractRow, DerivedContractsKPIs } from "@/services/derived-contracts.service"
 
 function yearFromRef(ref: string | null | undefined): string {
@@ -58,7 +59,7 @@ interface ParentGroup {
   derivados: DerivedContractRow[]
 }
 
-function ParentGroupRow({ group }: { group: ParentGroup }) {
+function ParentGroupRow({ group, onSelect }: { group: ParentGroup; onSelect: (d: DerivedContractRow) => void }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -114,7 +115,8 @@ function ParentGroupRow({ group }: { group: ParentGroup }) {
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03 }}
-              className="grid grid-cols-[1fr_1fr_auto_auto] gap-x-4 items-center px-4 py-3 hover:bg-muted/20 transition-colors"
+              onClick={() => onSelect(d)}
+              className="grid grid-cols-[1fr_1fr_auto_auto] gap-x-4 items-center px-4 py-3 hover:bg-[var(--corporate-blue)]/5 transition-colors cursor-pointer"
             >
               <div className="min-w-0">
                 <p className="text-xs font-bold text-foreground font-mono">{d.numero_contrato ?? "—"}</p>
@@ -147,6 +149,7 @@ interface Props {
 export function DerivedContractsClient({ contracts, kpis }: Props) {
   const [search, setSearch] = useState("")
   const [estadoFilter, setEstadoFilter] = useState("all")
+  const [selected, setSelected] = useState<DerivedContractRow | null>(null)
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
@@ -240,10 +243,15 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
       ) : (
         <div className="space-y-2">
           {groups.map((g) => (
-            <ParentGroupRow key={g.id_interadministrativo} group={g} />
+            <ParentGroupRow key={g.id_interadministrativo} group={g} onSelect={setSelected} />
           ))}
         </div>
       )}
+
+      <ContractDetailDrawer
+        contract={selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
   )
 }

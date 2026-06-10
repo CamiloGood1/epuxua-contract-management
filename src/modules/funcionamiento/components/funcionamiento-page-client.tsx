@@ -5,6 +5,7 @@ import { Plus, Search, FileText, X, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { NewFuncionamientoContractModal } from "./new-funcionamiento-contract-modal"
+import { ContractDetailDrawer } from "@/modules/contracts/components/contract-detail-drawer"
 import type { FuncionamientoContrato } from "@/services/funcionamiento.service"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -41,7 +42,15 @@ function EstadoBadge({ estado }: { estado: string | null }) {
 
 // ── Grupo colapsable por año ──────────────────────────────────────────────────
 
-function YearGroup({ year, contratos }: { year: string; contratos: FuncionamientoContrato[] }) {
+function YearGroup({
+  year,
+  contratos,
+  onSelect,
+}: {
+  year: string
+  contratos: FuncionamientoContrato[]
+  onSelect: (c: FuncionamientoContrato) => void
+}) {
   const [open, setOpen] = useState(true)
 
   return (
@@ -80,7 +89,8 @@ function YearGroup({ year, contratos }: { year: string; contratos: Funcionamient
               {contratos.map((c) => (
                 <tr
                   key={c.id}
-                  className="border-b border-border/60 last:border-0 hover:bg-muted/10 transition-colors"
+                  onClick={() => onSelect(c)}
+                  className="border-b border-border/60 last:border-0 hover:bg-[var(--corporate-blue)]/5 transition-colors cursor-pointer"
                 >
                   <td className="px-4 py-2.5 whitespace-nowrap">
                     <span className="font-semibold text-xs font-mono text-[var(--corporate-blue)]">
@@ -128,6 +138,7 @@ export function FuncionamientoPageClient({ contracts }: Props) {
   const [yearFilter, setYearFilter]  = useState("all")
   const [estadoFilter, setEstadoFilter] = useState("all")
   const [showNewModal, setShowModal] = useState(false)
+  const [selected, setSelected]      = useState<FuncionamientoContrato | null>(null)
 
   const years = useMemo(
     () => [...new Set(contracts.map(yearOf))].sort((a, b) => b.localeCompare(a)),
@@ -258,7 +269,7 @@ export function FuncionamientoPageClient({ contracts }: Props) {
       ) : (
         <div className="space-y-3">
           {grouped.map(({ year, contratos }) => (
-            <YearGroup key={year} year={year} contratos={contratos} />
+            <YearGroup key={year} year={year} contratos={contratos} onSelect={setSelected} />
           ))}
         </div>
       )}
@@ -266,6 +277,11 @@ export function FuncionamientoPageClient({ contracts }: Props) {
       <NewFuncionamientoContractModal
         open={showNewModal}
         onClose={() => setShowModal(false)}
+      />
+
+      <ContractDetailDrawer
+        contract={selected}
+        onClose={() => setSelected(null)}
       />
     </div>
   )
