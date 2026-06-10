@@ -1,7 +1,48 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import type { Contrato } from "@/types/database"
+import type { EstadoContrato } from "@/types/database"
 
-export type FuncionamientoContrato = Contrato & { tipo_contrato: "FUNCIONAMIENTO" }
+export interface FuncionamientoContrato {
+  id: number
+  origen_hoja:              string | null
+  numero_contrato:          string | null
+  numero_proceso:           string | null
+  tipo_contrato:            "FUNCIONAMIENTO"
+  id_interadministrativo:   null
+  modalidad_seleccion:      string | null
+  contratista:              string | null
+  objeto_contrato:          string | null
+  persona_natural_juridica: string | null
+  clase_contrato:           string | null
+  area_responsable:         string | null
+  supervisor:               string | null
+  fecha_suscripcion:        string | null
+  plazo_ejecucion:          string | null
+  fecha_inicio:             string | null
+  valor_inicial:            number | null
+  adicion:                  number | null
+  valor_final:              number | null
+  prorroga:                 string | null
+  fecha_terminacion:        string | null
+  valor_pagado:             number | null
+  valor_pendiente:          number | null
+  vigencia_futura:          number | null
+  recurso:                  string | null
+  rubro:                    string | null
+  cdp:                      string | null
+  fecha_cdp:                string | null
+  crp:                      string | null
+  fecha_crp:                string | null
+  suspension:               string | null
+  reinicio:                 string | null
+  observaciones:            string | null
+  estado:                   EstadoContrato | null
+  link_ficha:               string | null
+  numero_poliza:            string | null
+  fecha_aprobacion_poliza:  string | null
+  created_at:               string
+  updated_at:               string
+}
+
 export type FuncionamientoContract = FuncionamientoContrato
 
 export async function getFuncionamientoContracts(): Promise<FuncionamientoContrato[]> {
