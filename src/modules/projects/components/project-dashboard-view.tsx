@@ -2,15 +2,6 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import {
-  PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-} from "recharts"
-import {
-  FolderKanban, Wallet, TrendingUp, Bell, Plus, GitBranch,
-  AlertTriangle, Clock, ArrowRight, Activity,
-  ChevronRight,
-} from "lucide-react"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { ESTADO_CONFIG, ESTADO_ORDER } from "../lib/lifecycle"
 import type { Interadministrativo, EstadoInteradministrativo } from "@/types/database"
@@ -22,146 +13,142 @@ import {
 import type { FuncionamientoContrato } from "@/services/funcionamiento.service"
 import type { FuncionamientoDashboardKPIs, InteradminDashboardKPIs, DashboardAlerts, DashboardAlertItem } from "@/services/dashboard.service"
 import { projectEntityLabel } from "../lib/project-utils"
-import { cn } from "@/lib/utils"
 import { NewInteradminProjectModal } from "./new-interadmin-project-modal"
 import { NewDerivedContractModal } from "@/modules/contracts/components/new-derived-contract-modal"
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Color helpers ─────────────────────────────────────────────────────────────
 
 function fmtCompact(n: number): string {
   if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(0)}M`
+  if (n >= 1_000_000)     return `$${(n / 1_000_000).toFixed(0)}M`
   return formatCOP(n)
 }
 
-function today(): string {
-  return new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
-}
-
-// ── KPI Card ejecutivo ────────────────────────────────────────────────────────
-
-interface ExecKPIProps {
-  label: string
-  value: string
-  sub?: string
-  accent?: string
-  badge?: { text: string; color: string }
-  icon: React.ElementType
-  iconColor: string
-}
-
-function ExecKPI({ label, value, sub, badge, icon: Icon, iconColor }: ExecKPIProps) {
-  return (
-    <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 flex flex-col gap-3 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">{label}</p>
-        {badge && (
-          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", badge.color)}>
-            {badge.text}
-          </span>
-        )}
-      </div>
-      <div className="flex items-end justify-between">
-        <p className="text-3xl font-bold text-foreground tabular-nums leading-none">{value}</p>
-        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", iconColor)}>
-          <Icon size={20} className="text-white" />
-        </div>
-      </div>
-      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
-    </div>
-  )
-}
-
-// ── Badge estado interadmin ───────────────────────────────────────────────────
+// ── Estado badge ──────────────────────────────────────────────────────────────
 
 function EstadoBadge({ estado }: { estado: EstadoInteradministrativo }) {
   const cfg = ESTADO_CONFIG[estado]
   return (
-    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold", cfg.bgClass, cfg.textClass)}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${cfg.bgClass} ${cfg.textClass}`}>
       {cfg.label}
     </span>
   )
 }
 
-// ── Alertas ───────────────────────────────────────────────────────────────────
+// ── Donut SVG ─────────────────────────────────────────────────────────────────
 
-const TIPO_COLOR: Record<DashboardAlertItem["tipo"], string> = {
-  INTERADMIN:    "bg-blue-100 text-blue-700",
-  DERIVADO:      "bg-violet-100 text-violet-700",
-  FUNCIONAMIENTO:"bg-teal-100 text-teal-700",
+const DONUT_COLORS: Record<string, string> = {
+  "EN EJECUCIÓN": "#0B3D91",
+  "TERMINADO":    "#795900",
+  "LIQUIDADO":    "#10B981",
 }
+
+function DonutChart({ data, total }: { data: { name: string; value: number; color: string }[]; total: number }) {
+  const r = 15.915
+  const circ = 2 * Math.PI * r
+
+  let offset = 0
+  const segments = data.map((d) => {
+    const pct   = total > 0 ? (d.value / total) * 100 : 0
+    const dash  = (pct / 100) * circ
+    const seg   = { ...d, pct, dashArray: `${dash} ${circ}`, dashOffset: -offset }
+    offset += dash
+    return seg
+  })
+
+  return (
+    <div className="relative w-48 h-48 mx-auto mb-6">
+      <svg className="w-full h-full" style={{ transform: "rotate(-90deg)" }} viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r={r} fill="transparent" stroke="#F1F5F9" strokeWidth="3" />
+        {segments.map((s, i) => (
+          <circle
+            key={i}
+            cx="18" cy="18" r={r}
+            fill="transparent"
+            stroke={s.color}
+            strokeWidth="3"
+            strokeDasharray={s.dashArray}
+            strokeDashoffset={s.dashOffset}
+          />
+        ))}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-bold text-[#002869]">
+          {total >= 1000 ? `${(total / 1000).toFixed(1)}k` : total}
+        </span>
+        <span className="text-[10px] text-[#434652] uppercase font-bold tracking-tight">Total</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Bar chart (CSS) ───────────────────────────────────────────────────────────
+
+function SecretariaBar({ data }: { data: { name: string; value: number }[] }) {
+  const max = Math.max(...data.map((d) => d.value), 1)
+  return (
+    <div className="h-[280px] flex items-end justify-between gap-3 pt-4">
+      {data.slice(0, 6).map((d) => {
+        const pct = Math.round((d.value / max) * 100)
+        const label = d.name.length > 10 ? d.name.slice(0, 10) + "…" : d.name
+        return (
+          <div key={d.name} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
+            <div
+              className="w-full bg-[#0B3D91] group-hover:bg-[#002869] transition-all rounded-t"
+              style={{ height: `${pct}%` }}
+            />
+            <span className="text-[9px] text-[#434652] font-medium text-center leading-tight">{label}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Alerta row ────────────────────────────────────────────────────────────────
+
 const TIPO_LABEL: Record<DashboardAlertItem["tipo"], string> = {
   INTERADMIN:    "Interadmin",
   DERIVADO:      "Derivado",
   FUNCIONAMIENTO:"Funcionamiento",
 }
 
-function AlertPriorityRow({ item }: { item: DashboardAlertItem }) {
-  const isExpired = item.daysUntilExpiry < 0
-  const isCritical = item.daysUntilExpiry >= 0 && item.daysUntilExpiry <= 7
+function AlertRow({ item }: { item: DashboardAlertItem }) {
+  const isExpired  = item.daysUntilExpiry < 0
+  const isCritical = !isExpired && item.daysUntilExpiry <= 7
+
+  const borderColor = isExpired ? "#EF4444" : isCritical ? "#F97316" : "#F59E0B"
+  const bg          = isExpired ? "#FEF2F2" : isCritical ? "#FFF7ED" : "#FFFBEB"
+  const labelColor  = isExpired ? "text-red-600" : isCritical ? "text-orange-600" : "text-amber-600"
+  const level       = isExpired ? "VENCIDO" : isCritical ? "CRÍTICO" : "ADVERTENCIA"
+  const timeText    = item.daysUntilExpiry < 0
+    ? `Venció hace ${Math.abs(item.daysUntilExpiry)}d`
+    : item.daysUntilExpiry === 0 ? "Vence hoy"
+    : `Vence en ${item.daysUntilExpiry}d`
+
   const href =
     item.tipo === "INTERADMIN" && item.numericProjectId != null
       ? `/proyectos/${item.numericProjectId}`
       : item.tipo === "DERIVADO" ? "/contratacion/derivados" : "/funcionamiento"
 
   return (
-    <Link href={href} className="block border-l-4 rounded-r-xl px-3 py-2.5 mb-2 hover:opacity-90 transition-opacity"
-      style={{ borderLeftColor: isExpired ? "#EF4444" : isCritical ? "#F97316" : "#F59E0B", backgroundColor: isExpired ? "#FEF2F2" : isCritical ? "#FFF7ED" : "#FFFBEB" }}
+    <Link
+      href={href}
+      className="block mb-2 rounded-r-lg px-3 py-2.5 hover:opacity-90 transition-opacity border-l-4"
+      style={{ borderLeftColor: borderColor, backgroundColor: bg }}
     >
       <div className="flex items-center justify-between mb-0.5">
-        <span className={cn("text-[9px] font-bold uppercase tracking-wide", isExpired ? "text-red-600" : isCritical ? "text-orange-600" : "text-amber-600")}>
-          {isExpired ? "VENCIDO" : isCritical ? "CRÍTICO" : "ADVERTENCIA"}
-        </span>
-        <span className="text-[10px] text-muted-foreground">
-          {item.daysUntilExpiry < 0
-            ? `Venció hace ${Math.abs(item.daysUntilExpiry)}d`
-            : item.daysUntilExpiry === 0 ? "Vence hoy"
-            : `Vence en ${item.daysUntilExpiry}d`}
-        </span>
+        <span className={`text-[9px] font-bold uppercase tracking-wide ${labelColor}`}>{level}</span>
+        <span className="text-[10px] text-[#434652]">{timeText}</span>
       </div>
-      <p className="text-xs font-bold text-foreground font-mono leading-tight">{item.label}</p>
-      {item.subtitle && <p className="text-[10px] text-muted-foreground truncate mt-0.5">{item.subtitle}</p>}
+      <p className="text-xs font-bold text-[#151c27] font-mono">{item.label}</p>
+      {item.subtitle && <p className="text-[10px] text-[#434652] truncate mt-0.5">{item.subtitle}</p>}
       <div className="mt-1">
-        <span className={cn("text-[9px] font-semibold px-1.5 py-0.5 rounded", TIPO_COLOR[item.tipo])}>
+        <span className="text-[9px] font-semibold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
           {TIPO_LABEL[item.tipo]}
         </span>
       </div>
     </Link>
-  )
-}
-
-// ── Donut personalizado ───────────────────────────────────────────────────────
-
-const DONUT_COLORS: Record<string, string> = {
-  "EN EJECUCIÓN": "#345bab",
-  "TERMINADO":    "#78716c",
-  "LIQUIDADO":    "#10B981",
-}
-
-// ── Tooltip donut ─────────────────────────────────────────────────────────────
-
-function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number }> }) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-white border border-border rounded-lg px-3 py-2 shadow-md text-xs">
-      <p className="font-semibold">{payload[0].name}</p>
-      <p className="text-muted-foreground">{payload[0].value} contratos</p>
-    </div>
-  )
-}
-
-// ── Year filter ───────────────────────────────────────────────────────────────
-
-function YearFilter({ year, years, onChange }: { year: string; years: number[]; onChange: (y: string) => void }) {
-  return (
-    <select
-      value={year}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-8 rounded-lg border border-border bg-white pl-2.5 pr-7 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--corporate-blue)]/20 appearance-none"
-    >
-      <option value="all">Todos los años</option>
-      {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
-    </select>
   )
 }
 
@@ -188,9 +175,9 @@ export function ProjectDashboardView({
   topActiveFuncContracts,
   alerts,
 }: ProjectDashboardViewProps) {
-  const [year, setYear] = useState("all")
+  const [year, setYear]                         = useState("all")
   const [showNewInteradmin, setShowNewInteradmin] = useState(false)
-  const [showNewDerived, setShowNewDerived] = useState(false)
+  const [showNewDerived, setShowNewDerived]       = useState(false)
 
   const filtered = useMemo(
     () => applyDashboardProjectFilters(projects, { ...DEFAULT_PROJECT_DASHBOARD_FILTERS, year }),
@@ -198,288 +185,319 @@ export function ProjectDashboardView({
   )
   const years = useMemo(() => uniqueProjectYears(projects), [projects])
 
-  // KPIs ejecutivos
+  // KPIs
   const totalContratos = interadminKPIs.totalContracts + interadminKPIs.totalDerivedContracts + funcionamientoKPIs.totalContracts
-  const valorTotal = interadminKPIs.totalValue + funcionamientoKPIs.totalValue
-  const ejecPct = funcionamientoKPIs.totalValue > 0
+  const valorTotal     = interadminKPIs.totalValue + funcionamientoKPIs.totalValue
+  const ejecPct        = funcionamientoKPIs.totalValue > 0
     ? Math.round(funcionamientoKPIs.totalPaidValue / funcionamientoKPIs.totalValue * 100)
     : 0
-  const totalAlertas = alerts.expired.length + alerts.expiringSoon.length
+  const totalAlertas   = alerts.expired.length + alerts.expiringSoon.length
+  const allAlerts      = [...alerts.expired, ...alerts.expiringSoon].slice(0, 6)
 
-  // Donut estados
+  // Donut data
   const donutData = ESTADO_ORDER
-    .map((estado) => ({
-      name: ESTADO_CONFIG[estado].label,
-      value: filtered.filter((p) => p.estado === estado).length,
-      color: DONUT_COLORS[estado] ?? "#94a3b8",
+    .map((e) => ({
+      name:  ESTADO_CONFIG[e].label,
+      value: filtered.filter((p) => p.estado === e).length,
+      color: DONUT_COLORS[e] ?? "#94a3b8",
     }))
     .filter((d) => d.value > 0)
 
-  // Bar por secretaría
+  // Bar data (secretaría)
   const entityData = useMemo(() => {
     const counts = new Map<string, number>()
     for (const p of filtered) {
       const e = p.secretaria ?? p.area_responsable ?? "—"
       counts.set(e, (counts.get(e) ?? 0) + 1)
     }
-    return [...counts.entries()]
-      .sort((a, b) => b[1] - a[1]).slice(0, 6)
-      .map(([name, value]) => ({ name: name.length > 18 ? name.slice(0, 18) + "…" : name, value }))
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, value]) => ({ name, value }))
   }, [filtered])
 
-  const allAlerts = [...alerts.expired, ...alerts.expiringSoon].slice(0, 6)
-
   return (
-    <div className="space-y-6">
+    <div className="p-8 space-y-8">
 
-      {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      {/* ── Page Header ── */}
+      <div className="flex items-end justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[#151c27] tracking-tight">Dashboard Ejecutivo</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Resumen general de la contratación y ejecución financiera.
-          </p>
+          <h2 className="text-[24px] font-semibold leading-[32px] text-[#002869] tracking-tight">
+            Dashboard Ejecutivo
+          </h2>
+          <p className="text-[#434652] mt-1">Resumen general de la contratación y ejecución financiera.</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-lg px-3 py-1.5 bg-white">
-            <Clock size={12} />
-            <span>Enero 2024 – {today()}</span>
-          </div>
-          <YearFilter year={year} years={years} onChange={setYear} />
+        <div className="flex items-center gap-3">
+          {years.length > 0 && (
+            <select
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              className="bg-white border border-[#EAEAEA] text-[#434652] px-4 py-2 rounded-lg text-sm hover:bg-[#f0f3ff] transition-colors"
+            >
+              <option value="all">Todos los años</option>
+              {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+            </select>
+          )}
           <button
             type="button"
             onClick={() => setShowNewInteradmin(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--corporate-blue)] text-white text-xs font-semibold hover:opacity-90 shadow-sm"
+            className="bg-[#0B3D91] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#002869] transition-colors flex items-center gap-2 shadow-sm"
           >
-            <Plus size={13} />
-            Nuevo Contrato
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exportar Reporte
           </button>
         </div>
       </div>
 
       {fetchError && (
-        <div className="flex items-center gap-3 px-4 py-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-          <Activity size={16} /> Error al cargar datos: {fetchError}
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+          Error al cargar datos: {fetchError}
         </div>
       )}
 
-      {/* ── KPIs ejecutivos ───────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <ExecKPI
-          label="Total Contratos"
-          value={totalContratos.toLocaleString("es-CO")}
-          sub={`${interadminKPIs.activeContracts} interadmin activos · ${funcionamientoKPIs.activeContracts} func. en ejecución`}
-          icon={FolderKanban}
-          iconColor="bg-[var(--corporate-blue)]"
-          badge={{ text: "+4.2%", color: "bg-emerald-100 text-emerald-700" }}
-        />
-        <ExecKPI
-          label="Valor Contratado Total"
-          value={fmtCompact(valorTotal)}
-          sub={`Interadmin: ${fmtCompact(interadminKPIs.totalValue)}`}
-          icon={Wallet}
-          iconColor="bg-emerald-500"
-          badge={{ text: "M/cte", color: "bg-slate-100 text-slate-600" }}
-        />
-        <ExecKPI
-          label="Ejecución Financiera"
-          value={`${ejecPct}%`}
-          sub={`Pagado: ${fmtCompact(funcionamientoKPIs.totalPaidValue)} de ${fmtCompact(funcionamientoKPIs.totalValue)}`}
-          icon={TrendingUp}
-          iconColor="bg-violet-500"
-          badge={{ text: ejecPct >= 70 ? "En progreso" : "Por iniciar", color: ejecPct >= 70 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600" }}
-        />
-        <ExecKPI
-          label="Alertas Activas"
-          value={String(totalAlertas)}
-          sub={`${alerts.expired.length} vencidos · ${alerts.expiringSoon.length} próximos a vencer < 30d`}
-          icon={Bell}
-          iconColor={totalAlertas > 0 ? "bg-red-500" : "bg-slate-400"}
-          badge={totalAlertas > 0 ? { text: "Prioridad Alta", color: "bg-red-100 text-red-600" } : undefined}
-        />
+      {/* ── KPIs ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        {/* KPI 1: Total Contratos */}
+        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all group">
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-[#434652] text-sm font-medium">Total Contratos</span>
+            <span className="text-emerald-600 text-[11px] font-semibold bg-emerald-50 px-2 py-0.5 rounded">+4.2%</span>
+          </div>
+          <span className="text-[32px] font-bold leading-[40px] text-[#002869]">
+            {totalContratos.toLocaleString("es-CO")}
+          </span>
+          <div className="mt-4 h-8 flex items-end gap-1">
+            {[40, 60, 45, 70, 55, 80, 100].map((h, i) => (
+              <div
+                key={i}
+                className={`flex-1 rounded-t-sm ${i === 6 ? "bg-[#0B3D91]" : i === 5 ? "bg-[#0B3D91]/20" : "bg-[#f0f3ff] group-hover:bg-[#0B3D91]/10"} transition-colors`}
+                style={{ height: `${h}%` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* KPI 2: Valor Total */}
+        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all">
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-[#434652] text-sm font-medium">Valor Contratado Total</span>
+            <span className="text-[#434652] text-[11px] font-semibold bg-[#f0f3ff] px-2 py-0.5 rounded">M/cte</span>
+          </div>
+          <span className="text-[32px] font-bold leading-[40px] text-[#D9A520]">
+            {fmtCompact(valorTotal)}
+          </span>
+          <div className="mt-4 space-y-2">
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between text-[11px] font-medium">
+                <span className="text-[#434652]">Interadministrativos</span>
+                <span className="text-[#D9A520]">{fmtCompact(interadminKPIs.totalValue)}</span>
+              </div>
+              <div className="w-full bg-[#f0f3ff] h-1.5 rounded-full overflow-hidden">
+                <div className="bg-[#D9A520] h-full" style={{ width: valorTotal > 0 ? `${Math.round(interadminKPIs.totalValue / valorTotal * 100)}%` : "0%" }} />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between text-[11px] font-medium">
+                <span className="text-[#434652]">Funcionamiento</span>
+                <span className="text-[#D9A520]">{fmtCompact(funcionamientoKPIs.totalValue)}</span>
+              </div>
+              <div className="w-full bg-[#f0f3ff] h-1.5 rounded-full overflow-hidden">
+                <div className="bg-[#D9A520]/40 h-full" style={{ width: valorTotal > 0 ? `${Math.round(funcionamientoKPIs.totalValue / valorTotal * 100)}%` : "0%" }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* KPI 3: Ejecución Financiera */}
+        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all">
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-[#434652] text-sm font-medium">Ejecución Financiera</span>
+            <span className="text-amber-600 text-[11px] font-semibold bg-amber-50 px-2 py-0.5 rounded">En progreso</span>
+          </div>
+          <span className="text-[32px] font-bold leading-[40px] text-[#D9A520]">{ejecPct}%</span>
+          <div className="mt-4 w-full bg-[#f0f3ff] h-2 rounded-full overflow-hidden">
+            <div className="bg-[#0B3D91] h-full transition-all" style={{ width: `${ejecPct}%` }} />
+          </div>
+          <p className="mt-2 text-[11px] text-[#434652]">
+            Pagado: {fmtCompact(funcionamientoKPIs.totalPaidValue)} de {fmtCompact(funcionamientoKPIs.totalValue)}
+          </p>
+        </div>
+
+        {/* KPI 4: Alertas Activas */}
+        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all">
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-[#434652] text-sm font-medium">Alertas Activas</span>
+            {totalAlertas > 0 && (
+              <span className="text-red-600 text-[11px] font-semibold bg-red-50 px-2 py-0.5 rounded">Prioridad Alta</span>
+            )}
+          </div>
+          <span className="text-[32px] font-bold leading-[40px] text-red-500">
+            {totalAlertas}
+          </span>
+          <div className="mt-4 flex items-center gap-2 text-sm text-[#434652]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>{alerts.expiringSoon.length} próximas a vencer &lt; 30 días</span>
+          </div>
+        </div>
       </div>
 
-      {/* ── Gráficas ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* ── Charts ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         {/* Donut: estados */}
-        <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-bold text-foreground">Contratos por Estado</h4>
-            <span className="text-[10px] text-muted-foreground">{filtered.length} total</span>
+        <div className="bg-white p-8 rounded-xl border border-[#EAEAEA] lg:col-span-1">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-[20px] font-semibold leading-[28px] text-[#002869]">Contratos por Estado</h3>
           </div>
           {donutData.length > 0 ? (
-            <div className="flex items-center gap-4">
-              <ResponsiveContainer width={180} height={180}>
-                <PieChart>
-                  <Pie
-                    data={donutData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={52}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {donutData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <ReTooltip content={<DonutTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex-1 space-y-3">
+            <>
+              <DonutChart data={donutData} total={filtered.length} />
+              <div className="space-y-3">
                 {donutData.map((d) => {
                   const pct = filtered.length > 0 ? Math.round(d.value / filtered.length * 100) : 0
                   return (
-                    <div key={d.name} className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full shrink-0" style={{ background: d.color }} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between text-xs mb-0.5">
-                          <span className="text-muted-foreground truncate">{d.name}</span>
-                          <span className="font-semibold tabular-nums ml-2">{pct}%</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: d.color }} />
-                        </div>
+                    <div key={d.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full shrink-0" style={{ background: d.color }} />
+                        <span className="text-sm text-[#434652]">{d.name}</span>
                       </div>
+                      <span className="text-sm font-medium">{pct}%</span>
                     </div>
                   )
                 })}
               </div>
-            </div>
+            </>
           ) : (
-            <p className="py-12 text-center text-sm text-muted-foreground">Sin datos</p>
+            <p className="py-12 text-center text-sm text-[#434652]">Sin datos</p>
           )}
         </div>
 
         {/* Bar: por secretaría */}
-        <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-bold text-foreground">Contratos por Secretaría</h4>
+        <div className="bg-white p-8 rounded-xl border border-[#EAEAEA] lg:col-span-2">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="text-[20px] font-semibold leading-[28px] text-[#002869]">Contratos por Secretaría</h3>
+              <p className="text-[#434652] text-sm">Distribución por entidad contratante</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-1 bg-[#0B3D91] rounded-full" />
+                <span className="text-[11px] font-semibold text-[#434652] uppercase">Contratos</span>
+              </div>
+            </div>
           </div>
           {entityData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={190}>
-              <BarChart data={entityData} layout="vertical" margin={{ left: 8, right: 16 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
-                <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={100} axisLine={false} tickLine={false} />
-                <ReTooltip />
-                <Bar dataKey="value" fill="#345bab" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <SecretariaBar data={entityData} />
           ) : (
-            <p className="py-12 text-center text-sm text-muted-foreground">Sin datos</p>
+            <p className="py-12 text-center text-sm text-[#434652]">Sin datos</p>
           )}
         </div>
       </div>
 
-      {/* ── Bottom row ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* ── Bottom row ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
 
-        {/* Col 1: Contratos recientes interadmin */}
-        <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-bold text-foreground">Contratos Recientes</h4>
-            <Link href="/proyectos" className="text-xs font-semibold text-[var(--corporate-blue)] hover:underline flex items-center gap-0.5">
-              Ver todo <ChevronRight size={12} />
-            </Link>
+        {/* Col 1: Contratos recientes */}
+        <div className="bg-white rounded-xl border border-[#EAEAEA]">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
+            <h4 className="text-[18px] font-semibold leading-[26px] text-[#151c27]">Log de Actividad</h4>
+            <Link href="/proyectos" className="text-[#0B3D91] text-sm font-medium hover:underline">Ver todo</Link>
           </div>
-          <div className="space-y-1">
-            {filtered.slice(0, 6).map((p) => (
-              <Link key={p.id} href={`/proyectos/${p.id}`}
-                className="flex items-center justify-between py-2.5 px-2 -mx-2 rounded-xl hover:bg-muted/40 transition-colors group"
+          <div className="px-6 py-4 space-y-1">
+            {filtered.slice(0, 5).map((p) => (
+              <Link
+                key={p.id}
+                href={`/proyectos/${p.id}`}
+                className="flex items-start gap-3 py-2.5 hover:bg-[#f0f3ff] -mx-2 px-2 rounded-lg transition-colors"
               >
+                <span className="w-2 h-2 mt-1.5 rounded-full bg-[#0B3D91] shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-[var(--corporate-blue)] font-mono group-hover:underline">{p.id_contrato}</p>
-                  <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">{p.objeto_contrato ?? projectEntityLabel(p)}</p>
-                </div>
-                <div className="text-right shrink-0 ml-2 flex flex-col items-end gap-1">
-                  <p className="text-[10px] font-semibold tabular-nums">{formatCOP(p.total_contrato ?? 0)}</p>
-                  <EstadoBadge estado={p.estado} />
+                  <p className="text-sm font-medium text-[#151c27] leading-snug">
+                    <span className="text-[#0B3D91] font-bold font-mono">{p.id_contrato}</span>
+                  </p>
+                  <p className="text-[11px] text-[#434652] truncate">{p.objeto_contrato ?? projectEntityLabel(p)}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <EstadoBadge estado={p.estado} />
+                    <span className="text-[10px] text-[#434652]">{formatCOP(p.total_contrato ?? 0)}</span>
+                  </div>
                 </div>
               </Link>
             ))}
             {filtered.length === 0 && (
-              <p className="py-8 text-center text-sm text-muted-foreground">Sin contratos</p>
+              <p className="py-8 text-center text-sm text-[#434652]">Sin contratos recientes</p>
             )}
           </div>
         </div>
 
-        {/* Col 2: Alertas de prioridad */}
-        <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-bold text-foreground">Alertas de Prioridad</h4>
+        {/* Col 2: Alertas de Prioridad */}
+        <div className="bg-white rounded-xl border border-[#EAEAEA]">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
+            <h4 className="text-[18px] font-semibold leading-[26px] text-[#151c27]">Alertas de Prioridad</h4>
             {totalAlertas > 0 && (
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-600">
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-600">
                 {totalAlertas} Pendientes
               </span>
             )}
           </div>
-          {allAlerts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <Bell size={28} className="text-muted-foreground/30 mb-2" />
-              <p className="text-xs text-muted-foreground">Sin alertas activas</p>
-            </div>
-          ) : (
-            <div>
-              {allAlerts.map((item) => (
-                <AlertPriorityRow key={`${item.tipo}-${item.id}`} item={item} />
-              ))}
-              {totalAlertas > 6 && (
-                <p className="text-[10px] text-muted-foreground text-center pt-1">
-                  +{totalAlertas - 6} alertas más
-                </p>
-              )}
-            </div>
-          )}
+          <div className="px-6 py-4">
+            {allAlerts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <p className="text-sm text-[#434652]">Sin alertas activas</p>
+              </div>
+            ) : (
+              <>
+                {allAlerts.map((item) => (
+                  <AlertRow key={`${item.tipo}-${item.id}`} item={item} />
+                ))}
+                {totalAlertas > 6 && (
+                  <p className="text-[10px] text-[#434652] text-center pt-1">+{totalAlertas - 6} alertas más</p>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Col 3: Funcionamiento recientes */}
-        <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-bold text-foreground">Funcionamiento</h4>
-            <Link href="/funcionamiento" className="text-xs font-semibold text-teal-600 hover:underline flex items-center gap-0.5">
-              Ver todo <ChevronRight size={12} />
-            </Link>
+        {/* Col 3: Funcionamiento */}
+        <div className="bg-white rounded-xl border border-[#EAEAEA]">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
+            <h4 className="text-[18px] font-semibold leading-[26px] text-[#151c27]">Últimos — Funcionamiento</h4>
+            <Link href="/funcionamiento" className="text-teal-600 text-sm font-medium hover:underline">Ver todo</Link>
           </div>
-          {/* Mini KPIs */}
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            {[
-              { label: "Total", value: String(funcionamientoKPIs.totalContracts) },
-              { label: "En ejecución", value: String(funcionamientoKPIs.activeContracts) },
-              { label: "Valor total", value: fmtCompact(funcionamientoKPIs.totalValue) },
-              { label: "Próx. a vencer", value: String(funcionamientoKPIs.soonExpiring) },
-            ].map((k) => (
-              <div key={k.label} className="bg-muted/30 rounded-xl p-2.5 text-center">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{k.label}</p>
-                <p className="text-sm font-bold text-foreground tabular-nums mt-0.5">{k.value}</p>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-1">
+          <div className="px-6 py-4 space-y-1">
+            {/* Mini KPIs */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {[
+                { label: "Total",        value: String(funcionamientoKPIs.totalContracts) },
+                { label: "En ejecución", value: String(funcionamientoKPIs.activeContracts) },
+                { label: "Valor total",  value: fmtCompact(funcionamientoKPIs.totalValue) },
+                { label: "Próx. vencer", value: String(funcionamientoKPIs.soonExpiring) },
+              ].map((k) => (
+                <div key={k.label} className="bg-[#f0f3ff] rounded-lg p-2.5 text-center">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-[#434652]">{k.label}</p>
+                  <p className="text-sm font-bold text-[#151c27] tabular-nums mt-0.5">{k.value}</p>
+                </div>
+              ))}
+            </div>
             {topActiveFuncContracts.slice(0, 4).map((c) => (
-              <Link key={c.id} href="/funcionamiento"
-                className="flex items-center gap-2 py-2 px-2 -mx-2 rounded-xl hover:bg-muted/40 transition-colors"
+              <Link
+                key={c.id}
+                href="/funcionamiento"
+                className="flex items-center gap-2 py-2 px-2 -mx-2 rounded-lg hover:bg-[#f0f3ff] transition-colors"
               >
-                <GitBranch size={12} className="text-teal-500 shrink-0" />
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold font-mono text-teal-700">{c.numero_contrato}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{c.objeto_contrato ?? c.origen_hoja ?? "—"}</p>
+                  <p className="text-xs font-bold font-mono text-teal-700">{c.numero_contrato}</p>
+                  <p className="text-[10px] text-[#434652] truncate">{c.objeto_contrato ?? c.origen_hoja ?? "—"}</p>
                 </div>
               </Link>
             ))}
             {topActiveFuncContracts.length === 0 && (
-              <p className="py-4 text-center text-xs text-muted-foreground">Sin contratos registrados</p>
+              <p className="py-4 text-center text-xs text-[#434652]">Sin contratos registrados</p>
             )}
           </div>
-          <Link href="/funcionamiento"
-            className="mt-3 flex items-center justify-center gap-1 text-xs font-semibold text-teal-600 hover:underline"
-          >
-            <ArrowRight size={12} /> Ir al módulo Funcionamiento
-          </Link>
         </div>
       </div>
+
+      {/* Botón nuevo derivado (oculto) */}
+      <button type="button" className="hidden" onClick={() => setShowNewDerived(true)} />
 
       {/* Modales */}
       <NewInteradminProjectModal open={showNewInteradmin} onClose={() => setShowNewInteradmin(false)} />

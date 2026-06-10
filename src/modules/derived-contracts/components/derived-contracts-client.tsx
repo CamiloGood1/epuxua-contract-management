@@ -2,73 +2,43 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { Search, X, Download, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { formatCOP } from "@/modules/contracts/lib/status"
 import { ContractDetailDrawer } from "@/modules/contracts/components/contract-detail-drawer"
 import type { DerivedContractRow, DerivedContractsKPIs } from "@/services/derived-contracts.service"
+import { formatCOP } from "@/modules/contracts/lib/status"
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = 10
 
-// ── KPI card ──────────────────────────────────────────────────────────────────
-
-function KpiCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
-  return (
-    <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
-      <p className={cn("text-2xl font-bold tabular-nums", accent ?? "text-foreground")}>{value}</p>
-      {sub && <p className="text-[10px] text-muted-foreground mt-1">{sub}</p>}
-    </div>
-  )
-}
-
-// ── Estado badge contrato ─────────────────────────────────────────────────────
-
-const ESTADO_CFG: Record<string, { cls: string; dot: string }> = {
-  "EN EJECUCIÓN":              { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
-  "CIERRE CONTRACTUAL":        { cls: "bg-amber-50  text-amber-700  border-amber-200",    dot: "bg-amber-500"  },
-  "TERMINADO":                 { cls: "bg-slate-50  text-slate-600  border-slate-200",    dot: "bg-slate-400"  },
-  "LIQUIDADO":                 { cls: "bg-blue-50   text-blue-700   border-blue-200",     dot: "bg-blue-500"   },
-  "TERMINADO ANTICIPADAMENTE": { cls: "bg-orange-50 text-orange-700 border-orange-200",   dot: "bg-orange-500" },
-  "SUSPENDIDO":                { cls: "bg-yellow-50 text-yellow-700 border-yellow-200",   dot: "bg-yellow-500" },
-  "DECLARADO FALLIDO":         { cls: "bg-red-50    text-red-700    border-red-200",      dot: "bg-red-500"    },
-  "NO SUSCRITO":               { cls: "bg-gray-50   text-gray-500   border-gray-200",     dot: "bg-gray-400"   },
-  "TERMINADO ANORMALMENTE":    { cls: "bg-rose-50   text-rose-700   border-rose-200",     dot: "bg-rose-500"   },
-}
+// ── Estado badge ──────────────────────────────────────────────────────────────
 
 function EstadoBadge({ estado }: { estado: string | null }) {
-  if (!estado) return <span className="text-[10px] text-muted-foreground">—</span>
-  const cfg = ESTADO_CFG[estado] ?? { cls: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" }
+  if (!estado) return <span className="text-xs text-[#747783]">—</span>
+
+  const map: Record<string, { dot: string; text: string; bg: string }> = {
+    "EN EJECUCIÓN":              { dot: "bg-[#10B981]", text: "text-[#10B981]", bg: "bg-[#10B981]/10" },
+    "CIERRE CONTRACTUAL":        { dot: "bg-[#F59E0B]", text: "text-[#F59E0B]", bg: "bg-[#F59E0B]/10" },
+    "TERMINADO":                 { dot: "bg-[#747783]", text: "text-[#747783]", bg: "bg-[#747783]/10" },
+    "LIQUIDADO":                 { dot: "bg-[#0B3D91]", text: "text-[#0B3D91]", bg: "bg-[#0B3D91]/10" },
+    "SUSPENDIDO":                { dot: "bg-[#F59E0B]", text: "text-[#F59E0B]", bg: "bg-[#F59E0B]/10" },
+    "TERMINADO ANTICIPADAMENTE": { dot: "bg-orange-500", text: "text-orange-600", bg: "bg-orange-50" },
+    "DECLARADO FALLIDO":         { dot: "bg-[#EF4444]", text: "text-[#EF4444]", bg: "bg-[#EF4444]/10" },
+    "NO SUSCRITO":               { dot: "bg-gray-400",  text: "text-gray-500",  bg: "bg-gray-50" },
+    "TERMINADO ANORMALMENTE":    { dot: "bg-rose-500",  text: "text-rose-600",  bg: "bg-rose-50" },
+  }
+  const cfg = map[estado] ?? { dot: "bg-[#747783]", text: "text-[#747783]", bg: "bg-[#747783]/10" }
+  const label = estado === "EN EJECUCIÓN" ? "Ejecución" : estado === "CIERRE CONTRACTUAL" ? "Cierre" : estado
+
   return (
-    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border whitespace-nowrap", cfg.cls)}>
-      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", cfg.dot)} />
-      {estado}
-    </span>
-  )
-}
-
-// ── Parent estado badge ───────────────────────────────────────────────────────
-
-const PARENT_CFG: Record<string, { cls: string }> = {
-  "EN EJECUCIÓN": { cls: "bg-blue-100 text-blue-700" },
-  "TERMINADO":    { cls: "bg-slate-100 text-slate-600" },
-  "LIQUIDADO":    { cls: "bg-teal-100 text-teal-700" },
-}
-
-function ParentBadge({ estado }: { estado: string | null }) {
-  if (!estado) return <span className="text-[10px] text-muted-foreground">—</span>
-  const cfg = PARENT_CFG[estado] ?? { cls: "bg-muted text-muted-foreground" }
-  return (
-    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase", cfg.cls)}>
-      {estado}
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${cfg.bg} ${cfg.text}`}>
+      <span className={`w-1.5 h-1.5 ${cfg.dot} rounded-full mr-1.5`} />
+      {label}
     </span>
   )
 }
 
 // ── Paginación ────────────────────────────────────────────────────────────────
 
-function Paginator({ page, total, pageSize, onChange }: { page: number; total: number; pageSize: number; onChange: (p: number) => void }) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+function Paginator({ page, total, onChange }: { page: number; total: number; onChange: (p: number) => void }) {
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   if (totalPages <= 1) return null
 
   const pages: (number | "…")[] = []
@@ -83,33 +53,32 @@ function Paginator({ page, total, pageSize, onChange }: { page: number; total: n
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-      <p className="text-xs text-muted-foreground">
-        Mostrando {Math.min((page - 1) * pageSize + 1, total)}–{Math.min(page * pageSize, total)} de {total} resultados
+    <div className="px-6 py-4 border-t border-[#EAEAEA] flex items-center justify-between">
+      <p className="text-sm text-[#434652]">
+        Mostrando {Math.min((page - 1) * PAGE_SIZE + 1, total)}–{Math.min(page * PAGE_SIZE, total)} de {total} resultados
       </p>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center space-x-1">
         <button
           type="button"
           onClick={() => onChange(page - 1)}
           disabled={page === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+          className="p-2 border border-[#c4c6ce] rounded-lg hover:bg-[#f0f3ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <ChevronLeft size={14} />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         {pages.map((p, i) =>
           p === "…" ? (
-            <span key={`ellipsis-${i}`} className="w-8 h-8 flex items-center justify-center text-xs text-muted-foreground">…</span>
+            <span key={`e-${i}`} className="px-2 text-[#747783]">...</span>
           ) : (
             <button
               key={p}
               type="button"
               onClick={() => onChange(p as number)}
-              className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-lg border text-xs font-semibold transition-colors",
+              className={`w-10 h-10 rounded-lg text-[12px] font-semibold transition-colors ${
                 page === p
-                  ? "bg-[var(--corporate-blue)] text-white border-[var(--corporate-blue)]"
-                  : "border-border text-foreground hover:bg-muted"
-              )}
+                  ? "bg-[#0B3D91] text-white"
+                  : "hover:bg-[#f0f3ff] text-[#151c27]"
+              }`}
             >
               {p}
             </button>
@@ -118,10 +87,10 @@ function Paginator({ page, total, pageSize, onChange }: { page: number; total: n
         <button
           type="button"
           onClick={() => onChange(page + 1)}
-          disabled={page === totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-muted-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={page === Math.ceil(total / PAGE_SIZE)}
+          className="p-2 border border-[#c4c6ce] rounded-lg hover:bg-[#f0f3ff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <ChevronRight size={14} />
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
     </div>
@@ -139,264 +108,298 @@ const UNIQUE_INTERADMIN = (contracts: DerivedContractRow[]) =>
   [...new Set(contracts.map((c) => c.id_interadministrativo).filter(Boolean))].sort() as string[]
 
 export function DerivedContractsClient({ contracts, kpis }: Props) {
-  const [search, setSearch]             = useState("")
-  const [convenioFilter, setConvenio]   = useState("all")
-  const [estadoFilter, setEstado]       = useState("all")
-  const [minVal, setMinVal]             = useState("")
-  const [maxVal, setMaxVal]             = useState("")
-  const [showFilters, setShowFilters]   = useState(false)
-  const [page, setPage]                 = useState(1)
-  const [selected, setSelected]         = useState<DerivedContractRow | null>(null)
+  const [search, setSearch]           = useState("")
+  const [convenioFilter, setConvenio] = useState("all")
+  const [estadoFilter, setEstado]     = useState("all")
+  const [minVal, setMinVal]           = useState("")
+  const [maxVal, setMaxVal]           = useState("")
+  const [claseFilter, setClase]       = useState("all")
+  const [page, setPage]               = useState(1)
+  const [selected, setSelected]       = useState<DerivedContractRow | null>(null)
+  const [numSearch, setNumSearch]     = useState("")
 
   const convenios = useMemo(() => UNIQUE_INTERADMIN(contracts), [contracts])
+  const clases    = useMemo(() => [...new Set(contracts.map((c) => c.clase_contrato).filter(Boolean))].sort() as string[], [contracts])
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim()
+    const q   = search.toLowerCase().trim()
+    const num = numSearch.toLowerCase().trim()
     const min = minVal ? Number(minVal.replace(/\D/g, "")) : null
     const max = maxVal ? Number(maxVal.replace(/\D/g, "")) : null
     return contracts.filter((c) => {
+      if (num && !(c.numero_contrato ?? "").toLowerCase().includes(num)) return false
       if (q) {
-        const hay = [c.numero_contrato, c.contratista, c.objeto_contrato, c.id_interadministrativo, c.parent_objeto, c.parent_secretaria]
+        const hay = [c.numero_contrato, c.contratista, c.objeto_contrato, c.id_interadministrativo, c.parent_objeto]
           .filter(Boolean).join(" ").toLowerCase()
         if (!hay.includes(q)) return false
       }
       if (convenioFilter !== "all" && c.id_interadministrativo !== convenioFilter) return false
-      if (estadoFilter !== "all" && c.estado !== estadoFilter) return false
+      if (estadoFilter   !== "all" && c.estado               !== estadoFilter)   return false
+      if (claseFilter    !== "all" && c.clase_contrato        !== claseFilter)    return false
       const val = c.valor_final ?? c.valor_inicial ?? 0
       if (min !== null && val < min) return false
       if (max !== null && val > max) return false
       return true
     })
-  }, [contracts, search, convenioFilter, estadoFilter, minVal, maxVal])
+  }, [contracts, search, numSearch, convenioFilter, estadoFilter, claseFilter, minVal, maxVal])
 
   const paginated = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page])
 
-  const activeFilters = [convenioFilter !== "all", estadoFilter !== "all", !!minVal, !!maxVal].filter(Boolean).length
-
   function resetPage() { setPage(1) }
 
-  // KPIs derivados
+  // KPIs
   const vigentes    = contracts.filter((c) => c.estado === "EN EJECUCIÓN").length
   const proximos    = contracts.filter((c) => {
     if (!c.fecha_terminacion || c.estado !== "EN EJECUCIÓN") return false
-    const d = new Date(c.fecha_terminacion)
-    const now = new Date()
-    const diff = Math.round((d.getTime() - now.getTime()) / 86400000)
+    const diff = Math.round((new Date(c.fecha_terminacion).getTime() - Date.now()) / 86400000)
     return diff >= 0 && diff <= 30
   }).length
   const liquidacion = contracts.filter((c) => c.estado === "CIERRE CONTRACTUAL" || c.estado === "LIQUIDADO").length
   const montoTotal  = contracts.reduce((s, c) => s + (c.valor_final ?? c.valor_inicial ?? 0), 0)
 
-  const selCls = "h-9 rounded-xl border border-[#EAEAEA] bg-white pl-3 pr-8 text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-[var(--corporate-blue)]/20 w-full"
-
   return (
-    <div className="space-y-5">
+    <div className="p-8 max-w-[1600px] mx-auto">
 
       {/* ── Header ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <div>
-          <h2 className="text-xl font-bold text-[#151c27]">Gestión de Contratos Derivados</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Contratos derivados de convenios interadministrativos
+          <nav className="flex items-center text-[#747783] text-[12px] font-medium mb-2 space-x-2">
+            <Link href="/proyectos" className="hover:text-[#002869] transition-colors">Contratos</Link>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+            <span className="text-[#002869] font-semibold">Derivados</span>
+          </nav>
+          <h2 className="text-[32px] font-bold leading-[40px] text-[#002869]">Gestión de Contratos Derivados</h2>
+          <p className="text-[#434652] text-base mt-1 max-w-3xl">
+            Administración centralizada de contratos derivados de convenios interadministrativos o contratos marco operativos para la ejecución del plan de acción.
           </p>
         </div>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--corporate-blue)] text-white text-xs font-semibold hover:opacity-90 shadow-sm self-start sm:self-auto"
-        >
-          <Download size={13} />
-          Descargar Excel
-        </button>
-      </div>
-
-      {/* ── KPIs ── */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <KpiCard label="Monto Total Comprometido" value={`$ ${(montoTotal / 1_000_000).toFixed(0)}M`} sub={`${contracts.length} contratos`} accent="text-[var(--corporate-blue)]" />
-        <KpiCard label="Contratos Vigentes"       value={String(vigentes)}    sub="Estado EN EJECUCIÓN" />
-        <KpiCard label="Próximos a Vencer"         value={String(proximos)}    sub="Vencen en ≤ 30 días" accent={proximos > 0 ? "text-amber-600" : undefined} />
-        <KpiCard label="En Trámite Liquidación"    value={String(liquidacion)} sub="Cierre o Liquidado"  accent={liquidacion > 0 ? "text-blue-600" : undefined} />
-      </div>
-
-      {/* ── Panel de filtros ── */}
-      <div className="bg-white border border-[#EAEAEA] rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <SlidersHorizontal size={14} className="text-muted-foreground" />
-            <span className="text-sm font-semibold text-foreground">Panel de Filtros Avanzados</span>
-            {activeFilters > 0 && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--corporate-blue)] text-white">
-                {activeFilters} activo{activeFilters !== 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowFilters((v) => !v)}
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            {showFilters ? "Ocultar" : "Mostrar"}
+        <div>
+          <button className="inline-flex items-center px-5 py-2.5 bg-[#0B3D91] text-white rounded-lg text-[12px] font-semibold hover:bg-[#002869] transition-all shadow-sm">
+            <svg className="mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Descargar Excel
           </button>
         </div>
+      </div>
 
-        <div className="px-4 py-3 flex flex-col gap-3">
-          {/* Búsqueda siempre visible */}
-          <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      {/* ── KPI Cards ── */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {[
+          {
+            icon: "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-8 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z",
+            iconColor: "text-[#0B3D91]",
+            iconBg: "bg-[#0B3D91]/10",
+            label: "Monto Total Comprometido",
+            value: `$ ${(montoTotal / 1_000_000).toFixed(0)}M`,
+          },
+          {
+            icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 0 0 1.946-.806 3.42 3.42 0 0 1 4.438 0 3.42 3.42 0 0 0 1.946.806 3.42 3.42 0 0 1 3.138 3.138 3.42 3.42 0 0 0 .806 1.946 3.42 3.42 0 0 1 0 4.438 3.42 3.42 0 0 0-.806 1.946 3.42 3.42 0 0 1-3.138 3.138 3.42 3.42 0 0 0-1.946.806 3.42 3.42 0 0 1-4.438 0 3.42 3.42 0 0 0-1.946-.806 3.42 3.42 0 0 1-3.138-3.138 3.42 3.42 0 0 0-.806-1.946 3.42 3.42 0 0 1 0-4.438 3.42 3.42 0 0 0 .806-1.946 3.42 3.42 0 0 1 3.138-3.138z",
+            iconColor: "text-[#10B981]",
+            iconBg: "bg-[#10B981]/10",
+            label: "Contratos Vigentes",
+            value: String(vigentes),
+          },
+          {
+            icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z",
+            iconColor: "text-[#D9A520]",
+            iconBg: "bg-[#D9A520]/10",
+            label: "Próximos a Vencer",
+            value: String(proximos),
+          },
+          {
+            icon: "M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9l2 2 4-4",
+            iconColor: "text-[#EF4444]",
+            iconBg: "bg-[#EF4444]/10",
+            label: "En Trámite Liquidación",
+            value: String(liquidacion),
+          },
+        ].map((k) => (
+          <div key={k.label} className="bg-white border border-[#EAEAEA] rounded-xl p-6 flex flex-col items-center text-center shadow-sm" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+            <div className={`w-12 h-12 ${k.iconBg} rounded-full flex items-center justify-center mb-4`}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={k.iconColor}>
+                <path d={k.icon} strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+            <p className="text-[11px] font-semibold text-[#747783] uppercase tracking-wider mb-1">{k.label}</p>
+            <h4 className="text-[24px] font-semibold leading-[32px] text-[#151c27]">{k.value}</h4>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Filter Panel ── */}
+      <div className="bg-white border border-[#EAEAEA] rounded-xl p-6 mb-8" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+        <div className="flex items-center mb-4 space-x-2">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          <h3 className="text-[18px] font-semibold leading-[26px] text-[#151c27]">Panel de Filtros Avanzados</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="flex flex-col space-y-2">
+            <label className="text-[12px] font-medium text-[#434652] tracking-wide">Número de Contrato</label>
             <input
               type="text"
-              placeholder="Buscar por N° contrato, convenio padre, objeto, contratista…"
+              placeholder="Ej: 2024-DER-001"
+              value={numSearch}
+              onChange={(e) => { setNumSearch(e.target.value); resetPage() }}
+              className="w-full px-4 py-2 border border-[#c4c6ce] rounded-lg focus:ring-2 focus:ring-[#0B3D91] focus:border-transparent text-sm outline-none"
+            />
+          </div>
+          <div className="flex flex-col space-y-2">
+            <label className="text-[12px] font-medium text-[#434652] tracking-wide">Contrato Interadministrativo</label>
+            <select
+              value={convenioFilter}
+              onChange={(e) => { setConvenio(e.target.value); resetPage() }}
+              className="w-full px-4 py-2 border border-[#c4c6ce] rounded-lg focus:ring-2 focus:ring-[#0B3D91] focus:border-transparent text-sm outline-none appearance-none bg-white"
+            >
+              <option value="all">Todos los convenios</option>
+              {convenios.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col space-y-2">
+            <label className="text-[12px] font-medium text-[#434652] tracking-wide">Nombre / Objeto</label>
+            <input
+              type="text"
+              placeholder="Palabra clave..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); resetPage() }}
-              className="w-full h-10 pl-9 pr-9 rounded-xl border border-[#EAEAEA] bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[var(--corporate-blue)]/30"
+              className="w-full px-4 py-2 border border-[#c4c6ce] rounded-lg focus:ring-2 focus:ring-[#0B3D91] focus:border-transparent text-sm outline-none"
             />
-            {search && (
-              <button type="button" onClick={() => { setSearch(""); resetPage() }} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X size={14} />
-              </button>
-            )}
           </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Convenio Interadmin</label>
-                <div className="relative">
-                  <select className={selCls} value={convenioFilter} onChange={(e) => { setConvenio(e.target.value); resetPage() }}>
-                    <option value="all">Todos los convenios</option>
-                    {convenios.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Estado del Contrato</label>
-                <div className="relative">
-                  <select className={selCls} value={estadoFilter} onChange={(e) => { setEstado(e.target.value); resetPage() }}>
-                    <option value="all">Todos los estados</option>
-                    <option value="EN EJECUCIÓN">En ejecución</option>
-                    <option value="CIERRE CONTRACTUAL">Cierre contractual</option>
-                    <option value="TERMINADO">Terminado</option>
-                    <option value="LIQUIDADO">Liquidado</option>
-                    <option value="SUSPENDIDO">Suspendido</option>
-                    <option value="TERMINADO ANTICIPADAMENTE">Terminado anticipadamente</option>
-                    <option value="DECLARADO FALLIDO">Declarado fallido</option>
-                    <option value="TERMINADO ANORMALMENTE">Terminado anormalmente</option>
-                    <option value="NO SUSCRITO">No suscrito</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Valor mínimo</label>
-                <input
-                  type="text"
-                  placeholder="Ej: 50000000"
-                  value={minVal}
-                  onChange={(e) => { setMinVal(e.target.value); resetPage() }}
-                  className="h-9 rounded-xl border border-[#EAEAEA] bg-white px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--corporate-blue)]/20"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Valor máximo</label>
-                <input
-                  type="text"
-                  placeholder="Ej: 500000000"
-                  value={maxVal}
-                  onChange={(e) => { setMaxVal(e.target.value); resetPage() }}
-                  className="h-9 rounded-xl border border-[#EAEAEA] bg-white px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--corporate-blue)]/20"
-                />
-              </div>
+          <div className="flex flex-col space-y-2">
+            <label className="text-[12px] font-medium text-[#434652] tracking-wide">Rango de Valores</label>
+            <div className="flex items-center space-x-2">
+              <input
+                type="number"
+                placeholder="Min"
+                value={minVal}
+                onChange={(e) => { setMinVal(e.target.value); resetPage() }}
+                className="w-1/2 px-3 py-2 border border-[#c4c6ce] rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#0B3D91]"
+              />
+              <span className="text-[#747783]">-</span>
+              <input
+                type="number"
+                placeholder="Max"
+                value={maxVal}
+                onChange={(e) => { setMaxVal(e.target.value); resetPage() }}
+                className="w-1/2 px-3 py-2 border border-[#c4c6ce] rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#0B3D91]"
+              />
             </div>
-          )}
+          </div>
+          <div className="flex flex-col space-y-2">
+            <label className="text-[12px] font-medium text-[#434652] tracking-wide">Tipología</label>
+            <select
+              value={claseFilter}
+              onChange={(e) => { setClase(e.target.value); resetPage() }}
+              className="w-full px-4 py-2 border border-[#c4c6ce] rounded-lg focus:ring-2 focus:ring-[#0B3D91] focus:border-transparent text-sm outline-none appearance-none bg-white"
+            >
+              <option value="all">Todas las tipologías</option>
+              {clases.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 
       {/* ── Tabla ── */}
-      <div className="bg-white border border-[#EAEAEA] rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-          <h4 className="text-sm font-bold text-foreground">
-            Registros Contractuales
-            <span className="ml-2 text-[10px] font-semibold text-muted-foreground normal-case">
+      <div className="bg-white border border-[#EAEAEA] rounded-xl overflow-hidden" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+        <div className="px-6 py-4 border-b border-[#EAEAEA] bg-[#f0f3ff] flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <span className="text-[18px] font-semibold leading-[26px] text-[#151c27]">Registros Contractuales</span>
+            <span className="bg-[#0B3D91]/10 text-[#0B3D91] text-[12px] font-semibold px-2 py-0.5 rounded-full">
               {filtered.length} Contrato{filtered.length !== 1 ? "s" : ""}
             </span>
-          </h4>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={() => { setSearch(""); setNumSearch(""); setConvenio("all"); setEstado("all"); setClase("all"); setMinVal(""); setMaxVal(""); resetPage() }}
+              className="p-2 hover:bg-[#e7eefe] rounded-lg text-[#747783] transition-colors"
+              title="Limpiar filtros"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+          </div>
         </div>
 
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-sm font-semibold text-foreground">Sin contratos</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {search || activeFilters > 0 ? "Ningún derivado coincide con los filtros." : "No hay contratos derivados registrados."}
-            </p>
+            <p className="text-sm font-semibold text-[#151c27]">Sin contratos</p>
+            <p className="text-xs text-[#434652] mt-1">Ningún derivado coincide con los filtros actuales.</p>
           </div>
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-[#F8FAFC] text-left text-[10px] uppercase tracking-widest text-muted-foreground">
-                    <th className="px-4 py-3 font-semibold whitespace-nowrap">N° Contrato</th>
-                    <th className="px-4 py-3 font-semibold whitespace-nowrap">Convenio Padre</th>
-                    <th className="px-4 py-3 font-semibold min-w-[140px]">Contratista</th>
-                    <th className="px-4 py-3 font-semibold min-w-[200px]">Objeto</th>
-                    <th className="px-4 py-3 font-semibold">Estado</th>
-                    <th className="px-4 py-3 font-semibold whitespace-nowrap">Supervisor</th>
-                    <th className="px-4 py-3 font-semibold text-right whitespace-nowrap">Valor Total</th>
-                    <th className="px-4 py-3 font-semibold whitespace-nowrap">F. Terminación</th>
+              <table className="w-full text-left">
+                <thead className="bg-white border-b border-[#EAEAEA]">
+                  <tr>
+                    {["Número de Contrato", "Convenio Padre", "Contratista", "Objeto", "Tipología", "Valor Total", "Estado", "Acciones"].map((h) => (
+                      <th key={h} className="px-6 py-4 text-[11px] font-semibold text-[#434652] uppercase tracking-wider">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-[#EAEAEA]">
                   {paginated.map((d) => (
                     <tr
                       key={d.id}
+                      className="hover:bg-[#f0f3ff] transition-colors group cursor-pointer"
                       onClick={() => setSelected(d)}
-                      className="border-b border-border/60 last:border-0 hover:bg-[var(--corporate-blue)]/5 transition-colors cursor-pointer group"
                     >
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <p className="text-xs font-bold text-[var(--corporate-blue)] font-mono group-hover:underline">
-                          {d.numero_contrato ?? "—"}
-                        </p>
+                      <td className="px-6 py-4 text-sm font-bold text-[#0B3D91] font-mono">
+                        {d.numero_contrato ?? "—"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-6 py-4 text-sm text-[#434652]">
                         {d.id_interadministrativo ? (
                           <Link
                             href={d.parent_id != null ? `/proyectos/${d.parent_id}` : "#"}
                             onClick={(e) => e.stopPropagation()}
-                            className="text-xs font-semibold font-mono text-violet-700 hover:underline whitespace-nowrap"
+                            className="hover:underline hover:text-[#0B3D91] transition-colors"
                           >
                             {d.id_interadministrativo}
                           </Link>
-                        ) : <span className="text-xs text-muted-foreground">—</span>}
-                        {d.parent_estado && (
-                          <div className="mt-0.5">
-                            <ParentBadge estado={d.parent_estado} />
-                          </div>
-                        )}
+                        ) : "—"}
                       </td>
-                      <td className="px-4 py-3 max-w-[150px]">
-                        <span className="text-xs truncate block">{d.contratista ?? "—"}</span>
+                      <td className="px-6 py-4 text-sm font-semibold text-[#151c27] max-w-[160px]">
+                        <span className="truncate block">{d.contratista ?? "—"}</span>
                       </td>
-                      <td className="px-4 py-3 max-w-xs">
-                        <span className="text-xs line-clamp-2 text-muted-foreground">{d.objeto_contrato ?? d.origen_hoja ?? "—"}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <EstadoBadge estado={d.estado} />
-                      </td>
-                      <td className="px-4 py-3 max-w-[120px]">
-                        <span className="text-xs truncate block text-muted-foreground">{d.supervisor ?? "—"}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <span className="text-xs font-semibold tabular-nums">
-                          {d.valor_final != null ? formatCOP(d.valor_final) : d.valor_inicial != null ? formatCOP(d.valor_inicial) : "—"}
+                      <td className="px-6 py-4 text-sm text-[#434652]">
+                        <span className="truncate block max-w-[200px]" title={d.objeto_contrato ?? ""}>
+                          {d.objeto_contrato
+                            ? d.objeto_contrato.length > 60 ? d.objeto_contrato.slice(0, 60) + "…" : d.objeto_contrato
+                            : d.origen_hoja ?? "—"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                        {d.fecha_terminacion ?? "—"}
+                      <td className="px-6 py-4">
+                        {d.clase_contrato ? (
+                          <span className="text-[11px] font-medium text-[#747783] px-2 py-1 rounded bg-[#f9f9ff] border border-[#c4c6ce]">
+                            {d.clase_contrato}
+                          </span>
+                        ) : <span className="text-xs text-[#747783]">—</span>}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-right font-bold text-[#D9A520]">
+                        {d.valor_final != null
+                          ? formatCOP(d.valor_final)
+                          : d.valor_inicial != null ? formatCOP(d.valor_inicial) : "—"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <EstadoBadge estado={d.estado} />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setSelected(d) }}
+                          className="text-[#747783] hover:text-[#0B3D91] transition-colors"
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                          </svg>
+                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <Paginator page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
+            <Paginator page={page} total={filtered.length} onChange={setPage} />
           </>
         )}
       </div>
