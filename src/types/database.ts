@@ -1,21 +1,37 @@
-// Tipos para el esquema V2 normalizado (01_DDL_schema.sql)
+// ── Enums / tipos base ────────────────────────────────────────────────────────
 
-export type EstadoContrato = 'EN EJECUCIÓN' | 'TERMINADO' | 'LIQUIDADO'
-export type TipoContrato   = 'DERIVADO' | 'FUNCIONAMIENTO'
+/** Estado del interadministrativo (ENUM en DB, 3 valores) */
+export type EstadoInteradministrativo = 'EN EJECUCIÓN' | 'TERMINADO' | 'LIQUIDADO'
+
+export type TipoContrato = 'DERIVADO' | 'FUNCIONAMIENTO'
+
+/** Estado del contrato derivado / funcionamiento (TEXT en DB, 9 valores canónicos) */
+export type EstadoContrato =
+  | 'EN EJECUCIÓN'
+  | 'CIERRE CONTRACTUAL'
+  | 'TERMINADO'
+  | 'LIQUIDADO'
+  | 'TERMINADO ANTICIPADAMENTE'
+  | 'SUSPENDIDO'
+  | 'DECLARADO FALLIDO'
+  | 'NO SUSCRITO'
+  | 'TERMINADO ANORMALMENTE'
+
+// ── interadministrativos — 60 registros ───────────────────────────────────────
 
 export interface Interadministrativo {
   id: number
-  id_contrato: string                    // ej: '3407-2021'
+  id_contrato: string                    // ej: '3407-2021' — nunca convertir a número
   modalidad_seleccion: string | null
   secretaria: string | null
   objeto_contrato: string | null
   clase_contrato: string | null
   area_responsable: string | null
-  supervision: string | null             // puede tener varios separados por ' / '
+  supervision: string | null             // puede ser 'A / B' si hay dos supervisores
   plazo_ejecucion_inicial: string | null
-  fecha_suscripcion: string | null       // ISO date string
+  fecha_suscripcion: string | null
   fecha_inicio_ejecucion: string | null
-  prorroga: string | null                // texto libre histórico
+  prorroga: string | null
   valor_inicial: number | null
   adicion: number | null
   total_contrato: number | null
@@ -27,31 +43,68 @@ export interface Interadministrativo {
   total_bolsa_mandato: number | null
   valor_pendiente_cobrar: number | null
   vigencias_futuras: number | null
-  suspension: string | null              // duración texto libre
-  reinicio: string | null                // ISO date string
+  suspension: string | null
+  reinicio: string | null
   fecha_terminacion: string | null
-  estado: EstadoContrato
+  estado: EstadoInteradministrativo
   observaciones: string | null
   created_at: string
   updated_at: string
+  contratos?: Contrato[]
 }
+
+// ── contratos — 470 registros (DERIVADO + FUNCIONAMIENTO) ────────────────────
 
 export interface Contrato {
   id: number
-  origen_hoja: string                    // ej: 'Contratación_2024'
-  proyecto_ref: string                   // ID contrato o referencia
+  origen_hoja: string | null
+  numero_contrato: string | null         // ej: '001-2024' (era proyecto_ref)
+  numero_proceso: string | null
   tipo_contrato: TipoContrato
-  id_interadministrativo: string | null  // NULL para FUNCIONAMIENTO
+  id_interadministrativo: string | null  // null para FUNCIONAMIENTO
+  modalidad_seleccion: string | null
+  contratista: string | null
+  objeto_contrato: string | null
+  persona_natural_juridica: string | null
+  clase_contrato: string | null
+  area_responsable: string | null
+  supervisor: string | null
+  fecha_suscripcion: string | null
+  plazo_ejecucion: string | null
+  fecha_inicio: string | null
+  valor_inicial: number | null
+  adicion: number | null
+  valor_final: number | null
+  prorroga: string | null
+  fecha_terminacion: string | null
+  valor_pagado: number | null
+  valor_pendiente: number | null
+  vigencia_futura: number | null
+  recurso: string | null
+  rubro: string | null
+  cdp: string | null
+  fecha_cdp: string | null
+  crp: string | null
+  fecha_crp: string | null
+  suspension: string | null
+  reinicio: string | null
+  observaciones: string | null
+  estado: EstadoContrato | null
+  link_ficha: string | null
+  numero_poliza: string | null
+  fecha_aprobacion_poliza: string | null
   created_at: string
   updated_at: string
-  // Relación join (opcional)
-  interadministrativo?: Pick<Interadministrativo, 'id_contrato' | 'objeto_contrato' | 'estado'>
+  interadministrativo?: Pick<Interadministrativo,
+    'id_contrato' | 'objeto_contrato' | 'secretaria' |
+    'estado' | 'total_contrato' | 'valor_pendiente_cobrar'
+  > | null
 }
 
 export interface OtroContrato {
   id: number
-  origen_hoja: string
-  proyecto_ref: string
+  origen_hoja: string | null
+  numero_contrato: string | null
   tipo_contrato: string
   created_at: string
 }

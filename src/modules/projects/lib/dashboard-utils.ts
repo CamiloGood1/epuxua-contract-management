@@ -1,4 +1,4 @@
-import type { Interadministrativo, EstadoContrato } from "@/types/database"
+import type { Interadministrativo, EstadoInteradministrativo } from "@/types/database"
 import type { FuncionamientoContrato } from "@/services/funcionamiento.service"
 
 export type InteradminDashboardFilterState = {
@@ -54,7 +54,7 @@ export function enrichFuncionamientoProjects<T>(projects: T[], _contracts: Funci
 
 export function computeEstadoCounts(
   contracts: Interadministrativo[]
-): Record<EstadoContrato, number> {
+): Record<EstadoInteradministrativo, number> {
   return {
     "EN EJECUCIÓN": contracts.filter((c) => c.estado === "EN EJECUCIÓN").length,
     "TERMINADO":    contracts.filter((c) => c.estado === "TERMINADO").length,

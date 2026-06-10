@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { ESTADO_ORDER, ESTADO_CONFIG } from "../lib/lifecycle"
 import { updateProjectLifecycle } from "@/services/projects.actions"
-import type { Interadministrativo, EstadoContrato } from "@/types/database"
+import type { Interadministrativo, EstadoInteradministrativo } from "@/types/database"
 
 interface ProjectKanbanProps {
   cards: Interadministrativo[]
@@ -21,7 +21,7 @@ export function ProjectKanban({ cards, canEdit = true }: ProjectKanbanProps) {
   const [isPending, startTransition] = useTransition()
 
   const byColumn = useMemo(() => {
-    const map: Record<EstadoContrato, Interadministrativo[]> = {
+    const map: Record<EstadoInteradministrativo, Interadministrativo[]> = {
       "EN EJECUCIÓN": [],
       "TERMINADO": [],
       "LIQUIDADO": [],
@@ -32,7 +32,7 @@ export function ProjectKanban({ cards, canEdit = true }: ProjectKanbanProps) {
     return map
   }, [items])
 
-  function handleDrop(targetStatus: EstadoContrato) {
+  function handleDrop(targetStatus: EstadoInteradministrativo) {
     if (!draggingId || !canEdit) return
     const card = items.find((c) => c.id === draggingId)
     if (!card || card.estado === targetStatus) {

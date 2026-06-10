@@ -1,10 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import type { Interadministrativo, EstadoContrato } from "@/types/database"
+import type { Interadministrativo, EstadoInteradministrativo } from "@/types/database"
 
 // ── Lista de interadministrativos ─────────────────────────────────────────────
 
 export async function getProjects(filters?: {
-  estado?: EstadoContrato | "all"
+  estado?: EstadoInteradministrativo | "all"
   secretaria?: string | "all"
   area?: string | "all"
 }): Promise<Interadministrativo[]> {

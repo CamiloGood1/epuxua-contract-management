@@ -9,9 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import type { ProjectLifecycle } from "@/types/project"
-import type { EstadoContrato } from "@/types/database"
-
-// ── Config para EstadoContrato (nuevo esquema) ────────────────────────────────
+import type { EstadoInteradministrativo } from "@/types/database"
 
 export interface EstadoConfig {
   label: string
@@ -23,7 +21,7 @@ export interface EstadoConfig {
   icon: LucideIcon
 }
 
-export const ESTADO_CONFIG: Record<EstadoContrato, EstadoConfig> = {
+export const ESTADO_CONFIG: Record<EstadoInteradministrativo, EstadoConfig> = {
   "EN EJECUCIÓN": {
     label:       "En ejecución",
     color:       "#10B981",
@@ -53,7 +51,7 @@ export const ESTADO_CONFIG: Record<EstadoContrato, EstadoConfig> = {
   },
 }
 
-export const ESTADO_ORDER: EstadoContrato[] = ["EN EJECUCIÓN", "TERMINADO", "LIQUIDADO"]
+export const ESTADO_ORDER: EstadoInteradministrativo[] = ["EN EJECUCIÓN", "TERMINADO", "LIQUIDADO"]
 
 export interface LifecycleConfig {
   label: string
