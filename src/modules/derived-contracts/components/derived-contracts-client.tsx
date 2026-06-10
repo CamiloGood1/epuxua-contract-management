@@ -52,6 +52,7 @@ function KpiCard({
 
 interface ParentGroup {
   id_interadministrativo: string
+  parent_numeric_id: number | null
   parent_objeto: string | null
   parent_secretaria: string | null
   parent_estado: DerivedContractRow["parent_estado"]
@@ -74,7 +75,7 @@ function ParentGroupRow({ group, onSelect }: { group: ParentGroup; onSelect: (d:
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <Link
-                href={`/proyectos/${group.id_interadministrativo}`}
+                href={group.parent_numeric_id != null ? `/proyectos/${group.parent_numeric_id}` : "#"}
                 onClick={(e) => e.stopPropagation()}
                 className="text-xs font-bold text-[var(--corporate-blue)] hover:underline shrink-0"
               >
@@ -171,6 +172,7 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
       if (!map.has(key)) {
         map.set(key, {
           id_interadministrativo: c.id_interadministrativo ?? "Sin convenio",
+          parent_numeric_id:      c.parent_id,
           parent_objeto:          c.parent_objeto,
           parent_secretaria:      c.parent_secretaria,
           parent_estado:          c.parent_estado,

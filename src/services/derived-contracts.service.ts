@@ -42,6 +42,7 @@ export interface DerivedContractRow {
   created_at:               string
   updated_at:               string
   // From JOIN with interadministrativos
+  parent_id:                number | null
   parent_objeto:            string | null
   parent_secretaria:        string | null
   parent_area:              string | null
@@ -70,6 +71,7 @@ export async function getAllDerivedContracts(): Promise<DerivedContractRow[]> {
     .select(`
       *,
       interadministrativos:id_interadministrativo (
+        id,
         objeto_contrato,
         secretaria,
         area_responsable,
@@ -91,6 +93,7 @@ export async function getAllDerivedContracts(): Promise<DerivedContractRow[]> {
     return {
       ...rest,
       tipo_contrato:          "DERIVADO" as const,
+      parent_id:              (parent?.id                   as number | null) ?? null,
       parent_objeto:          (parent?.objeto_contrato      as string | null) ?? null,
       parent_secretaria:      (parent?.secretaria           as string | null) ?? null,
       parent_area:            (parent?.area_responsable     as string | null) ?? null,

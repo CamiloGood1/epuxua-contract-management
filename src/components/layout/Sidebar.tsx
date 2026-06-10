@@ -60,24 +60,6 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    label: "Financiero",
-    collapsible: true,
-    defaultOpen: false,
-    items: [
-      { href: "/financiero/presupuesto", label: "Presupuesto", icon: "account_balance_wallet" },
-      { href: "/financiero/pagos", label: "Pagos", icon: "payments" },
-      { href: "/financiero/facturacion", label: "Facturación", icon: "receipt_long" },
-    ],
-  },
-  {
-    label: "Gestión",
-    items: [
-      { href: "/documentos", label: "Documentos", icon: "folder" },
-      { href: "/indicadores", label: "Indicadores", icon: "analytics" },
-      { href: "/alertas", label: "Alertas", icon: "notifications" },
-    ],
-  },
-  {
     label: "Administración",
     collapsible: true,
     defaultOpen: false,

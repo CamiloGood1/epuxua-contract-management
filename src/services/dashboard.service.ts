@@ -1,5 +1,85 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
+// ── Alertas ───────────────────────────────────────────────────────────────────
+
+export interface DashboardAlertItem {
+  id: number
+  label: string
+  subtitle: string | null
+  daysUntilExpiry: number
+  tipo: "INTERADMIN" | "DERIVADO" | "FUNCIONAMIENTO"
+  numericProjectId?: number
+}
+
+export interface DashboardAlerts {
+  expiringSoon: DashboardAlertItem[]
+  expired: DashboardAlertItem[]
+}
+
+export async function getDashboardAlerts(): Promise<DashboardAlerts> {
+  const supabase = await createSupabaseServerClient()
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const in30 = new Date(today)
+  in30.setDate(in30.getDate() + 30)
+
+  const [{ data: interadmin }, { data: contratos }] = await Promise.all([
+    supabase
+      .from("interadministrativos")
+      .select("id, id_contrato, objeto_contrato, fecha_terminacion")
+      .eq("estado", "EN EJECUCIÓN")
+      .not("fecha_terminacion", "is", null)
+      .lte("fecha_terminacion", in30.toISOString().split("T")[0])
+      .order("fecha_terminacion", { ascending: true })
+      .limit(50),
+    supabase
+      .from("contratos")
+      .select("id, numero_contrato, objeto_contrato, fecha_terminacion, tipo_contrato, id_interadministrativo")
+      .eq("estado", "EN EJECUCIÓN")
+      .not("fecha_terminacion", "is", null)
+      .lte("fecha_terminacion", in30.toISOString().split("T")[0])
+      .order("fecha_terminacion", { ascending: true })
+      .limit(100),
+  ])
+
+  const toAlertItem = (
+    row: { id: number; fecha_terminacion: string | null; objeto_contrato?: string | null },
+    label: string,
+    tipo: DashboardAlertItem["tipo"],
+    numericProjectId?: number,
+  ): DashboardAlertItem => {
+    const d = new Date(row.fecha_terminacion!)
+    d.setHours(0, 0, 0, 0)
+    const diff = Math.round((d.getTime() - today.getTime()) / 86400000)
+    return {
+      id: row.id,
+      label,
+      subtitle: row.objeto_contrato ?? null,
+      daysUntilExpiry: diff,
+      tipo,
+      numericProjectId,
+    }
+  }
+
+  const all: DashboardAlertItem[] = [
+    ...(interadmin ?? []).map((r) =>
+      toAlertItem(r, r.id_contrato ?? String(r.id), "INTERADMIN", r.id)
+    ),
+    ...(contratos ?? []).map((r) =>
+      toAlertItem(
+        r,
+        r.numero_contrato ?? String(r.id),
+        r.tipo_contrato === "DERIVADO" ? "DERIVADO" : "FUNCIONAMIENTO",
+      )
+    ),
+  ]
+
+  return {
+    expiringSoon: all.filter((a) => a.daysUntilExpiry >= 0).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry),
+    expired:      all.filter((a) => a.daysUntilExpiry < 0).sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry),
+  }
+}
+
 // ── KPIs Interadministrativos (desde interadministrativos) ────────────────────
 
 export interface InteradminDashboardKPIs {

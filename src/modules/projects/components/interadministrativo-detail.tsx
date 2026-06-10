@@ -132,11 +132,10 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
         {[
           { label: "Total contrato",      value: fmtMoney(p.total_contrato) },
           { label: "Cuota admin total",   value: fmtMoney(p.total_cuota_admin) },
-          { label: "Bolsa mandato",       value: fmtMoney(p.total_bolsa_mandato) },
           { label: "Pendiente cobrar",    value: fmtMoney(p.valor_pendiente_cobrar ?? p.total_cuota_admin) },
           { label: "Contratos derivados", value: String(derivados.length) },
           { label: "En ejecución",        value: String(enEjecucion) },

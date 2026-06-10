@@ -21,6 +21,9 @@ import {
   Plus,
   ArrowRight,
   Activity,
+  AlertTriangle,
+  Clock,
+  Bell,
 } from "lucide-react"
 import { KPICard } from "@/components/dashboard/KPICard"
 import { formatCOP } from "@/modules/contracts/lib/status"
@@ -32,7 +35,7 @@ import {
   uniqueProjectYears,
 } from "../lib/dashboard-utils"
 import type { FuncionamientoContrato } from "@/services/funcionamiento.service"
-import type { FuncionamientoDashboardKPIs, InteradminDashboardKPIs } from "@/services/dashboard.service"
+import type { FuncionamientoDashboardKPIs, InteradminDashboardKPIs, DashboardAlerts, DashboardAlertItem } from "@/services/dashboard.service"
 import { projectEntityLabel } from "../lib/project-utils"
 import { cn } from "@/lib/utils"
 import { NewInteradminProjectModal } from "./new-interadmin-project-modal"
@@ -47,6 +50,7 @@ interface ProjectDashboardViewProps {
   funcionamientoKPIs: FuncionamientoDashboardKPIs
   interadminKPIs: InteradminDashboardKPIs
   topActiveFuncContracts: FuncionamientoContrato[]
+  alerts: DashboardAlerts
 }
 
 function YearFilter({ year, years, onChange }: {
@@ -83,6 +87,135 @@ function SectionHeader({ title, subtitle, color, count, countLabel }: {
         <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
       </div>
     </div>
+  )
+}
+
+// ── Alertas ───────────────────────────────────────────────────────────────────
+
+const TIPO_LABEL: Record<DashboardAlertItem["tipo"], string> = {
+  INTERADMIN:    "Interadministrativo",
+  DERIVADO:      "Derivado",
+  FUNCIONAMIENTO:"Funcionamiento",
+}
+
+const TIPO_COLOR: Record<DashboardAlertItem["tipo"], string> = {
+  INTERADMIN:    "bg-blue-100 text-blue-700",
+  DERIVADO:      "bg-violet-100 text-violet-700",
+  FUNCIONAMIENTO:"bg-teal-100 text-teal-700",
+}
+
+function DaysChip({ days }: { days: number }) {
+  if (days < 0) return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 whitespace-nowrap">
+      <AlertTriangle size={9} /> Vencido hace {Math.abs(days)}d
+    </span>
+  )
+  if (days === 0) return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 whitespace-nowrap">
+      <AlertTriangle size={9} /> Vence hoy
+    </span>
+  )
+  if (days <= 7) return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200 whitespace-nowrap">
+      <Clock size={9} /> En {days}d
+    </span>
+  )
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+      <Clock size={9} /> En {days}d
+    </span>
+  )
+}
+
+function AlertRow({ item }: { item: DashboardAlertItem }) {
+  const href =
+    item.tipo === "INTERADMIN" && item.numericProjectId != null
+      ? `/proyectos/${item.numericProjectId}`
+      : item.tipo === "DERIVADO"
+      ? "/contratacion/derivados"
+      : "/funcionamiento"
+
+  return (
+    <Link
+      href={href}
+      className="flex items-center justify-between py-2.5 hover:bg-muted/40 -mx-3 px-3 rounded-lg transition-colors group"
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0", TIPO_COLOR[item.tipo])}>
+          {TIPO_LABEL[item.tipo]}
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-foreground font-mono group-hover:text-[var(--corporate-blue)] truncate">{item.label}</p>
+          {item.subtitle && (
+            <p className="text-[10px] text-muted-foreground truncate max-w-xs">{item.subtitle}</p>
+          )}
+        </div>
+      </div>
+      <DaysChip days={item.daysUntilExpiry} />
+    </Link>
+  )
+}
+
+function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
+  const total = alerts.expiringSoon.length + alerts.expired.length
+  if (total === 0) return null
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Bell size={15} className="text-amber-600 shrink-0" />
+        <h3 className="text-sm font-bold text-foreground">
+          Alertas de vencimiento
+        </h3>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+          {total}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {alerts.expired.length > 0 && (
+          <div className="epuxua-card p-4 border-l-4 border-red-400">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle size={13} className="text-red-600" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-red-600">
+                Vencidos — EN EJECUCIÓN ({alerts.expired.length})
+              </p>
+            </div>
+            <div className="divide-y divide-border/60">
+              {alerts.expired.slice(0, 8).map((item) => (
+                <AlertRow key={`${item.tipo}-${item.id}`} item={item} />
+              ))}
+              {alerts.expired.length > 8 && (
+                <p className="text-[10px] text-muted-foreground pt-2">
+                  +{alerts.expired.length - 8} más…
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {alerts.expiringSoon.length > 0 && (
+          <div className="epuxua-card p-4 border-l-4 border-amber-400">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock size={13} className="text-amber-600" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600">
+                Próximos a vencer — 30 días ({alerts.expiringSoon.length})
+              </p>
+            </div>
+            <div className="divide-y divide-border/60">
+              {alerts.expiringSoon.slice(0, 8).map((item) => (
+                <AlertRow key={`${item.tipo}-${item.id}`} item={item} />
+              ))}
+              {alerts.expiringSoon.length > 8 && (
+                <p className="text-[10px] text-muted-foreground pt-2">
+                  +{alerts.expiringSoon.length - 8} más…
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
   )
 }
 
@@ -148,17 +281,53 @@ function InteradminKPIs({ kpis }: { kpis: InteradminDashboardKPIs }) {
 function FuncionamientoKPIs({ kpis }: { kpis: FuncionamientoDashboardKPIs }) {
   const cards = [
     {
-      label: "Contratos registrados",
+      label: "Total contratos",
       value: kpis.totalContracts,
       formattedValue: String(kpis.totalContracts),
       isCurrency: false, change: 0,
       icon: Users,
+      gradient: "from-teal-500 to-teal-700",
+      iconBg: "bg-teal-50",
+    },
+    {
+      label: "En ejecución",
+      value: kpis.activeContracts,
+      formattedValue: String(kpis.activeContracts),
+      isCurrency: false, change: 0,
+      icon: Activity,
+      gradient: "from-emerald-500 to-teal-600",
+      iconBg: "bg-emerald-50",
+    },
+    {
+      label: "Valor total",
+      value: kpis.totalValue,
+      formattedValue: formatCOP(kpis.totalValue),
+      isCurrency: true, change: 0,
+      icon: Wallet,
+      gradient: "from-cyan-500 to-teal-500",
+      iconBg: "bg-cyan-50",
+    },
+    {
+      label: "Valor pagado",
+      value: kpis.totalPaidValue,
+      formattedValue: formatCOP(kpis.totalPaidValue),
+      isCurrency: true, change: 0,
+      icon: CreditCard,
       gradient: "from-slate-500 to-slate-700",
       iconBg: "bg-slate-50",
     },
+    {
+      label: "Próximos a vencer",
+      value: kpis.soonExpiring,
+      formattedValue: String(kpis.soonExpiring),
+      isCurrency: false, change: 0,
+      icon: TrendingUp,
+      gradient: "from-amber-500 to-orange-500",
+      iconBg: "bg-amber-50",
+    },
   ]
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
       {cards.map((kpi, i) => <KPICard key={kpi.label} {...kpi} index={i} />)}
     </div>
   )
@@ -187,6 +356,7 @@ export function ProjectDashboardView({
   funcionamientoKPIs,
   interadminKPIs,
   topActiveFuncContracts,
+  alerts,
 }: ProjectDashboardViewProps) {
   const [year, setYear]                   = useState("all")
   const [showNewInteradmin, setShowNewInteradmin] = useState(false)
@@ -250,6 +420,8 @@ export function ProjectDashboardView({
           Error al cargar datos: {fetchError}
         </div>
       )}
+
+      <AlertsPanel alerts={alerts} />
 
       {/* ─── INTERADMINISTRATIVOS ─── */}
       <section className="space-y-4">
