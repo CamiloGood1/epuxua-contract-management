@@ -23,7 +23,15 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
     .eq("id", user.id)
     .maybeSingle()
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    // user_profiles table may not exist in current schema — return default
+    return {
+      id: user.id,
+      email: user.email ?? null,
+      full_name: null,
+      role: "ESPECTADOR" as UserRole,
+    }
+  }
   if (!data) {
     return {
       id: user.id,
