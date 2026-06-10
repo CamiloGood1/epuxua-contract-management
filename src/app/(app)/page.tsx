@@ -4,29 +4,51 @@ import {
   enrichProjectsWithManagers,
 } from "@/services/projects.service"
 import { getFuncionamientoContracts } from "@/services/funcionamiento.service"
-import { enrichFuncionamientoProjects } from "@/modules/projects/lib/dashboard-utils"
+import {
+  getFuncionamientoDashboardKPIs,
+  getInteradminDashboardKPIs,
+  type FuncionamientoDashboardKPIs,
+  type InteradminDashboardKPIs,
+} from "@/services/dashboard.service"
 import { ProjectDashboardView } from "@/modules/projects/components/project-dashboard-view"
-import type { FuncionamientoContract } from "@/services/funcionamiento.service"
+import type { FuncionamientoContrato } from "@/services/funcionamiento.service"
+
+const EMPTY_FUNC_KPIS: FuncionamientoDashboardKPIs = {
+  totalContracts: 0, activeContracts: 0, suspendedContracts: 0,
+  finishedContracts: 0, liquidatedContracts: 0, totalValue: 0,
+  totalPaidValue: 0, avgValue: 0, soonExpiring: 0, expired: 0,
+}
+
+const EMPTY_INTERADMIN_KPIS: InteradminDashboardKPIs = {
+  totalContracts: 0, activeContracts: 0, terminatedContracts: 0,
+  liquidatedContracts: 0, totalValue: 0, pendingValue: 0,
+  totalCuotaAdmin: 0, totalDerivedContracts: 0,
+}
 
 export default async function Page() {
   let projects: Awaited<ReturnType<typeof getProjects>> = []
   let entities: string[] = []
-  let activeContracts: FuncionamientoContract[] = []
+  let topFuncContracts: FuncionamientoContrato[] = []
+  let funcKPIs: FuncionamientoDashboardKPIs = EMPTY_FUNC_KPIS
+  let interadminKPIs: InteradminDashboardKPIs = EMPTY_INTERADMIN_KPIS
   let fetchError: string | undefined
 
   try {
-    const [raw, catalogs, funcContracts] = await Promise.all([
-      getProjects(),
-      getProjectFilterCatalogs(),
-      getFuncionamientoContracts(),
+    const [raw, catalogs, funcContracts, funcKPIsRaw, interadminKPIsRaw] = await Promise.all([
+      getProjects(),                      // interadministrativos
+      getProjectFilterCatalogs(),         // interadministrativos
+      getFuncionamientoContracts(),       // contratos WHERE FUNCIONAMIENTO
+      getFuncionamientoDashboardKPIs(),   // count de FUNCIONAMIENTO
+      getInteradminDashboardKPIs(),       // KPIs de interadministrativos
     ])
 
-    // Dashboard solo muestra contratos de funcionamiento EN EJECUCION
-    activeContracts = funcContracts.filter((c) => c.status === "EN_EJECUCION")
+    funcKPIs       = funcKPIsRaw
+    interadminKPIs = interadminKPIsRaw
 
-    const withManagers = await enrichProjectsWithManagers(raw)
-    // Enriquecer proyectos contenedor solo con los contratos activos
-    projects = enrichFuncionamientoProjects(withManagers, activeContracts)
+    // Top-5 contratos de funcionamiento más recientes
+    topFuncContracts = funcContracts.slice(0, 5)
+
+    projects = await enrichProjectsWithManagers(raw)
     entities = catalogs.entities
   } catch (error) {
     fetchError = error instanceof Error ? error.message : "Error desconocido"
@@ -37,7 +59,9 @@ export default async function Page() {
       projects={projects}
       entities={entities}
       fetchError={fetchError}
-      funcionamientoActiveContracts={activeContracts}
+      funcionamientoKPIs={funcKPIs}
+      interadminKPIs={interadminKPIs}
+      topActiveFuncContracts={topFuncContracts}
     />
   )
 }

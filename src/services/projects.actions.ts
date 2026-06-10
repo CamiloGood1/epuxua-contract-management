@@ -2,176 +2,122 @@
 
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import type { ProjectLifecycle } from "@/types/project"
+import type { EstadoContrato } from "@/types/database"
+
+// ── Actualizar estado de un interadministrativo (kanban) ──────────────────────
 
 export async function updateProjectLifecycle(
-  projectId: string,
-  lifecycleStatus: ProjectLifecycle
+  idContrato: string,
+  estado: EstadoContrato
 ): Promise<{ error: string | null }> {
   const supabase = await createSupabaseServerClient()
 
   const { error } = await supabase
-    .from("projects")
-    .update({ lifecycle_status: lifecycleStatus })
-    .eq("id", projectId)
+    .from("interadministrativos")
+    .update({ estado })
+    .eq("id_contrato", idContrato)
 
   if (error) return { error: error.message }
 
-  revalidatePath("/proyectos/kanban")
   revalidatePath("/proyectos")
-  revalidatePath(`/proyectos/${projectId}`)
+  revalidatePath("/proyectos/kanban")
   revalidatePath("/")
 
   return { error: null }
 }
 
-// ── Crear proyecto interadministrativo + contrato principal ───────────────────
+// ── Crear interadministrativo ─────────────────────────────────────────────────
 
 export interface NewInteradminProjectInput {
-  project_code: string
-  name: string
-  year: number
-  secretaria: string
-  total_value: number
-  // Contrato principal
-  contract_number: string
-  object: string
-  contractor_name: string
-  supervisor_name: string
-  subscription_date: string
-  start_date: string
-  end_date: string
-  initial_value: number
+  id_contrato: string          // N° contrato, ej: '3407-2026'
+  secretaria?: string
+  objeto_contrato?: string
+  clase_contrato?: string
+  area_responsable?: string
+  supervision?: string
+  modalidad_seleccion?: string
+  plazo_ejecucion_inicial?: string
+  fecha_suscripcion?: string
+  fecha_inicio_ejecucion?: string
+  fecha_terminacion?: string
+  valor_inicial?: number
+  total_contrato?: number
+  cuota_admin_inicial?: number
+  bolsa_gerencia_inicial?: number
+  observaciones?: string
 }
+
+// Alias para compatibilidad con imports existentes
+export type NewInteradministrativoInput = NewInteradminProjectInput
 
 export async function createInteradminProject(
   input: NewInteradminProjectInput
 ): Promise<{ error: string | null; projectId?: string }> {
   const supabase = await createSupabaseServerClient()
 
-  // 1. Crear proyecto
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
+  const cuota = input.cuota_admin_inicial ?? null
+  const bolsa = input.bolsa_gerencia_inicial ?? null
+
+  const { data, error } = await supabase
+    .from("interadministrativos")
     .insert({
-      project_code: input.project_code.trim(),
-      name: input.name.trim(),
-      project_type: "INTERADMINISTRATIVO",
-      year: input.year,
-      lifecycle_status: "PLANEACION",
-      secretaria: input.secretaria.trim() || null,
-      total_value: Number(input.total_value),
-      goods_services_value: Number(input.total_value),
-      management_fee_type: "PORCENTAJE",
-      management_fee_value: 0,
-      management_fee_amount: 0,
-      executed_value: 0,
-      paid_value: 0,
+      id_contrato:              input.id_contrato.trim(),
+      secretaria:               input.secretaria?.trim()               || null,
+      objeto_contrato:          input.objeto_contrato?.trim()          || null,
+      clase_contrato:           input.clase_contrato?.trim()           || null,
+      area_responsable:         input.area_responsable?.trim()         || null,
+      supervision:              input.supervision?.trim()              || null,
+      modalidad_seleccion:      input.modalidad_seleccion?.trim()      || null,
+      plazo_ejecucion_inicial:  input.plazo_ejecucion_inicial?.trim()  || null,
+      fecha_suscripcion:        input.fecha_suscripcion               || null,
+      fecha_inicio_ejecucion:   input.fecha_inicio_ejecucion          || null,
+      fecha_terminacion:        input.fecha_terminacion               || null,
+      valor_inicial:            input.valor_inicial                   ?? null,
+      adicion:                  0,
+      total_contrato:           input.total_contrato ?? input.valor_inicial ?? null,
+      cuota_admin_inicial:      cuota,
+      adicion_cuota_admin:      0,
+      total_cuota_admin:        cuota,
+      bolsa_gerencia_inicial:   bolsa,
+      adicion_bolsa_mandato:    0,
+      total_bolsa_mandato:      bolsa,
+      valor_pendiente_cobrar:   null,
+      vigencias_futuras:        null,
+      estado:                   "EN EJECUCIÓN",
+      observaciones:            input.observaciones?.trim()            || null,
     })
-    .select("id")
+    .select("id, id_contrato")
     .single()
 
-  if (projectError) return { error: projectError.message }
-
-  // 2. Buscar o crear contratista
-  let contractor_id: string | null = null
-  if (input.contractor_name.trim()) {
-    const { data: existing } = await supabase
-      .from("contractors")
-      .select("id")
-      .ilike("full_name", input.contractor_name.trim())
-      .limit(1)
-      .maybeSingle()
-
-    if (existing) {
-      contractor_id = existing.id
-    } else {
-      const { data: newContractor } = await supabase
-        .from("contractors")
-        .insert({ full_name: input.contractor_name.trim(), person_type: "JURIDICA" })
-        .select("id")
-        .single()
-      contractor_id = newContractor?.id ?? null
-    }
-  }
-
-  // 3. Buscar o crear supervisor
-  let supervisor_id: string | null = null
-  if (input.supervisor_name.trim()) {
-    const { data: existing } = await supabase
-      .from("supervisors")
-      .select("id")
-      .ilike("full_name", input.supervisor_name.trim())
-      .limit(1)
-      .maybeSingle()
-
-    if (existing) {
-      supervisor_id = existing.id
-    } else {
-      const { data: newSupervisor } = await supabase
-        .from("supervisors")
-        .insert({ full_name: input.supervisor_name.trim() })
-        .select("id")
-        .single()
-      supervisor_id = newSupervisor?.id ?? null
-    }
-  }
-
-  // 4. Crear contrato principal (INTERADMINISTRATIVO)
-  if (input.contract_number.trim() && contractor_id) {
-    const { data: contract, error: contractError } = await supabase
-      .from("contracts")
-      .insert({
-        contract_number: input.contract_number.trim(),
-        year: input.year,
-        contract_type: "INTERADMINISTRATIVO",
-        selection_modality: "CONTRATACION_DIRECTA",
-        contract_class: "Contrato interadministrativo",
-        object: input.object.trim(),
-        contractor_id,
-        supervisor_id,
-        status: "EN_EJECUCION",
-        subscription_date: input.subscription_date,
-        start_date: input.start_date || null,
-        end_date: input.end_date || null,
-        initial_value: Number(input.initial_value),
-        total_additions_value: 0,
-        paid_value: 0,
-        future_validity: 0,
-        project_id: project.id,
-      })
-      .select("id")
-      .single()
-
-    if (!contractError && contract) {
-      // 5. Vincular contrato principal al proyecto
-      await supabase
-        .from("projects")
-        .update({ primary_contract_id: contract.id })
-        .eq("id", project.id)
-    }
-  }
+  if (error) return { error: error.message }
 
   revalidatePath("/")
   revalidatePath("/proyectos")
-  revalidatePath("/proyectos/kanban")
 
-  return { error: null, projectId: project.id }
+  return { error: null, projectId: String(data.id) }
 }
+
+// Alias
+export const createInteradministrativo = createInteradminProject
 
 // ── Crear contrato derivado ────────────────────────────────────────────────────
 
 export interface NewDerivedContractInput {
-  project_id: string
-  parent_contract_id: string
-  contract_number: string
-  object: string
-  contractor_name: string
-  supervisor_name: string
-  subscription_date: string
-  start_date: string
-  end_date: string
-  initial_value: number
-  year: number
+  id_interadministrativo: string    // id_contrato del padre
+  proyecto_ref: string              // N° del contrato derivado
+  origen_hoja?: string              // ej: 'Contratación_2024'
+  // Legacy — no se usan en el nuevo esquema pero se mantienen para compatibilidad
+  project_id?: string
+  parent_contract_id?: string
+  contract_number?: string
+  object?: string
+  contractor_name?: string
+  supervisor_name?: string
+  subscription_date?: string
+  start_date?: string
+  end_date?: string
+  initial_value?: number
+  year?: number
 }
 
 export async function createDerivedContract(
@@ -179,72 +125,22 @@ export async function createDerivedContract(
 ): Promise<{ error: string | null; contractId?: string }> {
   const supabase = await createSupabaseServerClient()
 
-  // Buscar o crear contratista
-  let contractor_id: string | null = null
-  if (input.contractor_name.trim()) {
-    const { data: existing } = await supabase
-      .from("contractors")
-      .select("id")
-      .ilike("full_name", input.contractor_name.trim())
-      .limit(1)
-      .maybeSingle()
+  // Normalizar: soporta tanto el nuevo formato como el legacy
+  const idInteradmin = input.id_interadministrativo || input.parent_contract_id || ""
+  const proyectoRef  = input.proyecto_ref || input.contract_number || ""
+  const year         = input.year ?? new Date().getFullYear()
+  const origenHoja   = input.origen_hoja || `Contratación_${year}`
 
-    if (existing) {
-      contractor_id = existing.id
-    } else {
-      const { data: newContractor } = await supabase
-        .from("contractors")
-        .insert({ full_name: input.contractor_name.trim(), person_type: "NATURAL" })
-        .select("id")
-        .single()
-      contractor_id = newContractor?.id ?? null
-    }
-  }
-
-  if (!contractor_id) return { error: "Contratista requerido" }
-
-  // Buscar o crear supervisor
-  let supervisor_id: string | null = null
-  if (input.supervisor_name.trim()) {
-    const { data: existing } = await supabase
-      .from("supervisors")
-      .select("id")
-      .ilike("full_name", input.supervisor_name.trim())
-      .limit(1)
-      .maybeSingle()
-
-    if (existing) {
-      supervisor_id = existing.id
-    } else {
-      const { data: newSup } = await supabase
-        .from("supervisors")
-        .insert({ full_name: input.supervisor_name.trim() })
-        .select("id")
-        .single()
-      supervisor_id = newSup?.id ?? null
-    }
-  }
+  if (!idInteradmin) return { error: "id_interadministrativo es requerido" }
+  if (!proyectoRef)  return { error: "proyecto_ref (N° contrato) es requerido" }
 
   const { data, error } = await supabase
-    .from("contracts")
+    .from("contratos")
     .insert({
-      contract_number: input.contract_number.trim(),
-      year: input.year,
-      contract_type: "DERIVADO",
-      selection_modality: "CONTRATACION_DIRECTA",
-      contract_class: "Prestación de servicios profesionales",
-      object: input.object.trim(),
-      contractor_id,
-      supervisor_id,
-      parent_contract_id: input.parent_contract_id,
-      status: "EN_EJECUCION",
-      subscription_date: input.subscription_date,
-      start_date: input.start_date || null,
-      end_date: input.end_date || null,
-      initial_value: Number(input.initial_value),
-      total_additions_value: 0,
-      paid_value: 0,
-      future_validity: 0,
+      id_interadministrativo: idInteradmin,
+      proyecto_ref:           proyectoRef,
+      origen_hoja:            origenHoja,
+      tipo_contrato:          "DERIVADO",
     })
     .select("id")
     .single()
@@ -253,50 +149,44 @@ export async function createDerivedContract(
 
   revalidatePath("/")
   revalidatePath("/proyectos")
-  revalidatePath(`/proyectos/${input.project_id}`)
   revalidatePath("/contratacion/derivados")
+  if (input.project_id) revalidatePath(`/proyectos/${input.project_id}`)
 
-  return { error: null, contractId: data.id }
+  return { error: null, contractId: String(data.id) }
 }
 
 // ── Crear contrato de funcionamiento ──────────────────────────────────────────
 
 export interface NewFuncionamientoContractInput {
-  project_id: string
-  contract_number: string
-  year: number
-  // Tipo y clase
-  contract_type: string              // DIRECTO por defecto
-  contract_class: string             // OPS, Apoyo técnico, etc.
-  selection_modality: string         // CONTRATACION_DIRECTA por defecto
+  proyecto_ref: string       // N° o ID del contrato
+  origen_hoja?: string       // ej: 'Contratación_2024'
+  // Legacy fields mantenidos para no romper el modal existente
+  project_id?: string
+  contract_number?: string
+  year?: number
+  contract_type?: string
+  contract_class?: string
+  selection_modality?: string
   resource_type?: string
-  // Descripción
-  object: string
-  // Contratista
-  contractor_name: string
+  object?: string
+  contractor_name?: string
   contractor_document?: string
-  contractor_person_type: "NATURAL" | "JURIDICA"
-  // Responsables
-  supervisor_name: string
+  contractor_person_type?: string
+  supervisor_name?: string
   area_name?: string
   interventor?: string
-  // Estado
-  status: string
-  // Fechas
-  subscription_date: string
+  status?: string
+  subscription_date?: string
   publication_date?: string
   start_date?: string
   end_date?: string
   initial_term_text?: string
   initial_term_days?: number
-  // Valores
-  initial_value: number
+  initial_value?: number
   monthly_value?: number
-  // PAA
   paa_code?: string
   paa_description?: string
   paa_estimated_value?: number
-  // Externos
   secop_url?: string
   observations?: string
 }
@@ -306,105 +196,19 @@ export async function createFuncionamientoContract(
 ): Promise<{ error: string | null; contractId?: string }> {
   const supabase = await createSupabaseServerClient()
 
-  // Buscar o crear contratista
-  let contractor_id: string | null = null
-  if (input.contractor_name.trim()) {
-    const { data: existing } = await supabase
-      .from("contractors")
-      .select("id")
-      .ilike("full_name", input.contractor_name.trim())
-      .limit(1)
-      .maybeSingle()
+  const year       = input.year ?? new Date().getFullYear()
+  const origenHoja = input.origen_hoja || `Contratación_${year}`
+  const ref        = input.proyecto_ref || input.contract_number || ""
 
-    if (existing) {
-      contractor_id = existing.id
-    } else {
-      const { data: newContractor } = await supabase
-        .from("contractors")
-        .insert({ full_name: input.contractor_name.trim(), person_type: "NATURAL" })
-        .select("id")
-        .single()
-      contractor_id = newContractor?.id ?? null
-    }
-  }
-
-  if (!contractor_id) return { error: "Contratista requerido" }
-
-  // Buscar o crear supervisor
-  let supervisor_id: string | null = null
-  if (input.supervisor_name.trim()) {
-    const { data: existing } = await supabase
-      .from("supervisors")
-      .select("id")
-      .ilike("full_name", input.supervisor_name.trim())
-      .limit(1)
-      .maybeSingle()
-
-    if (existing) {
-      supervisor_id = existing.id
-    } else {
-      const { data: newSup } = await supabase
-        .from("supervisors")
-        .insert({ full_name: input.supervisor_name.trim() })
-        .select("id")
-        .single()
-      supervisor_id = newSup?.id ?? null
-    }
-  }
-
-  // Buscar o crear área responsable
-  let responsible_area_id: string | null = null
-  if (input.area_name?.trim()) {
-    const { data: existingArea } = await supabase
-      .from("responsible_areas")
-      .select("id")
-      .ilike("name", input.area_name.trim())
-      .limit(1)
-      .maybeSingle()
-    if (existingArea) {
-      responsible_area_id = existingArea.id
-    } else {
-      const { data: newArea } = await supabase
-        .from("responsible_areas")
-        .insert({ name: input.area_name.trim() })
-        .select("id")
-        .single()
-      responsible_area_id = newArea?.id ?? null
-    }
-  }
+  if (!ref) return { error: "proyecto_ref (N° contrato) es requerido" }
 
   const { data, error } = await supabase
-    .from("contracts")
+    .from("contratos")
     .insert({
-      contract_number: input.contract_number.trim(),
-      year: input.year,
-      contract_type: input.contract_type || "DIRECTO",
-      selection_modality: input.selection_modality || "CONTRATACION_DIRECTA",
-      contract_class: input.contract_class?.trim() || "Prestación de servicios profesionales",
-      resource_type: input.resource_type?.trim() || null,
-      object: input.object.trim(),
-      contractor_id,
-      supervisor_id,
-      responsible_area_id,
-      project_id: input.project_id,
-      status: input.status || "EN_EJECUCION",
-      subscription_date: input.subscription_date,
-      publication_date: input.publication_date || null,
-      start_date: input.start_date || null,
-      end_date: input.end_date || null,
-      initial_term_text: input.initial_term_text?.trim() || null,
-      initial_term_days: input.initial_term_days || null,
-      initial_value: Number(input.initial_value),
-      monthly_value: input.monthly_value || null,
-      total_additions_value: 0,
-      paid_value: 0,
-      future_validity: 0,
-      paa_code: input.paa_code?.trim() || null,
-      paa_description: input.paa_description?.trim() || null,
-      paa_estimated_value: input.paa_estimated_value || null,
-      secop_url: input.secop_url?.trim() || null,
-      observations: input.observations?.trim() || null,
-      interventor: input.interventor?.trim() || null,
+      proyecto_ref:           ref,
+      origen_hoja:            origenHoja,
+      tipo_contrato:          "FUNCIONAMIENTO",
+      id_interadministrativo: null,
     })
     .select("id")
     .single()
@@ -412,53 +216,16 @@ export async function createFuncionamientoContract(
   if (error) return { error: error.message }
 
   revalidatePath("/funcionamiento")
-  revalidatePath(`/proyectos/${input.project_id}`)
   revalidatePath("/")
 
-  return { error: null, contractId: data.id }
+  return { error: null, contractId: String(data.id) }
 }
 
-// ── Crear proyecto contenedor FUNCIONAMIENTO-AAAA ──────────────────────────────
+// ── No-op mantenido para compatibilidad (ya no existe projects table) ─────────
 
 export async function createFuncionamientoProject(
-  year: number
+  _year: number
 ): Promise<{ error: string | null; projectId?: string }> {
-  const supabase = await createSupabaseServerClient()
-
-  const code = `FUNCIONAMIENTO-${year}`
-
-  // Verificar que no existe
-  const { data: existing } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("project_code", code)
-    .maybeSingle()
-
-  if (existing) return { error: `Ya existe el proyecto ${code}`, projectId: existing.id }
-
-  const { data, error } = await supabase
-    .from("projects")
-    .insert({
-      project_code: code,
-      name: `Contratos de Funcionamiento ${year}`,
-      project_type: "FUNCIONAMIENTO",
-      year,
-      lifecycle_status: "EJECUCION",
-      total_value: 0,
-      goods_services_value: 0,
-      management_fee_type: "PORCENTAJE",
-      management_fee_value: 0,
-      management_fee_amount: 0,
-      executed_value: 0,
-      paid_value: 0,
-    })
-    .select("id")
-    .single()
-
-  if (error) return { error: error.message }
-
-  revalidatePath("/funcionamiento")
-  revalidatePath("/")
-
-  return { error: null, projectId: data.id }
+  // En el nuevo esquema no hay tabla projects — devolver OK sin operación
+  return { error: null, projectId: undefined }
 }

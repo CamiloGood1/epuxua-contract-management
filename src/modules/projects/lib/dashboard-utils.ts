@@ -1,220 +1,63 @@
-import type {
-  ProjectDetail,
-  ProjectDashboardMetrics,
-  ProjectLifecycle,
-  ProjectType,
-} from "@/types/project"
-import type { FuncionamientoContract } from "@/services/funcionamiento.service"
-import { projectEntityLabel } from "./project-utils"
+import type { Interadministrativo, EstadoContrato } from "@/types/database"
+import type { FuncionamientoContrato } from "@/services/funcionamiento.service"
 
-/**
- * Computa métricas de la sección FUNCIONAMIENTO directamente desde contratos DIRECTO.
- * Se usa en el dashboard pasando solo los contratos EN_EJECUCION.
- */
-export function computeFuncionamientoContractMetrics(
-  contracts: FuncionamientoContract[]
-): SectionMetrics {
-  let totalValue = 0
-  let paidValue = 0
-  let soonExpiring = 0
-  let expired = 0
-
-  for (const c of contracts) {
-    totalValue += c.final_value
-    paidValue += c.paid_value
-    if (c.days_remaining != null) {
-      if (c.days_remaining <= 0) expired++
-      else if (c.days_remaining <= 30) soonExpiring++
-    }
-  }
-
-  const avgValue = contracts.length ? totalValue / contracts.length : 0
-
-  return {
-    totalProjects: contracts.length,
-    totalValue,
-    executedValue: paidValue,
-    paidValue,
-    derivedCount: 0,
-    alertsCount: soonExpiring + expired,
-    activeProjects: contracts.length,
-    avgValue,
-    soonExpiring,
-    expired,
-  }
-}
-
-/**
- * Enriquece proyectos FUNCIONAMIENTO con los valores reales de sus contratos.
- * Los proyectos contenedor se crean con total_value=0; esta función corrige
- * total_value, executed_value y paid_value sumando desde los contratos DIRECTO.
- */
-export function enrichFuncionamientoProjects(
-  projects: ProjectDetail[],
-  contracts: FuncionamientoContract[]
-): ProjectDetail[] {
-  const sumsByProject = new Map<string, { total: number; paid: number }>()
-  for (const c of contracts) {
-    if (!c.project_id) continue
-    const prev = sumsByProject.get(c.project_id) ?? { total: 0, paid: 0 }
-    sumsByProject.set(c.project_id, {
-      total: prev.total + c.final_value,
-      paid: prev.paid + c.paid_value,
-    })
-  }
-
-  return projects.map((p) => {
-    if (p.project_type !== "FUNCIONAMIENTO") return p
-    const sums = sumsByProject.get(p.id)
-    if (!sums) return p
-    return {
-      ...p,
-      total_value: sums.total,
-      executed_value: sums.paid,
-      paid_value: sums.paid,
-    }
-  })
-}
-
-// Tipos activos en el negocio actual
-export const ACTIVE_PROJECT_TYPES: ProjectType[] = ["INTERADMINISTRATIVO", "FUNCIONAMIENTO"]
-
-export interface SectionMetrics {
-  totalProjects: number
-  totalValue: number
-  executedValue: number
-  paidValue: number
-  derivedCount: number
-  alertsCount: number
-  activeProjects: number
-  // Campos adicionales para FUNCIONAMIENTO
-  avgValue?: number
-  soonExpiring?: number   // activos con days_remaining entre 1 y 30
-  expired?: number        // activos con days_remaining <= 0
-}
-
-export type ProjectDashboardFilterState = {
+export type InteradminDashboardFilterState = {
   year: string
-  lifecycle: string
-  type: string
+  estado: string
   entity: string
 }
 
-export const DEFAULT_PROJECT_DASHBOARD_FILTERS: ProjectDashboardFilterState = {
-  year: "all",
-  lifecycle: "all",
-  type: "all",
+export const DEFAULT_PROJECT_DASHBOARD_FILTERS: InteradminDashboardFilterState = {
+  year:   "all",
+  estado: "all",
   entity: "all",
 }
 
 export function applyDashboardProjectFilters(
-  projects: ProjectDetail[],
-  filters: ProjectDashboardFilterState
-): ProjectDetail[] {
-  return projects.filter((p) => {
-    if (filters.year !== "all" && p.year !== Number(filters.year)) return false
-    if (filters.lifecycle !== "all" && p.lifecycle_status !== filters.lifecycle) return false
-    if (filters.type !== "all" && p.project_type !== filters.type) return false
-    if (filters.entity !== "all" && projectEntityLabel(p) !== filters.entity) return false
+  contracts: Interadministrativo[],
+  filters: InteradminDashboardFilterState
+): Interadministrativo[] {
+  return contracts.filter((p) => {
+    if (filters.year !== "all" && p.fecha_suscripcion) {
+      const y = new Date(p.fecha_suscripcion).getFullYear()
+      if (y !== Number(filters.year)) return false
+    }
+    if (filters.estado !== "all" && p.estado !== filters.estado) return false
+    if (filters.entity !== "all") {
+      const entity = p.secretaria ?? p.area_responsable ?? "—"
+      if (entity !== filters.entity) return false
+    }
     return true
   })
 }
 
-function emptyLifecycle(): Record<ProjectLifecycle, number> {
-  return {
-    PLANEACION: 0,
-    CONTRATACION: 0,
-    EJECUCION: 0,
-    SEGUIMIENTO: 0,
-    LIQUIDACION: 0,
-    CERRADO: 0,
-  }
-}
-
-function emptyType(): Record<ProjectType, number> {
-  return {
-    INTERADMINISTRATIVO: 0,
-    FUNCIONAMIENTO: 0,
-    OPERACION_COMERCIAL: 0,
-    TIENDA_VIRTUAL: 0,
-    PAGO_FACTURA: 0,
-  }
-}
-
-export function computeMetricsFromProjects(
-  projects: ProjectDetail[]
-): ProjectDashboardMetrics {
-  const byLifecycle = emptyLifecycle()
-  const byType = emptyType()
-  let totalValue = 0
-  let totalExecuted = 0
-  let totalAvailable = 0
-  let executionSum = 0
-  let withAlerts = 0
-
-  for (const p of projects) {
-    if (p.lifecycle_status in byLifecycle) {
-      byLifecycle[p.lifecycle_status] += 1
+export function uniqueProjectYears(contracts: Interadministrativo[]): number[] {
+  const years = new Set<number>()
+  for (const c of contracts) {
+    if (c.fecha_suscripcion) {
+      const y = new Date(c.fecha_suscripcion).getFullYear()
+      if (!isNaN(y)) years.add(y)
     }
-    if (p.project_type in byType) {
-      byType[p.project_type] += 1
-    }
-    totalValue += Number(p.total_value ?? 0)
-    totalExecuted += Number(p.executed_value ?? 0)
-    totalAvailable += Number(p.available_balance ?? 0)
-    executionSum += Number(p.execution_pct ?? 0)
-    if ((p.active_alerts_count ?? 0) > 0) withAlerts += 1
   }
-
-  const active =
-    byLifecycle.EJECUCION +
-    byLifecycle.SEGUIMIENTO +
-    byLifecycle.CONTRATACION +
-    byLifecycle.PLANEACION
-
-  return {
-    total_projects: projects.length,
-    active_projects: active,
-    closed_projects: byLifecycle.CERRADO,
-    total_value: totalValue,
-    total_executed: totalExecuted,
-    total_available: totalAvailable,
-    avg_execution_pct: projects.length ? executionSum / projects.length : 0,
-    projects_with_alerts: withAlerts,
-    by_lifecycle: byLifecycle,
-    by_type: byType,
-  }
+  return [...years].sort((a, b) => b - a)
 }
 
-export function uniqueProjectYears(projects: ProjectDetail[]): number[] {
-  return [...new Set(projects.map((p) => p.year))].sort((a, b) => b - a)
+// ── Compatibilidad con código que aún usa tipos del esquema anterior ──────────
+
+export type ProjectDashboardFilterState = InteradminDashboardFilterState
+
+export function enrichFuncionamientoProjects<T>(projects: T[], _contracts: FuncionamientoContrato[]): T[] {
+  return projects
 }
 
-export function computeSectionMetrics(projects: ProjectDetail[]): SectionMetrics {
-  let totalValue = 0
-  let executedValue = 0
-  let paidValue = 0
-  let derivedCount = 0
-  let alertsCount = 0
+// ── Estado counts ─────────────────────────────────────────────────────────────
 
-  for (const p of projects) {
-    totalValue += Number(p.total_value ?? 0)
-    executedValue += Number(p.executed_value ?? 0)
-    paidValue += Number(p.paid_value ?? 0)
-    derivedCount += Number(p.derived_count ?? 0)
-    alertsCount += Number(p.active_alerts_count ?? 0)
-  }
-
-  const activeStatuses: ProjectLifecycle[] = ["PLANEACION", "CONTRATACION", "EJECUCION", "SEGUIMIENTO"]
-  const activeProjects = projects.filter((p) => activeStatuses.includes(p.lifecycle_status)).length
-
+export function computeEstadoCounts(
+  contracts: Interadministrativo[]
+): Record<EstadoContrato, number> {
   return {
-    totalProjects: projects.length,
-    totalValue,
-    executedValue,
-    paidValue,
-    derivedCount,
-    alertsCount,
-    activeProjects,
+    "EN EJECUCIÓN": contracts.filter((c) => c.estado === "EN EJECUCIÓN").length,
+    "TERMINADO":    contracts.filter((c) => c.estado === "TERMINADO").length,
+    "LIQUIDADO":    contracts.filter((c) => c.estado === "LIQUIDADO").length,
   }
 }

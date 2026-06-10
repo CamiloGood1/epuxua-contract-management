@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Save, Loader2, Check, AlertCircle, Hash, FileText, Building2, User, DollarSign, CalendarRange } from "lucide-react"
+import { X, Save, Loader2, Check, AlertCircle, Hash, FileText, Building2, CalendarRange, DollarSign } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createInteradminProject, type NewInteradminProjectInput } from "@/services/projects.actions"
 
@@ -29,22 +29,23 @@ function Section({ icon: Icon, label }: { icon: typeof Hash; label: string }) {
   )
 }
 
-const currentYear = new Date().getFullYear()
-
 const EMPTY: NewInteradminProjectInput = {
-  project_code: "",
-  name: "",
-  year: currentYear,
-  secretaria: "",
-  total_value: 0,
-  contract_number: "",
-  object: "",
-  contractor_name: "",
-  supervisor_name: "",
-  subscription_date: new Date().toISOString().split("T")[0],
-  start_date: "",
-  end_date: "",
-  initial_value: 0,
+  id_contrato:             "",
+  secretaria:              "",
+  objeto_contrato:         "",
+  clase_contrato:          "",
+  area_responsable:        "",
+  supervision:             "",
+  modalidad_seleccion:     "",
+  plazo_ejecucion_inicial: "",
+  fecha_suscripcion:       new Date().toISOString().split("T")[0],
+  fecha_inicio_ejecucion:  "",
+  fecha_terminacion:       "",
+  valor_inicial:           0,
+  total_contrato:          0,
+  cuota_admin_inicial:     undefined,
+  bolsa_gerencia_inicial:  undefined,
+  observaciones:           "",
 }
 
 interface Props {
@@ -54,9 +55,9 @@ interface Props {
 
 export function NewInteradminProjectModal({ open, onClose }: Props) {
   const router = useRouter()
-  const [form, setForm] = useState<NewInteradminProjectInput>(EMPTY)
+  const [form, setForm]       = useState<NewInteradminProjectInput>(EMPTY)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError]     = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
@@ -75,10 +76,8 @@ export function NewInteradminProjectModal({ open, onClose }: Props) {
   }
 
   function validate(): string | null {
-    if (!form.project_code.trim()) return "El código del proyecto es obligatorio"
-    if (!form.name.trim()) return "El nombre del proyecto es obligatorio"
-    if (!form.secretaria.trim()) return "La secretaría es obligatoria"
-    if (Number(form.total_value) <= 0) return "El valor total debe ser mayor a 0"
+    if (!form.id_contrato.trim()) return "El número de contrato (id_contrato) es obligatorio"
+    if (!form.secretaria?.trim()) return "La secretaría es obligatoria"
     return null
   }
 
@@ -117,8 +116,8 @@ export function NewInteradminProjectModal({ open, onClose }: Props) {
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
               <div>
-                <h2 className="text-base font-bold text-foreground">Nuevo Proyecto Interadministrativo</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Crea el proyecto y su contrato principal</p>
+                <h2 className="text-base font-bold text-foreground">Nuevo Contrato Interadministrativo</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Se registra en la tabla <code className="font-mono">interadministrativos</code></p>
               </div>
               <button onClick={onClose} className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground">
                 <X size={18} />
@@ -126,89 +125,129 @@ export function NewInteradminProjectModal({ open, onClose }: Props) {
             </div>
 
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-1">
-              <Section icon={Hash} label="Identificación del proyecto" />
+
+              <Section icon={Hash} label="Identificación" />
               <div className="pt-3 grid grid-cols-2 gap-3">
-                <div>
-                  <Label required>Código proyecto</Label>
+                <div className="col-span-2">
+                  <Label required>N° contrato (id_contrato)</Label>
                   <input className={inputCls} placeholder="3407-2026"
-                    value={form.project_code} onChange={(e) => set("project_code", e.target.value)} />
-                </div>
-                <div>
-                  <Label required>Año</Label>
-                  <input type="number" className={inputCls} min={2020} max={2099}
-                    value={form.year} onChange={(e) => set("year", Number(e.target.value))} />
+                    value={form.id_contrato}
+                    onChange={(e) => set("id_contrato", e.target.value)} />
+                  <p className="text-[10px] text-muted-foreground mt-1">Identificador único, ej: 3407-2021</p>
                 </div>
               </div>
               <div className="pt-1">
-                <Label required>Nombre del proyecto</Label>
-                <input className={inputCls} placeholder="Convenio interadministrativo con..."
-                  value={form.name} onChange={(e) => set("name", e.target.value)} />
+                <Label>Modalidad de selección</Label>
+                <input className={inputCls} placeholder="Contratación directa, Invitación abierta…"
+                  value={form.modalidad_seleccion}
+                  onChange={(e) => set("modalidad_seleccion", e.target.value)} />
+              </div>
+              <div className="pt-1">
+                <Label>Clase de contrato</Label>
+                <input className={inputCls} placeholder="Contrato interadministrativo, Convenio…"
+                  value={form.clase_contrato}
+                  onChange={(e) => set("clase_contrato", e.target.value)} />
+              </div>
+
+              <Section icon={FileText} label="Objeto" />
+              <div className="pt-3">
+                <Label>Objeto del contrato</Label>
+                <textarea rows={3} className={`${inputCls} h-auto py-2 resize-none`}
+                  placeholder="Objeto y alcance del contrato interadministrativo"
+                  value={form.objeto_contrato}
+                  onChange={(e) => set("objeto_contrato", e.target.value)} />
+              </div>
+
+              <Section icon={Building2} label="Partes y responsables" />
+              <div className="pt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <Label required>Secretaría / Entidad</Label>
+                  <input className={inputCls} placeholder="Secretaría de…"
+                    value={form.secretaria}
+                    onChange={(e) => set("secretaria", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Área responsable</Label>
+                  <input className={inputCls} placeholder="Dirección / Subgerencia"
+                    value={form.area_responsable}
+                    onChange={(e) => set("area_responsable", e.target.value)} />
+                </div>
+              </div>
+              <div className="pt-1">
+                <Label>Supervisión</Label>
+                <input className={inputCls} placeholder="Nombre(s) del supervisor — separados por /"
+                  value={form.supervision}
+                  onChange={(e) => set("supervision", e.target.value)} />
+              </div>
+
+              <Section icon={DollarSign} label="Valores" />
+              <div className="pt-3 grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Valor inicial (COP)</Label>
+                  <input type="number" min={0} className={inputCls} placeholder="0"
+                    value={form.valor_inicial || ""}
+                    onChange={(e) => set("valor_inicial", Number(e.target.value))} />
+                </div>
+                <div>
+                  <Label>Valor total contrato (COP)</Label>
+                  <input type="number" min={0} className={inputCls} placeholder="0"
+                    value={form.total_contrato || ""}
+                    onChange={(e) => set("total_contrato", Number(e.target.value))} />
+                </div>
               </div>
               <div className="pt-1 grid grid-cols-2 gap-3">
                 <div>
-                  <Label required>Secretaría / Entidad</Label>
-                  <input className={inputCls} placeholder="Secretaría de..."
-                    value={form.secretaria} onChange={(e) => set("secretaria", e.target.value)} />
-                </div>
-                <div>
-                  <Label required>Valor total proyecto (COP)</Label>
+                  <Label>Cuota admin. inicial (COP)</Label>
                   <input type="number" min={0} className={inputCls} placeholder="0"
-                    value={form.total_value || ""} onChange={(e) => set("total_value", Number(e.target.value))} />
-                </div>
-              </div>
-
-              <Section icon={FileText} label="Contrato principal (opcional)" />
-              <div className="pt-3 grid grid-cols-2 gap-3">
-                <div>
-                  <Label>N° contrato</Label>
-                  <input className={inputCls} placeholder="001-2026"
-                    value={form.contract_number} onChange={(e) => set("contract_number", e.target.value)} />
+                    value={form.cuota_admin_inicial ?? ""}
+                    onChange={(e) => set("cuota_admin_inicial", e.target.value ? Number(e.target.value) : undefined)} />
                 </div>
                 <div>
-                  <Label>Valor contrato (COP)</Label>
+                  <Label>Bolsa gerencia inicial (COP)</Label>
                   <input type="number" min={0} className={inputCls} placeholder="0"
-                    value={form.initial_value || ""} onChange={(e) => set("initial_value", Number(e.target.value))} />
+                    value={form.bolsa_gerencia_inicial ?? ""}
+                    onChange={(e) => set("bolsa_gerencia_inicial", e.target.value ? Number(e.target.value) : undefined)} />
                 </div>
               </div>
-              <div className="pt-1">
-                <Label>Objeto</Label>
-                <textarea rows={2} className={`${inputCls} h-auto py-2 resize-none`}
-                  placeholder="Objeto del contrato..."
-                  value={form.object} onChange={(e) => set("object", e.target.value)} />
-              </div>
 
-              <Section icon={User} label="Partes del contrato" />
+              <Section icon={CalendarRange} label="Fechas y plazo" />
               <div className="pt-3 grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Entidad contratante</Label>
-                  <input className={inputCls} placeholder="Nombre de la entidad"
-                    value={form.contractor_name} onChange={(e) => set("contractor_name", e.target.value)} />
-                </div>
-                <div>
-                  <Label>Supervisor</Label>
-                  <input className={inputCls} placeholder="Nombre del supervisor"
-                    value={form.supervisor_name} onChange={(e) => set("supervisor_name", e.target.value)} />
-                </div>
-              </div>
-
-              <Section icon={CalendarRange} label="Fechas" />
-              <div className="pt-3 grid grid-cols-3 gap-3">
                 <div>
                   <Label>Suscripción</Label>
                   <input type="date" className={inputCls}
-                    value={form.subscription_date} onChange={(e) => set("subscription_date", e.target.value)} />
+                    value={form.fecha_suscripcion}
+                    onChange={(e) => set("fecha_suscripcion", e.target.value)} />
                 </div>
                 <div>
-                  <Label>Inicio</Label>
+                  <Label>Inicio ejecución</Label>
                   <input type="date" className={inputCls}
-                    value={form.start_date} onChange={(e) => set("start_date", e.target.value)} />
+                    value={form.fecha_inicio_ejecucion}
+                    onChange={(e) => set("fecha_inicio_ejecucion", e.target.value)} />
                 </div>
+              </div>
+              <div className="pt-1 grid grid-cols-2 gap-3">
                 <div>
                   <Label>Terminación</Label>
                   <input type="date" className={inputCls}
-                    value={form.end_date} onChange={(e) => set("end_date", e.target.value)} />
+                    value={form.fecha_terminacion}
+                    onChange={(e) => set("fecha_terminacion", e.target.value)} />
+                </div>
+                <div>
+                  <Label>Plazo inicial (texto)</Label>
+                  <input className={inputCls} placeholder="Ej: 12 meses"
+                    value={form.plazo_ejecucion_inicial}
+                    onChange={(e) => set("plazo_ejecucion_inicial", e.target.value)} />
                 </div>
               </div>
+
+              <div className="pt-3">
+                <Label>Observaciones</Label>
+                <textarea rows={2} className={`${inputCls} h-auto py-2 resize-none`}
+                  placeholder="Observaciones generales"
+                  value={form.observaciones}
+                  onChange={(e) => set("observaciones", e.target.value)} />
+              </div>
+
               <div className="h-4" />
             </form>
 
@@ -229,9 +268,9 @@ export function NewInteradminProjectModal({ open, onClose }: Props) {
                     success ? "bg-emerald-500 text-white"
                     : "bg-primary text-primary-foreground hover:opacity-90 shadow-sm disabled:opacity-60"
                   )}>
-                  {loading ? <><Loader2 size={15} className="animate-spin" />Guardando…</>
+                  {loading  ? <><Loader2 size={15} className="animate-spin" />Guardando…</>
                   : success ? <><Check size={15} />Creado</>
-                  : <><Save size={15} />Crear proyecto</>}
+                  : <><Save size={15} />Crear contrato</>}
                 </button>
               </div>
             </div>

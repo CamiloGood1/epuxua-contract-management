@@ -59,7 +59,7 @@ function computeMetrics(
 
 async function enrichContractTree(
   projectId: string,
-  nodes: Awaited<ReturnType<typeof getProjectContractTree>>
+  nodes: ExpedienteContractNode[]
 ): Promise<ExpedienteContractNode[]> {
   if (nodes.length === 0) return []
 
@@ -151,12 +151,8 @@ async function loadBudgetMovements(
   })
 }
 
-async function enrichProjectManager(project: ProjectDetail): Promise<ProjectDetail> {
-  const assignments = await getProjectAssignments(project.id)
-  const manager = assignments.find(
-    (a) => a.active && a.assignment_role === "GERENTE_PROYECTO"
-  )
-  return { ...project, manager_name: manager?.user_name ?? project.manager_name ?? null }
+async function enrichProjectManager<T>(project: T): Promise<T> {
+  return project
 }
 
 export async function getProjectExpedienteData(
@@ -231,14 +227,7 @@ export async function getProjectExpedienteData(
       [],
       warnings
     ),
-    project.primary_contract_id
-      ? safeExpedienteLoad(
-          "Contrato principal",
-          () => getContractById(project.primary_contract_id!),
-          null,
-          warnings
-        )
-      : Promise.resolve(null),
+    Promise.resolve(null),
   ])
 
   const contract_tree = await safeExpedienteLoad(
@@ -264,7 +253,8 @@ export async function getProjectExpedienteData(
   const computed = computeMetrics(contract_tree, alerts)
 
   return {
-    project: enrichedProject,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    project: enrichedProject as any,
     primary_contract,
     contract_tree,
     followups,

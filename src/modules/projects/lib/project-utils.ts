@@ -1,19 +1,30 @@
-import type { ProjectDetail } from "@/types/project"
+import type { Interadministrativo } from "@/types/database"
 
-/** Entidad contratante / área — columnas reales en v_project_detail */
+/** Etiqueta de entidad contratante — acepta tanto el esquema nuevo como el viejo */
 export function projectEntityLabel(
-  p: Pick<ProjectDetail, "secretaria" | "area_name">
+  p: {
+    secretaria?: string | null
+    area_name?: string | null        // ProjectDetail (esquema anterior)
+    area_responsable?: string | null // Interadministrativo (esquema nuevo)
+  }
 ): string {
-  return p.secretaria ?? p.area_name ?? "—"
+  return p.secretaria ?? p.area_name ?? p.area_responsable ?? "—"
 }
 
-/** Contratos asociados según campos de la vista (derived_count + principal) */
+/** Stub de compatibilidad — ya no hay conteo de derivados en ProjectDetail */
 export function projectContractsCount(
-  p: Pick<ProjectDetail, "derived_count" | "primary_contract_id">,
+  _p: unknown,
   fallback?: number
 ): number | null {
-  if (p.derived_count != null || p.primary_contract_id) {
-    return (p.derived_count ?? 0) + (p.primary_contract_id ? 1 : 0)
-  }
   return fallback ?? null
+}
+
+/** Formatea fecha ISO a DD/MM/YYYY */
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "—"
+  return new Date(iso + "T12:00:00").toLocaleDateString("es-CO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  })
 }

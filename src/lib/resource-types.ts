@@ -1,0 +1,50 @@
+// Catálogo oficial de tipos de recurso — TAREA 8
+// Evita nombres libres escritos manualmente en la base de datos.
+
+export const RESOURCE_TYPES = {
+  FUNCIONAMIENTO: "FUNCIONAMIENTO",
+  INTERADMINISTRATIVO: "INTERADMINISTRATIVO",
+  OPERACION_COMERCIAL: "OPERACION_COMERCIAL",
+  TRANSFERENCIAS_MUNICIPALES: "TRANSFERENCIAS_MUNICIPALES",
+  INVERSION: "INVERSION",
+  PAGO_CONTRA_FACTURA: "PAGO_CONTRA_FACTURA",
+  TIENDA_VIRTUAL: "TIENDA_VIRTUAL",
+  ALMACEN: "ALMACEN",
+  SISTEMAS: "SISTEMAS",
+  BIENESTAR: "BIENESTAR",
+  GALERIA: "GALERIA",
+  SERVICIO_VIGILANCIA: "SERVICIO_VIGILANCIA",
+  OTROS: "OTROS",
+} as const
+
+export type ResourceType = (typeof RESOURCE_TYPES)[keyof typeof RESOURCE_TYPES]
+
+export const RESOURCE_TYPE_LABELS: Record<string, string> = {
+  FUNCIONAMIENTO: "Funcionamiento",
+  INTERADMINISTRATIVO: "Interadministrativo",
+  OPERACION_COMERCIAL: "Operación Comercial",
+  TRANSFERENCIAS_MUNICIPALES: "Transferencias Municipales",
+  INVERSION: "Inversión",
+  PAGO_CONTRA_FACTURA: "Pago Contra Factura",
+  TIENDA_VIRTUAL: "Tienda Virtual",
+  ALMACEN: "Almacén",
+  SISTEMAS: "Sistemas",
+  BIENESTAR: "Bienestar",
+  GALERIA: "Galería",
+  SERVICIO_VIGILANCIA: "Servicio de Vigilancia",
+  OTROS: "Otros",
+}
+
+// Normalización de valores históricos con typos hacia el catálogo oficial.
+// Usado al leer datos de la BD para comparar o clasificar.
+export const RESOURCE_TYPE_ALIASES: Record<string, string> = {
+  "TRASNFERENCIAS MUNICIPALES": "TRANSFERENCIAS_MUNICIPALES",
+  "TRANSFERENCIAS MUNICIPALES": "TRANSFERENCIAS_MUNICIPALES",
+  "INVERSIÓN": "INVERSION",
+  "INVERSION": "INVERSION",
+  "TIENDA VIRTUAL": "TIENDA_VIRTUAL",
+  "PAGO CONTRA FACTURA": "PAGO_CONTRA_FACTURA",
+  "OPERACION COMERCIAL": "OPERACION_COMERCIAL",
+  "SERVICIO DE VIGILANCIA": "SERVICIO_VIGILANCIA",
+  "ELEMENTOS FERRETERIA": "OTROS",
+}

@@ -3,43 +3,39 @@
 import { useMemo, useState, useTransition } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { AlertTriangle, GripVertical } from "lucide-react"
+import { GripVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { formatCOP, pct } from "@/modules/contracts/lib/status"
-import { LIFECYCLE_ORDER, LIFECYCLE_CONFIG } from "../lib/lifecycle"
-import { projectTypeLabel } from "../lib/project-type"
+import { formatCOP } from "@/modules/contracts/lib/status"
+import { ESTADO_ORDER, ESTADO_CONFIG } from "../lib/lifecycle"
 import { updateProjectLifecycle } from "@/services/projects.actions"
-import type { ProjectKanbanCard, ProjectLifecycle } from "@/types/project"
+import type { Interadministrativo, EstadoContrato } from "@/types/database"
 
 interface ProjectKanbanProps {
-  cards: ProjectKanbanCard[]
+  cards: Interadministrativo[]
   canEdit?: boolean
 }
 
 export function ProjectKanban({ cards, canEdit = true }: ProjectKanbanProps) {
   const [items, setItems] = useState(cards)
-  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [draggingId, setDraggingId] = useState<number | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const byColumn = useMemo(() => {
-    const map: Record<ProjectLifecycle, ProjectKanbanCard[]> = {
-      PLANEACION: [],
-      CONTRATACION: [],
-      EJECUCION: [],
-      SEGUIMIENTO: [],
-      LIQUIDACION: [],
-      CERRADO: [],
+    const map: Record<EstadoContrato, Interadministrativo[]> = {
+      "EN EJECUCIÓN": [],
+      "TERMINADO": [],
+      "LIQUIDADO": [],
     }
     for (const card of items) {
-      map[card.lifecycle_status]?.push(card)
+      map[card.estado]?.push(card)
     }
     return map
   }, [items])
 
-  function handleDrop(targetStatus: ProjectLifecycle) {
+  function handleDrop(targetStatus: EstadoContrato) {
     if (!draggingId || !canEdit) return
     const card = items.find((c) => c.id === draggingId)
-    if (!card || card.lifecycle_status === targetStatus) {
+    if (!card || card.estado === targetStatus) {
       setDraggingId(null)
       return
     }
@@ -47,13 +43,13 @@ export function ProjectKanban({ cards, canEdit = true }: ProjectKanbanProps) {
     const prev = items
     setItems((current) =>
       current.map((c) =>
-        c.id === draggingId ? { ...c, lifecycle_status: targetStatus } : c
+        c.id === draggingId ? { ...c, estado: targetStatus } : c
       )
     )
     setDraggingId(null)
 
     startTransition(async () => {
-      const { error } = await updateProjectLifecycle(draggingId, targetStatus)
+      const { error } = await updateProjectLifecycle(card.id_contrato, targetStatus)
       if (error) setItems(prev)
     })
   }
@@ -64,17 +60,15 @@ export function ProjectKanban({ cards, canEdit = true }: ProjectKanbanProps) {
         <p className="text-xs text-muted-foreground animate-pulse">Guardando cambios…</p>
       )}
       <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-thin">
-        {LIFECYCLE_ORDER.map((status) => {
-          const cfg = LIFECYCLE_CONFIG[status]
+        {ESTADO_ORDER.map((status) => {
+          const cfg = ESTADO_CONFIG[status]
           const columnCards = byColumn[status]
 
           return (
             <div
               key={status}
-              className="flex-shrink-0 w-[280px]"
-              onDragOver={(e) => {
-                if (canEdit) e.preventDefault()
-              }}
+              className="flex-shrink-0 w-[300px]"
+              onDragOver={(e) => { if (canEdit) e.preventDefault() }}
               onDrop={() => handleDrop(status)}
             >
               <div
@@ -123,40 +117,26 @@ export function ProjectKanban({ cards, canEdit = true }: ProjectKanbanProps) {
                           href={`/proyectos/${card.id}`}
                           className="text-xs font-bold text-[var(--corporate-blue)] hover:underline"
                         >
-                          {card.project_code}
+                          {card.id_contrato}
                         </Link>
-                        <p className="text-xs text-foreground line-clamp-2 mt-0.5">
-                          {card.name}
-                        </p>
-                      </div>
-                      {(card.active_alerts_count ?? 0) > 0 && (
-                        <span className="flex items-center gap-0.5 text-red-600">
-                          <AlertTriangle size={12} />
-                          <span className="text-[10px] font-bold">
-                            {card.active_alerts_count}
-                          </span>
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      {projectTypeLabel(card.project_type)} · {card.year}
-                    </p>
-                    <div className="grid grid-cols-2 gap-1 text-[10px]">
-                      <div>
-                        <span className="text-muted-foreground">Total</span>
-                        <p className="font-semibold">{formatCOP(card.total_value)}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Ejecución</span>
-                        <p className="font-semibold">{pct(card.execution_pct).toFixed(0)}%</p>
+                        {card.objeto_contrato && (
+                          <p className="text-xs text-foreground line-clamp-2 mt-0.5">
+                            {card.objeto_contrato}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="h-1 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full bg-[var(--corporate-blue)]"
-                        style={{ width: `${pct(card.execution_pct)}%` }}
-                      />
-                    </div>
+                    {card.secretaria && (
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {card.secretaria}
+                      </p>
+                    )}
+                    {card.total_contrato != null && (
+                      <div className="text-[10px]">
+                        <span className="text-muted-foreground">Total: </span>
+                        <span className="font-semibold">{formatCOP(card.total_contrato)}</span>
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </div>

@@ -2,8 +2,7 @@
 
 import { X, SlidersHorizontal, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { LIFECYCLE_ORDER, LIFECYCLE_CONFIG } from "../lib/lifecycle"
-import { ACTIVE_PROJECT_TYPE_OPTIONS } from "../lib/project-type"
+import { ESTADO_ORDER, ESTADO_CONFIG } from "../lib/lifecycle"
 import type { ProjectDashboardFilterState } from "../lib/dashboard-utils"
 
 interface ProjectDashboardFiltersProps {
@@ -62,8 +61,7 @@ export function ProjectDashboardFilters({
 }: ProjectDashboardFiltersProps) {
   const hasActive =
     filters.year !== "all" ||
-    filters.lifecycle !== "all" ||
-    filters.type !== "all" ||
+    filters.estado !== "all" ||
     filters.entity !== "all"
 
   const set = (partial: Partial<ProjectDashboardFilterState>) =>
@@ -80,7 +78,7 @@ export function ProjectDashboardFilters({
           Mostrando{" "}
           <strong className="text-[var(--corporate-blue)]">{filteredCount}</strong>
           {" de "}
-          <strong>{totalCount}</strong> proyectos
+          <strong>{totalCount}</strong> contratos
         </span>
         {hasActive && (
           <button
@@ -88,8 +86,7 @@ export function ProjectDashboardFilters({
             onClick={() =>
               onChange({
                 year: "all",
-                lifecycle: "all",
-                type: "all",
+                estado: "all",
                 entity: "all",
               })
             }
@@ -108,19 +105,13 @@ export function ProjectDashboardFilters({
           options={years.map((y) => ({ value: String(y), label: String(y) }))}
         />
         <SelectField
-          value={filters.lifecycle}
-          onChange={(v) => set({ lifecycle: v })}
+          value={filters.estado}
+          onChange={(v) => set({ estado: v })}
           placeholder="Todos los estados"
-          options={LIFECYCLE_ORDER.map((s) => ({
+          options={ESTADO_ORDER.map((s) => ({
             value: s,
-            label: LIFECYCLE_CONFIG[s].label,
+            label: ESTADO_CONFIG[s].label,
           }))}
-        />
-        <SelectField
-          value={filters.type}
-          onChange={(v) => set({ type: v })}
-          placeholder="Todos los tipos"
-          options={ACTIVE_PROJECT_TYPE_OPTIONS}
         />
         <SelectField
           value={filters.entity}

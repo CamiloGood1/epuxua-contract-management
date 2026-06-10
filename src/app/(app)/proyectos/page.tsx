@@ -5,32 +5,28 @@ import {
   getProjectFilterCatalogs,
   enrichProjectsWithManagers,
 } from "@/services/projects.service"
-import { getFuncionamientoContracts } from "@/services/funcionamiento.service"
-import { enrichFuncionamientoProjects } from "@/modules/projects/lib/dashboard-utils"
-import { ProjectsPageClient } from "@/modules/projects/components/projects-page-client"
+import { InteradministrativosPageClient } from "@/modules/projects/components/interadministrativos-page-client"
 
 export default async function ProyectosPage() {
   let projects: Awaited<ReturnType<typeof getProjects>> = []
-  let catalogs = { entities: [] as string[], managers: [] as string[], years: [] as number[] }
+  let catalogs = { entities: [] as string[], secretarias: [] as string[], areas: [] as string[], years: [] as number[] }
   let loadError: string | null = null
 
   try {
-    const [raw, catalogsResult, funcContracts] = await Promise.all([
+    const [raw, catalogsResult] = await Promise.all([
       getProjects(),
       getProjectFilterCatalogs(),
-      getFuncionamientoContracts(),
     ])
-    const withManagers = await enrichProjectsWithManagers(raw)
-    projects = enrichFuncionamientoProjects(withManagers, funcContracts)
+    projects = await enrichProjectsWithManagers(raw)
     catalogs = catalogsResult
   } catch (e) {
-    loadError = e instanceof Error ? e.message : "Error al cargar proyectos"
+    loadError = e instanceof Error ? e.message : "Error al cargar contratos"
   }
 
   return (
     <PageShell
-      title="Proyectos"
-      subtitle="Cartera de proyectos EPUXUA — interadministrativos y funcionamiento."
+      title="Contratos Interadministrativos"
+      subtitle="Cartera de contratos interadministrativos EPUXUA."
       icon="folder_special"
       actions={
         <Link
@@ -43,13 +39,12 @@ export default async function ProyectosPage() {
     >
       {loadError && (
         <div className="px-4 py-3 rounded-xl border border-destructive/30 bg-destructive/10 text-sm text-destructive mb-4">
-          No se pudieron cargar los proyectos: {loadError}
+          No se pudieron cargar los contratos: {loadError}
         </div>
       )}
-      <ProjectsPageClient
+      <InteradministrativosPageClient
         projects={projects}
         entities={catalogs.entities}
-        managers={catalogs.managers}
         years={catalogs.years}
       />
     </PageShell>

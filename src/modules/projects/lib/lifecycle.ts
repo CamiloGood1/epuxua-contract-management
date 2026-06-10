@@ -5,9 +5,55 @@ import {
   BarChart3,
   Scale,
   Archive,
+  CheckCircle2,
   type LucideIcon,
 } from "lucide-react"
 import type { ProjectLifecycle } from "@/types/project"
+import type { EstadoContrato } from "@/types/database"
+
+// ── Config para EstadoContrato (nuevo esquema) ────────────────────────────────
+
+export interface EstadoConfig {
+  label: string
+  color: string
+  bgClass: string
+  textClass: string
+  borderClass: string
+  dotClass: string
+  icon: LucideIcon
+}
+
+export const ESTADO_CONFIG: Record<EstadoContrato, EstadoConfig> = {
+  "EN EJECUCIÓN": {
+    label:       "En ejecución",
+    color:       "#10B981",
+    bgClass:     "bg-emerald-50",
+    textClass:   "text-emerald-700",
+    borderClass: "border-emerald-200",
+    dotClass:    "bg-emerald-400",
+    icon:        Activity,
+  },
+  "TERMINADO": {
+    label:       "Terminado",
+    color:       "#64748B",
+    bgClass:     "bg-slate-50",
+    textClass:   "text-slate-700",
+    borderClass: "border-slate-200",
+    dotClass:    "bg-slate-400",
+    icon:        CheckCircle2,
+  },
+  "LIQUIDADO": {
+    label:       "Liquidado",
+    color:       "#345bab",
+    bgClass:     "bg-blue-50",
+    textClass:   "text-blue-700",
+    borderClass: "border-blue-200",
+    dotClass:    "bg-blue-400",
+    icon:        Archive,
+  },
+}
+
+export const ESTADO_ORDER: EstadoContrato[] = ["EN EJECUCIÓN", "TERMINADO", "LIQUIDADO"]
 
 export interface LifecycleConfig {
   label: string

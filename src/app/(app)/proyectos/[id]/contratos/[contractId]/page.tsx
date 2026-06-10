@@ -37,7 +37,7 @@ export default async function ProyectoContratoPage({ params }: PageProps) {
       followups={followups}
       derivedContracts={derivedContracts}
       backHref={`/proyectos/${projectId}`}
-      backLabel={`Proyecto ${project.project_code}`}
+      backLabel={`Contrato ${'id_contrato' in project ? project.id_contrato : (project as {project_code?: string}).project_code ?? ''}`}
       projectId={projectId}
     />
   )
