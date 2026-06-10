@@ -87,17 +87,29 @@ function DonutChart({ data, total }: { data: { name: string; value: number; colo
 function SecretariaBar({ data }: { data: { name: string; value: number }[] }) {
   const max = Math.max(...data.map((d) => d.value), 1)
   return (
-    <div className="h-[280px] flex items-end justify-between gap-3 pt-4">
+    <div className="h-[300px] flex items-end justify-between gap-2 pt-8">
       {data.slice(0, 6).map((d) => {
         const pct = Math.round((d.value / max) * 100)
-        const label = d.name.length > 10 ? d.name.slice(0, 10) + "…" : d.name
+        // Split long names into two lines at word boundaries
+        const words = d.name.split(" ")
+        let line1 = "", line2 = ""
+        for (const w of words) {
+          if ((line1 + " " + w).trim().length <= 14) line1 = (line1 + " " + w).trim()
+          else line2 = (line2 + " " + w).trim()
+        }
         return (
-          <div key={d.name} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
+          <div key={d.name} className="flex-1 flex flex-col items-center group h-full justify-end" title={d.name}>
+            {/* Valor numérico encima */}
+            <span className="text-[11px] font-bold text-[#0B3D91] mb-1 tabular-nums">{d.value}</span>
             <div
               className="w-full bg-[#0B3D91] group-hover:bg-[#002869] transition-all rounded-t"
-              style={{ height: `${pct}%` }}
+              style={{ height: `${Math.max(pct, 4)}%` }}
             />
-            <span className="text-[9px] text-[#434652] font-medium text-center leading-tight">{label}</span>
+            {/* Nombre en dos líneas */}
+            <div className="mt-2 text-center leading-tight">
+              <span className="text-[9px] text-[#434652] font-medium block">{line1}</span>
+              {line2 && <span className="text-[9px] text-[#434652] font-medium block">{line2}</span>}
+            </div>
           </div>
         )
       })}
@@ -359,7 +371,10 @@ export function ProjectDashboardView({
                         <span className="w-3 h-3 rounded-full shrink-0" style={{ background: d.color }} />
                         <span className="text-sm text-[#434652]">{d.name}</span>
                       </div>
-                      <span className="text-sm font-medium">{pct}%</span>
+                      <div className="flex items-center gap-2 tabular-nums">
+                        <span className="text-sm font-bold text-[#151c27]">{d.value}</span>
+                        <span className="text-xs text-[#747783]">({pct}%)</span>
+                      </div>
                     </div>
                   )
                 })}
