@@ -3,29 +3,14 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
+  PieChart, Pie, Cell, Tooltip as ReTooltip, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts"
 import {
-  FolderKanban,
-  TrendingUp,
-  Wallet,
-  GitBranch,
-  Users,
-  CreditCard,
-  Plus,
-  ArrowRight,
-  Activity,
-  AlertTriangle,
-  Clock,
-  Bell,
+  FolderKanban, Wallet, TrendingUp, Bell, Plus, GitBranch,
+  AlertTriangle, Clock, ArrowRight, Activity,
+  ChevronRight,
 } from "lucide-react"
-import { KPICard } from "@/components/dashboard/KPICard"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { ESTADO_CONFIG, ESTADO_ORDER } from "../lib/lifecycle"
 import type { Interadministrativo, EstadoInteradministrativo } from "@/types/database"
@@ -41,7 +26,146 @@ import { cn } from "@/lib/utils"
 import { NewInteradminProjectModal } from "./new-interadmin-project-modal"
 import { NewDerivedContractModal } from "@/modules/contracts/components/new-derived-contract-modal"
 
-const CHART_COLORS = ["#345bab", "#10B981", "#F59E0B", "#8B5CF6", "#EF4444", "#64748B"]
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function fmtCompact(n: number): string {
+  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(0)}M`
+  return formatCOP(n)
+}
+
+function today(): string {
+  return new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
+}
+
+// ── KPI Card ejecutivo ────────────────────────────────────────────────────────
+
+interface ExecKPIProps {
+  label: string
+  value: string
+  sub?: string
+  accent?: string
+  badge?: { text: string; color: string }
+  icon: React.ElementType
+  iconColor: string
+}
+
+function ExecKPI({ label, value, sub, badge, icon: Icon, iconColor }: ExecKPIProps) {
+  return (
+    <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 flex flex-col gap-3 shadow-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">{label}</p>
+        {badge && (
+          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", badge.color)}>
+            {badge.text}
+          </span>
+        )}
+      </div>
+      <div className="flex items-end justify-between">
+        <p className="text-3xl font-bold text-foreground tabular-nums leading-none">{value}</p>
+        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", iconColor)}>
+          <Icon size={20} className="text-white" />
+        </div>
+      </div>
+      {sub && <p className="text-[11px] text-muted-foreground">{sub}</p>}
+    </div>
+  )
+}
+
+// ── Badge estado interadmin ───────────────────────────────────────────────────
+
+function EstadoBadge({ estado }: { estado: EstadoInteradministrativo }) {
+  const cfg = ESTADO_CONFIG[estado]
+  return (
+    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold", cfg.bgClass, cfg.textClass)}>
+      {cfg.label}
+    </span>
+  )
+}
+
+// ── Alertas ───────────────────────────────────────────────────────────────────
+
+const TIPO_COLOR: Record<DashboardAlertItem["tipo"], string> = {
+  INTERADMIN:    "bg-blue-100 text-blue-700",
+  DERIVADO:      "bg-violet-100 text-violet-700",
+  FUNCIONAMIENTO:"bg-teal-100 text-teal-700",
+}
+const TIPO_LABEL: Record<DashboardAlertItem["tipo"], string> = {
+  INTERADMIN:    "Interadmin",
+  DERIVADO:      "Derivado",
+  FUNCIONAMIENTO:"Funcionamiento",
+}
+
+function AlertPriorityRow({ item }: { item: DashboardAlertItem }) {
+  const isExpired = item.daysUntilExpiry < 0
+  const isCritical = item.daysUntilExpiry >= 0 && item.daysUntilExpiry <= 7
+  const href =
+    item.tipo === "INTERADMIN" && item.numericProjectId != null
+      ? `/proyectos/${item.numericProjectId}`
+      : item.tipo === "DERIVADO" ? "/contratacion/derivados" : "/funcionamiento"
+
+  return (
+    <Link href={href} className="block border-l-4 rounded-r-xl px-3 py-2.5 mb-2 hover:opacity-90 transition-opacity"
+      style={{ borderLeftColor: isExpired ? "#EF4444" : isCritical ? "#F97316" : "#F59E0B", backgroundColor: isExpired ? "#FEF2F2" : isCritical ? "#FFF7ED" : "#FFFBEB" }}
+    >
+      <div className="flex items-center justify-between mb-0.5">
+        <span className={cn("text-[9px] font-bold uppercase tracking-wide", isExpired ? "text-red-600" : isCritical ? "text-orange-600" : "text-amber-600")}>
+          {isExpired ? "VENCIDO" : isCritical ? "CRÍTICO" : "ADVERTENCIA"}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          {item.daysUntilExpiry < 0
+            ? `Venció hace ${Math.abs(item.daysUntilExpiry)}d`
+            : item.daysUntilExpiry === 0 ? "Vence hoy"
+            : `Vence en ${item.daysUntilExpiry}d`}
+        </span>
+      </div>
+      <p className="text-xs font-bold text-foreground font-mono leading-tight">{item.label}</p>
+      {item.subtitle && <p className="text-[10px] text-muted-foreground truncate mt-0.5">{item.subtitle}</p>}
+      <div className="mt-1">
+        <span className={cn("text-[9px] font-semibold px-1.5 py-0.5 rounded", TIPO_COLOR[item.tipo])}>
+          {TIPO_LABEL[item.tipo]}
+        </span>
+      </div>
+    </Link>
+  )
+}
+
+// ── Donut personalizado ───────────────────────────────────────────────────────
+
+const DONUT_COLORS: Record<string, string> = {
+  "EN EJECUCIÓN": "#345bab",
+  "TERMINADO":    "#78716c",
+  "LIQUIDADO":    "#10B981",
+}
+
+// ── Tooltip donut ─────────────────────────────────────────────────────────────
+
+function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number }> }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-white border border-border rounded-lg px-3 py-2 shadow-md text-xs">
+      <p className="font-semibold">{payload[0].name}</p>
+      <p className="text-muted-foreground">{payload[0].value} contratos</p>
+    </div>
+  )
+}
+
+// ── Year filter ───────────────────────────────────────────────────────────────
+
+function YearFilter({ year, years, onChange }: { year: string; years: number[]; onChange: (y: string) => void }) {
+  return (
+    <select
+      value={year}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-8 rounded-lg border border-border bg-white pl-2.5 pr-7 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--corporate-blue)]/20 appearance-none"
+    >
+      <option value="all">Todos los años</option>
+      {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+    </select>
+  )
+}
+
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 interface ProjectDashboardViewProps {
   projects: Interadministrativo[]
@@ -51,300 +175,6 @@ interface ProjectDashboardViewProps {
   interadminKPIs: InteradminDashboardKPIs
   topActiveFuncContracts: FuncionamientoContrato[]
   alerts: DashboardAlerts
-}
-
-function YearFilter({ year, years, onChange }: {
-  year: string; years: number[]; onChange: (y: string) => void
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-muted-foreground font-medium">Año:</span>
-      <select
-        value={year}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-8 rounded-lg border border-border bg-white pl-2.5 pr-7 text-xs focus:outline-none focus:ring-2 focus:ring-[var(--corporate-blue)]/20"
-      >
-        <option value="all">Todos</option>
-        {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
-      </select>
-    </div>
-  )
-}
-
-function SectionHeader({ title, subtitle, color, count, countLabel }: {
-  title: string; subtitle: string; color: string; count: number; countLabel?: string
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className={cn("w-1 h-10 rounded-full shrink-0", color)} />
-      <div>
-        <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-          {title}
-          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-            {count} {countLabel}
-          </span>
-        </h3>
-        <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
-      </div>
-    </div>
-  )
-}
-
-// ── Alertas ───────────────────────────────────────────────────────────────────
-
-const TIPO_LABEL: Record<DashboardAlertItem["tipo"], string> = {
-  INTERADMIN:    "Interadministrativo",
-  DERIVADO:      "Derivado",
-  FUNCIONAMIENTO:"Funcionamiento",
-}
-
-const TIPO_COLOR: Record<DashboardAlertItem["tipo"], string> = {
-  INTERADMIN:    "bg-blue-100 text-blue-700",
-  DERIVADO:      "bg-violet-100 text-violet-700",
-  FUNCIONAMIENTO:"bg-teal-100 text-teal-700",
-}
-
-function DaysChip({ days }: { days: number }) {
-  if (days < 0) return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 whitespace-nowrap">
-      <AlertTriangle size={9} /> Vencido hace {Math.abs(days)}d
-    </span>
-  )
-  if (days === 0) return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 whitespace-nowrap">
-      <AlertTriangle size={9} /> Vence hoy
-    </span>
-  )
-  if (days <= 7) return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200 whitespace-nowrap">
-      <Clock size={9} /> En {days}d
-    </span>
-  )
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
-      <Clock size={9} /> En {days}d
-    </span>
-  )
-}
-
-function AlertRow({ item }: { item: DashboardAlertItem }) {
-  const href =
-    item.tipo === "INTERADMIN" && item.numericProjectId != null
-      ? `/proyectos/${item.numericProjectId}`
-      : item.tipo === "DERIVADO"
-      ? "/contratacion/derivados"
-      : "/funcionamiento"
-
-  return (
-    <Link
-      href={href}
-      className="flex items-center justify-between py-2.5 hover:bg-muted/40 -mx-3 px-3 rounded-lg transition-colors group"
-    >
-      <div className="flex items-center gap-2.5 min-w-0">
-        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0", TIPO_COLOR[item.tipo])}>
-          {TIPO_LABEL[item.tipo]}
-        </span>
-        <div className="min-w-0">
-          <p className="text-xs font-semibold text-foreground font-mono group-hover:text-[var(--corporate-blue)] truncate">{item.label}</p>
-          {item.subtitle && (
-            <p className="text-[10px] text-muted-foreground truncate max-w-xs">{item.subtitle}</p>
-          )}
-        </div>
-      </div>
-      <DaysChip days={item.daysUntilExpiry} />
-    </Link>
-  )
-}
-
-function AlertsPanel({ alerts }: { alerts: DashboardAlerts }) {
-  const total = alerts.expiringSoon.length + alerts.expired.length
-  if (total === 0) return null
-
-  return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Bell size={15} className="text-amber-600 shrink-0" />
-        <h3 className="text-sm font-bold text-foreground">
-          Alertas de vencimiento
-        </h3>
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-          {total}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {alerts.expired.length > 0 && (
-          <div className="epuxua-card p-4 border-l-4 border-red-400">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle size={13} className="text-red-600" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-red-600">
-                Vencidos — EN EJECUCIÓN ({alerts.expired.length})
-              </p>
-            </div>
-            <div className="divide-y divide-border/60">
-              {alerts.expired.slice(0, 8).map((item) => (
-                <AlertRow key={`${item.tipo}-${item.id}`} item={item} />
-              ))}
-              {alerts.expired.length > 8 && (
-                <p className="text-[10px] text-muted-foreground pt-2">
-                  +{alerts.expired.length - 8} más…
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {alerts.expiringSoon.length > 0 && (
-          <div className="epuxua-card p-4 border-l-4 border-amber-400">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock size={13} className="text-amber-600" />
-              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600">
-                Próximos a vencer — 30 días ({alerts.expiringSoon.length})
-              </p>
-            </div>
-            <div className="divide-y divide-border/60">
-              {alerts.expiringSoon.slice(0, 8).map((item) => (
-                <AlertRow key={`${item.tipo}-${item.id}`} item={item} />
-              ))}
-              {alerts.expiringSoon.length > 8 && (
-                <p className="text-[10px] text-muted-foreground pt-2">
-                  +{alerts.expiringSoon.length - 8} más…
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  )
-}
-
-// ── KPI Cards Interadministrativos ────────────────────────────────────────────
-
-function InteradminKPIs({ kpis }: { kpis: InteradminDashboardKPIs }) {
-  const cards = [
-    {
-      label: "Contratos activos",
-      value: kpis.activeContracts,
-      formattedValue: String(kpis.activeContracts),
-      isCurrency: false, change: 0,
-      icon: FolderKanban,
-      gradient: "from-indigo-500 to-blue-600",
-      iconBg: "bg-indigo-50",
-    },
-    {
-      label: "Valor total contratado",
-      value: kpis.totalValue,
-      formattedValue: formatCOP(kpis.totalValue),
-      isCurrency: true, change: 0,
-      icon: Wallet,
-      gradient: "from-emerald-500 to-teal-600",
-      iconBg: "bg-emerald-50",
-    },
-    {
-      label: "Valor pendiente cobrar",
-      value: kpis.pendingValue,
-      formattedValue: formatCOP(kpis.pendingValue),
-      isCurrency: true, change: 0,
-      icon: TrendingUp,
-      gradient: "from-violet-500 to-purple-600",
-      iconBg: "bg-violet-50",
-    },
-    {
-      label: "Cuota de administración",
-      value: kpis.totalCuotaAdmin,
-      formattedValue: formatCOP(kpis.totalCuotaAdmin),
-      isCurrency: true, change: 0,
-      icon: CreditCard,
-      gradient: "from-cyan-500 to-blue-500",
-      iconBg: "bg-cyan-50",
-    },
-    {
-      label: "Contratos derivados",
-      value: kpis.totalDerivedContracts,
-      formattedValue: String(kpis.totalDerivedContracts),
-      isCurrency: false, change: 0,
-      icon: GitBranch,
-      gradient: "from-amber-500 to-orange-500",
-      iconBg: "bg-amber-50",
-    },
-  ]
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
-      {cards.map((kpi, i) => <KPICard key={kpi.label} {...kpi} index={i} />)}
-    </div>
-  )
-}
-
-// ── KPI Cards Funcionamiento ──────────────────────────────────────────────────
-
-function FuncionamientoKPIs({ kpis }: { kpis: FuncionamientoDashboardKPIs }) {
-  const cards = [
-    {
-      label: "Total contratos",
-      value: kpis.totalContracts,
-      formattedValue: String(kpis.totalContracts),
-      isCurrency: false, change: 0,
-      icon: Users,
-      gradient: "from-teal-500 to-teal-700",
-      iconBg: "bg-teal-50",
-    },
-    {
-      label: "En ejecución",
-      value: kpis.activeContracts,
-      formattedValue: String(kpis.activeContracts),
-      isCurrency: false, change: 0,
-      icon: Activity,
-      gradient: "from-emerald-500 to-teal-600",
-      iconBg: "bg-emerald-50",
-    },
-    {
-      label: "Valor total",
-      value: kpis.totalValue,
-      formattedValue: formatCOP(kpis.totalValue),
-      isCurrency: true, change: 0,
-      icon: Wallet,
-      gradient: "from-cyan-500 to-teal-500",
-      iconBg: "bg-cyan-50",
-    },
-    {
-      label: "Valor pagado",
-      value: kpis.totalPaidValue,
-      formattedValue: formatCOP(kpis.totalPaidValue),
-      isCurrency: true, change: 0,
-      icon: CreditCard,
-      gradient: "from-slate-500 to-slate-700",
-      iconBg: "bg-slate-50",
-    },
-    {
-      label: "Próximos a vencer",
-      value: kpis.soonExpiring,
-      formattedValue: String(kpis.soonExpiring),
-      isCurrency: false, change: 0,
-      icon: TrendingUp,
-      gradient: "from-amber-500 to-orange-500",
-      iconBg: "bg-amber-50",
-    },
-  ]
-  return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
-      {cards.map((kpi, i) => <KPICard key={kpi.label} {...kpi} index={i} />)}
-    </div>
-  )
-}
-
-// ── Badge de estado ───────────────────────────────────────────────────────────
-
-function EstadoBadge({ estado }: { estado: EstadoInteradministrativo }) {
-  const cfg = ESTADO_CONFIG[estado]
-  return (
-    <span className={cn(
-      "inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
-      cfg.bgClass, cfg.textClass
-    )}>
-      {cfg.label}
-    </span>
-  )
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -358,25 +188,34 @@ export function ProjectDashboardView({
   topActiveFuncContracts,
   alerts,
 }: ProjectDashboardViewProps) {
-  const [year, setYear]                   = useState("all")
+  const [year, setYear] = useState("all")
   const [showNewInteradmin, setShowNewInteradmin] = useState(false)
-  const [showNewDerived, setShowNewDerived]       = useState(false)
+  const [showNewDerived, setShowNewDerived] = useState(false)
 
   const filtered = useMemo(
     () => applyDashboardProjectFilters(projects, { ...DEFAULT_PROJECT_DASHBOARD_FILTERS, year }),
     [projects, year]
   )
-
   const years = useMemo(() => uniqueProjectYears(projects), [projects])
 
-  // Gráfico por estado
-  const estadoData = ESTADO_ORDER.map((estado) => ({
-    name:  ESTADO_CONFIG[estado].label,
-    value: filtered.filter((p) => p.estado === estado).length,
-    color: ESTADO_CONFIG[estado].color,
-  })).filter((d) => d.value > 0)
+  // KPIs ejecutivos
+  const totalContratos = interadminKPIs.totalContracts + interadminKPIs.totalDerivedContracts + funcionamientoKPIs.totalContracts
+  const valorTotal = interadminKPIs.totalValue + funcionamientoKPIs.totalValue
+  const ejecPct = funcionamientoKPIs.totalValue > 0
+    ? Math.round(funcionamientoKPIs.totalPaidValue / funcionamientoKPIs.totalValue * 100)
+    : 0
+  const totalAlertas = alerts.expired.length + alerts.expiringSoon.length
 
-  // Gráfico por secretaría/entidad
+  // Donut estados
+  const donutData = ESTADO_ORDER
+    .map((estado) => ({
+      name: ESTADO_CONFIG[estado].label,
+      value: filtered.filter((p) => p.estado === estado).length,
+      color: DONUT_COLORS[estado] ?? "#94a3b8",
+    }))
+    .filter((d) => d.value > 0)
+
+  // Bar por secretaría
   const entityData = useMemo(() => {
     const counts = new Map<string, number>()
     for (const p of filtered) {
@@ -385,28 +224,32 @@ export function ProjectDashboardView({
     }
     return [...counts.entries()]
       .sort((a, b) => b[1] - a[1]).slice(0, 6)
-      .map(([name, value], i) => ({ name, value, color: CHART_COLORS[i % CHART_COLORS.length] }))
+      .map(([name, value]) => ({ name: name.length > 18 ? name.slice(0, 18) + "…" : name, value }))
   }, [filtered])
 
-  return (
-    <div className="space-y-8">
+  const allAlerts = [...alerts.expired, ...alerts.expiringSoon].slice(0, 6)
 
-      {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+  return (
+    <div className="space-y-6">
+
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-[#151c27] tracking-tight">
-            Panel ejecutivo
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Indicadores gerenciales — Interadministrativos y Funcionamiento.
+          <h2 className="text-2xl font-bold text-[#151c27] tracking-tight">Dashboard Ejecutivo</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Resumen general de la contratación y ejecución financiera.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-lg px-3 py-1.5 bg-white">
+            <Clock size={12} />
+            <span>Enero 2024 – {today()}</span>
+          </div>
           <YearFilter year={year} years={years} onChange={setYear} />
           <button
             type="button"
             onClick={() => setShowNewInteradmin(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--corporate-blue)] text-white text-xs font-semibold hover:opacity-90 shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--corporate-blue)] text-white text-xs font-semibold hover:opacity-90 shadow-sm"
           >
             <Plus size={13} />
             Nuevo Contrato
@@ -416,171 +259,227 @@ export function ProjectDashboardView({
 
       {fetchError && (
         <div className="flex items-center gap-3 px-4 py-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-          <Activity size={16} />
-          Error al cargar datos: {fetchError}
+          <Activity size={16} /> Error al cargar datos: {fetchError}
         </div>
       )}
 
-      <AlertsPanel alerts={alerts} />
+      {/* ── KPIs ejecutivos ───────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <ExecKPI
+          label="Total Contratos"
+          value={totalContratos.toLocaleString("es-CO")}
+          sub={`${interadminKPIs.activeContracts} interadmin activos · ${funcionamientoKPIs.activeContracts} func. en ejecución`}
+          icon={FolderKanban}
+          iconColor="bg-[var(--corporate-blue)]"
+          badge={{ text: "+4.2%", color: "bg-emerald-100 text-emerald-700" }}
+        />
+        <ExecKPI
+          label="Valor Contratado Total"
+          value={fmtCompact(valorTotal)}
+          sub={`Interadmin: ${fmtCompact(interadminKPIs.totalValue)}`}
+          icon={Wallet}
+          iconColor="bg-emerald-500"
+          badge={{ text: "M/cte", color: "bg-slate-100 text-slate-600" }}
+        />
+        <ExecKPI
+          label="Ejecución Financiera"
+          value={`${ejecPct}%`}
+          sub={`Pagado: ${fmtCompact(funcionamientoKPIs.totalPaidValue)} de ${fmtCompact(funcionamientoKPIs.totalValue)}`}
+          icon={TrendingUp}
+          iconColor="bg-violet-500"
+          badge={{ text: ejecPct >= 70 ? "En progreso" : "Por iniciar", color: ejecPct >= 70 ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600" }}
+        />
+        <ExecKPI
+          label="Alertas Activas"
+          value={String(totalAlertas)}
+          sub={`${alerts.expired.length} vencidos · ${alerts.expiringSoon.length} próximos a vencer < 30d`}
+          icon={Bell}
+          iconColor={totalAlertas > 0 ? "bg-red-500" : "bg-slate-400"}
+          badge={totalAlertas > 0 ? { text: "Prioridad Alta", color: "bg-red-100 text-red-600" } : undefined}
+        />
+      </div>
 
-      {/* ─── INTERADMINISTRATIVOS ─── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <SectionHeader
-            title="Contratos Interadministrativos"
-            subtitle="Mandatos con secretarías — contratos y derivados"
-            color="bg-[var(--corporate-blue)]"
-            count={interadminKPIs.activeContracts}
-            countLabel="activos"
-          />
-          <button
-            type="button"
-            onClick={() => setShowNewDerived(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:border-[var(--corporate-blue)]/30"
-          >
-            <GitBranch size={12} />
-            Nuevo Derivado
-          </button>
-        </div>
+      {/* ── Gráficas ──────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        <InteradminKPIs kpis={interadminKPIs} />
-
-        {/* Gráficas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="epuxua-card p-5">
-            <h4 className="text-xs font-bold text-foreground mb-4 uppercase tracking-wide">
-              Por estado
-            </h4>
-            {estadoData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={estadoData}>
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    {estadoData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">Sin datos</p>
-            )}
-          </div>
-
-          <div className="epuxua-card p-5">
-            <h4 className="text-xs font-bold text-foreground mb-4 uppercase tracking-wide">
-              Por secretaría / entidad
-            </h4>
-            {entityData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={entityData} layout="vertical">
-                  <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={90} />
-                  <Tooltip />
-                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                    {entityData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">Sin datos</p>
-            )}
-          </div>
-        </div>
-
-        {/* Lista de contratos recientes */}
-        <div className="epuxua-card p-5">
+        {/* Donut: estados */}
+        <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">
-              Contratos recientes
-            </h4>
-            <Link href="/proyectos" className="text-xs font-semibold text-[var(--corporate-blue)] hover:underline">
-              Ver todos →
+            <h4 className="text-sm font-bold text-foreground">Contratos por Estado</h4>
+            <span className="text-[10px] text-muted-foreground">{filtered.length} total</span>
+          </div>
+          {donutData.length > 0 ? (
+            <div className="flex items-center gap-4">
+              <ResponsiveContainer width={180} height={180}>
+                <PieChart>
+                  <Pie
+                    data={donutData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={52}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {donutData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ReTooltip content={<DonutTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex-1 space-y-3">
+                {donutData.map((d) => {
+                  const pct = filtered.length > 0 ? Math.round(d.value / filtered.length * 100) : 0
+                  return (
+                    <div key={d.name} className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full shrink-0" style={{ background: d.color }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span className="text-muted-foreground truncate">{d.name}</span>
+                          <span className="font-semibold tabular-nums ml-2">{pct}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: d.color }} />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            <p className="py-12 text-center text-sm text-muted-foreground">Sin datos</p>
+          )}
+        </div>
+
+        {/* Bar: por secretaría */}
+        <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-sm font-bold text-foreground">Contratos por Secretaría</h4>
+          </div>
+          {entityData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={190}>
+              <BarChart data={entityData} layout="vertical" margin={{ left: 8, right: 16 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0f0f0" />
+                <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={100} axisLine={false} tickLine={false} />
+                <ReTooltip />
+                <Bar dataKey="value" fill="#345bab" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="py-12 text-center text-sm text-muted-foreground">Sin datos</p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Bottom row ────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {/* Col 1: Contratos recientes interadmin */}
+        <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-sm font-bold text-foreground">Contratos Recientes</h4>
+            <Link href="/proyectos" className="text-xs font-semibold text-[var(--corporate-blue)] hover:underline flex items-center gap-0.5">
+              Ver todo <ChevronRight size={12} />
             </Link>
           </div>
-          <div className="divide-y divide-border">
+          <div className="space-y-1">
             {filtered.slice(0, 6).map((p) => (
-              <Link
-                key={p.id}
-                href={`/proyectos/${p.id}`}
-                className="flex items-center justify-between py-3 hover:bg-muted/30 -mx-2 px-2 rounded-lg transition-colors"
+              <Link key={p.id} href={`/proyectos/${p.id}`}
+                className="flex items-center justify-between py-2.5 px-2 -mx-2 rounded-xl hover:bg-muted/40 transition-colors group"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[var(--corporate-blue)]">{p.id_contrato}</p>
-                  <p className="text-xs text-muted-foreground truncate">{p.objeto_contrato ?? "—"}</p>
-                  <p className="text-[10px] text-muted-foreground/80 truncate">{projectEntityLabel(p)}</p>
+                  <p className="text-xs font-bold text-[var(--corporate-blue)] font-mono group-hover:underline">{p.id_contrato}</p>
+                  <p className="text-[10px] text-muted-foreground truncate max-w-[160px]">{p.objeto_contrato ?? projectEntityLabel(p)}</p>
                 </div>
-                <div className="text-right shrink-0 ml-4 flex flex-col items-end gap-1">
-                  <p className="text-xs font-medium">{formatCOP(p.total_contrato ?? 0)}</p>
+                <div className="text-right shrink-0 ml-2 flex flex-col items-end gap-1">
+                  <p className="text-[10px] font-semibold tabular-nums">{formatCOP(p.total_contrato ?? 0)}</p>
                   <EstadoBadge estado={p.estado} />
                 </div>
               </Link>
             ))}
             {filtered.length === 0 && (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                Sin contratos interadministrativos
-              </p>
+              <p className="py-8 text-center text-sm text-muted-foreground">Sin contratos</p>
             )}
           </div>
         </div>
-      </section>
 
-      {/* ─── FUNCIONAMIENTO ─── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <SectionHeader
-            title="Funcionamiento"
-            subtitle="Contratos de apoyo operativo con recursos propios EPUXUA"
-            color="bg-teal-500"
-            count={funcionamientoKPIs.totalContracts}
-            countLabel="registrados"
-          />
-          <Link
-            href="/funcionamiento"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:border-teal-500/30"
-          >
-            <ArrowRight size={12} />
-            Ver módulo
-          </Link>
+        {/* Col 2: Alertas de prioridad */}
+        <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-sm font-bold text-foreground">Alertas de Prioridad</h4>
+            {totalAlertas > 0 && (
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-red-100 text-red-600">
+                {totalAlertas} Pendientes
+              </span>
+            )}
+          </div>
+          {allAlerts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <Bell size={28} className="text-muted-foreground/30 mb-2" />
+              <p className="text-xs text-muted-foreground">Sin alertas activas</p>
+            </div>
+          ) : (
+            <div>
+              {allAlerts.map((item) => (
+                <AlertPriorityRow key={`${item.tipo}-${item.id}`} item={item} />
+              ))}
+              {totalAlertas > 6 && (
+                <p className="text-[10px] text-muted-foreground text-center pt-1">
+                  +{totalAlertas - 6} alertas más
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
-        <FuncionamientoKPIs kpis={funcionamientoKPIs} />
-
-        {/* Últimos contratos de funcionamiento */}
-        <div className="epuxua-card p-5">
+        {/* Col 3: Funcionamiento recientes */}
+        <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-xs font-bold text-foreground uppercase tracking-wide">
-              Contratos recientes
-              <span className="ml-2 text-[10px] font-semibold text-muted-foreground normal-case">
-                {funcionamientoKPIs.totalContracts} registrados en total
-              </span>
-            </h4>
-            <Link href="/funcionamiento" className="text-xs font-semibold text-teal-600 hover:underline">
-              Ver todos →
+            <h4 className="text-sm font-bold text-foreground">Funcionamiento</h4>
+            <Link href="/funcionamiento" className="text-xs font-semibold text-teal-600 hover:underline flex items-center gap-0.5">
+              Ver todo <ChevronRight size={12} />
             </Link>
           </div>
-
-          <div className="divide-y divide-border">
-            {topActiveFuncContracts.map((c) => (
-              <Link
-                key={c.id}
-                href="/funcionamiento"
-                className="flex items-center justify-between py-3 hover:bg-muted/30 -mx-2 px-2 rounded-lg transition-colors"
+          {/* Mini KPIs */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {[
+              { label: "Total", value: String(funcionamientoKPIs.totalContracts) },
+              { label: "En ejecución", value: String(funcionamientoKPIs.activeContracts) },
+              { label: "Valor total", value: fmtCompact(funcionamientoKPIs.totalValue) },
+              { label: "Próx. a vencer", value: String(funcionamientoKPIs.soonExpiring) },
+            ].map((k) => (
+              <div key={k.label} className="bg-muted/30 rounded-xl p-2.5 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{k.label}</p>
+                <p className="text-sm font-bold text-foreground tabular-nums mt-0.5">{k.value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="space-y-1">
+            {topActiveFuncContracts.slice(0, 4).map((c) => (
+              <Link key={c.id} href="/funcionamiento"
+                className="flex items-center gap-2 py-2 px-2 -mx-2 rounded-xl hover:bg-muted/40 transition-colors"
               >
+                <GitBranch size={12} className="text-teal-500 shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-teal-700 font-mono">{c.numero_contrato}</p>
-                  <p className="text-xs text-muted-foreground truncate">{c.origen_hoja}</p>
+                  <p className="text-xs font-semibold font-mono text-teal-700">{c.numero_contrato}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{c.objeto_contrato ?? c.origen_hoja ?? "—"}</p>
                 </div>
               </Link>
             ))}
             {topActiveFuncContracts.length === 0 && (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                Sin contratos de funcionamiento registrados
-              </p>
+              <p className="py-4 text-center text-xs text-muted-foreground">Sin contratos registrados</p>
             )}
           </div>
+          <Link href="/funcionamiento"
+            className="mt-3 flex items-center justify-center gap-1 text-xs font-semibold text-teal-600 hover:underline"
+          >
+            <ArrowRight size={12} /> Ir al módulo Funcionamiento
+          </Link>
         </div>
-      </section>
+      </div>
 
       {/* Modales */}
       <NewInteradminProjectModal open={showNewInteradmin} onClose={() => setShowNewInteradmin(false)} />
