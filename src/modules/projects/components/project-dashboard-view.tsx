@@ -25,7 +25,7 @@ import {
 import { KPICard } from "@/components/dashboard/KPICard"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { ESTADO_CONFIG, ESTADO_ORDER } from "../lib/lifecycle"
-import type { Interadministrativo, EstadoContrato } from "@/types/database"
+import type { Interadministrativo, EstadoInteradministrativo } from "@/types/database"
 import {
   DEFAULT_PROJECT_DASHBOARD_FILTERS,
   applyDashboardProjectFilters,
@@ -166,7 +166,7 @@ function FuncionamientoKPIs({ kpis }: { kpis: FuncionamientoDashboardKPIs }) {
 
 // ── Badge de estado ───────────────────────────────────────────────────────────
 
-function EstadoBadge({ estado }: { estado: EstadoContrato }) {
+function EstadoBadge({ estado }: { estado: EstadoInteradministrativo }) {
   const cfg = ESTADO_CONFIG[estado]
   return (
     <span className={cn(
@@ -396,7 +396,7 @@ export function ProjectDashboardView({
                 className="flex items-center justify-between py-3 hover:bg-muted/30 -mx-2 px-2 rounded-lg transition-colors"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-teal-700 font-mono">{c.proyecto_ref}</p>
+                  <p className="text-sm font-semibold text-teal-700 font-mono">{c.numero_contrato}</p>
                   <p className="text-xs text-muted-foreground truncate">{c.origen_hoja}</p>
                 </div>
               </Link>

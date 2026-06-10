@@ -75,25 +75,43 @@ export async function getInteradminDashboardKPIs(): Promise<InteradminDashboardK
 export async function getFuncionamientoDashboardKPIs(): Promise<FuncionamientoDashboardKPIs> {
   const supabase = await createSupabaseServerClient()
 
-  const { count, error } = await supabase
+  const { data, error } = await supabase
     .from("contratos")
-    .select("id", { count: "exact", head: true })
+    .select("estado, valor_final, valor_pagado, fecha_terminacion")
     .eq("tipo_contrato", "FUNCIONAMIENTO")
+    .limit(5000)
 
   if (error) throw new Error(error.message)
 
-  const total = count ?? 0
+  const rows       = data ?? []
+  const total      = rows.length
+  const active     = rows.filter((r) => r.estado === "EN EJECUCIÓN").length
+  const suspended  = rows.filter((r) => r.estado === "SUSPENDIDO").length
+  const finished   = rows.filter((r) => r.estado === "TERMINADO" || r.estado === "CIERRE CONTRACTUAL").length
+  const liquidated = rows.filter((r) => r.estado === "LIQUIDADO").length
+  const totalVal   = rows.reduce((s, r) => s + Number(r.valor_final ?? 0), 0)
+  const paidVal    = rows.reduce((s, r) => s + Number(r.valor_pagado ?? 0), 0)
+
+  const today = new Date()
+  const in30   = new Date(today); in30.setDate(in30.getDate() + 30)
+  let soonExpiring = 0, expired = 0
+  for (const r of rows) {
+    if (!r.fecha_terminacion) continue
+    const d = new Date(r.fecha_terminacion)
+    if (d < today) expired++
+    else if (d <= in30) soonExpiring++
+  }
 
   return {
     totalContracts:     total,
-    activeContracts:    total,
-    suspendedContracts: 0,
-    finishedContracts:  0,
-    liquidatedContracts: 0,
-    totalValue:    0,
-    totalPaidValue: 0,
-    avgValue:      0,
-    soonExpiring:  0,
-    expired:       0,
+    activeContracts:    active,
+    suspendedContracts: suspended,
+    finishedContracts:  finished,
+    liquidatedContracts: liquidated,
+    totalValue:         totalVal,
+    totalPaidValue:     paidVal,
+    avgValue:           total > 0 ? totalVal / total : 0,
+    soonExpiring,
+    expired,
   }
 }

@@ -11,7 +11,8 @@ import { cn } from "@/lib/utils"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import type { DerivedContractRow, DerivedContractsKPIs } from "@/services/derived-contracts.service"
 
-function yearFromRef(ref: string): string {
+function yearFromRef(ref: string | null | undefined): string {
+  if (!ref) return "—"
   const m = ref.match(/(\d{4})$/)
   return m ? m[1] : "—"
 }
@@ -113,15 +114,22 @@ function ParentGroupRow({ group }: { group: ParentGroup }) {
               initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03 }}
-              className="flex items-center gap-4 px-4 py-3 hover:bg-muted/20 transition-colors"
+              className="grid grid-cols-[1fr_1fr_auto_auto] gap-x-4 items-center px-4 py-3 hover:bg-muted/20 transition-colors"
             >
-              <div className="w-5 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-foreground font-mono">{d.proyecto_ref}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{d.origen_hoja}</p>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-foreground font-mono">{d.numero_contrato ?? "—"}</p>
+                {d.contratista && (
+                  <p className="text-[10px] text-muted-foreground truncate">{d.contratista}</p>
+                )}
               </div>
-              <span className="text-[10px] text-muted-foreground tabular-nums">
-                {yearFromRef(d.proyecto_ref)}
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground truncate">{d.objeto_contrato ?? d.origen_hoja ?? "—"}</p>
+              </div>
+              <span className="text-[10px] font-medium tabular-nums text-right">
+                {d.valor_final != null ? formatCOP(d.valor_final) : "—"}
+              </span>
+              <span className="text-[10px] text-muted-foreground tabular-nums text-right">
+                {yearFromRef(d.numero_contrato)}
               </span>
             </motion.div>
           ))}
@@ -144,7 +152,7 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
     const q = search.toLowerCase().trim()
     return contracts.filter((c) => {
       if (q) {
-        const hay = [c.proyecto_ref, c.id_interadministrativo, c.parent_objeto, c.parent_secretaria]
+        const hay = [c.numero_contrato, c.contratista, c.objeto_contrato, c.id_interadministrativo, c.parent_objeto, c.parent_secretaria]
           .filter(Boolean).join(" ").toLowerCase()
         if (!hay.includes(q)) return false
       }

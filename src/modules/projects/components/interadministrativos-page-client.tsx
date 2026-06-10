@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { FolderKanban, ChevronLeft, ChevronRight, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatCOP } from "@/modules/contracts/lib/status"
-import type { Interadministrativo, EstadoContrato } from "@/types/database"
+import type { Interadministrativo, EstadoInteradministrativo } from "@/types/database"
 import { ESTADO_CONFIG, ESTADO_ORDER } from "../lib/lifecycle"
 import { formatDate } from "../lib/project-utils"
 
@@ -21,7 +21,7 @@ interface Props {
 export function InteradministrativosPageClient({ projects, entities, years }: Props) {
   const router = useRouter()
   const [search, setSearch] = useState("")
-  const [estado, setEstado] = useState<string>("all")
+  const [estado, setEstado] = useState<EstadoInteradministrativo | "all">("all")
   const [entity, setEntity] = useState<string>("all")
   const [year, setYear] = useState<string>("all")
   const [page, setPage] = useState(0)
@@ -74,7 +74,7 @@ export function InteradministrativosPageClient({ projects, entities, years }: Pr
         </div>
         <div className="flex flex-wrap gap-2">
           <div className="relative">
-            <select className={sel} value={estado} onChange={(e) => { setEstado(e.target.value); setPage(0) }}>
+            <select className={sel} value={estado} onChange={(e) => { setEstado(e.target.value as EstadoInteradministrativo | "all"); setPage(0) }}>
               <option value="all">Todos los estados</option>
               {ESTADO_ORDER.map((s) => (
                 <option key={s} value={s}>{ESTADO_CONFIG[s].label}</option>

@@ -40,12 +40,12 @@ interface InteradminOption {
 const currentYear = new Date().getFullYear()
 
 interface FormState {
-  proyecto_ref: string
+  numero_contrato: string
   origen_hoja: string
 }
 
 const EMPTY: FormState = {
-  proyecto_ref: "",
+  numero_contrato: "",
   origen_hoja: `Contratación_${currentYear}`,
 }
 
@@ -107,7 +107,7 @@ export function NewDerivedContractModal({ open, onClose }: Props) {
 
   function validate(): string | null {
     if (!selectedInteradmin) return "Selecciona un contrato interadministrativo padre"
-    if (!form.proyecto_ref.trim()) return "La referencia del contrato derivado es obligatoria"
+    if (!form.numero_contrato.trim()) return "El número de contrato derivado es obligatorio"
     return null
   }
 
@@ -119,7 +119,7 @@ export function NewDerivedContractModal({ open, onClose }: Props) {
 
     const { error: serverError } = await createDerivedContract({
       id_interadministrativo: selectedInteradmin!.id_contrato,
-      proyecto_ref:           form.proyecto_ref,
+      numero_contrato:        form.numero_contrato,
       origen_hoja:            form.origen_hoja,
     })
     if (serverError) { setError(serverError); setLoading(false); return }
@@ -213,10 +213,10 @@ export function NewDerivedContractModal({ open, onClose }: Props) {
               {/* Identificación del derivado */}
               <Section icon={Hash} label="Identificación del derivado" />
               <div className="pt-3">
-                <Label required>Referencia del contrato derivado (proyecto_ref)</Label>
+                <Label required>N° Contrato derivado</Label>
                 <input className={inputCls} placeholder="CPS-001-2026, OPS-123-2025…"
-                  value={form.proyecto_ref}
-                  onChange={(e) => set("proyecto_ref", e.target.value)} />
+                  value={form.numero_contrato}
+                  onChange={(e) => set("numero_contrato", e.target.value)} />
               </div>
               <div className="pt-1">
                 <Label>Origen / Hoja (origen_hoja)</Label>

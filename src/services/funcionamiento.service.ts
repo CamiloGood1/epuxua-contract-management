@@ -1,18 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import type { Contrato } from "@/types/database"
 
-// La tabla `contratos` en el esquema V2 es mínima:
-// solo id, origen_hoja, proyecto_ref, tipo_contrato, created_at, updated_at.
-// No hay datos financieros ni de contratista en el esquema actual.
-export interface FuncionamientoContrato {
-  id: number
-  origen_hoja: string       // ej: 'Contratación_2024'
-  proyecto_ref: string      // número del contrato: '001-2025', '025-2024'…
-  tipo_contrato: 'FUNCIONAMIENTO'
-  id_interadministrativo: null
-  created_at: string
-  updated_at: string
-}
-
+export type FuncionamientoContrato = Contrato & { tipo_contrato: "FUNCIONAMIENTO" }
 export type FuncionamientoContract = FuncionamientoContrato
 
 export async function getFuncionamientoContracts(): Promise<FuncionamientoContrato[]> {
@@ -20,21 +9,42 @@ export async function getFuncionamientoContracts(): Promise<FuncionamientoContra
 
   const { data, error } = await supabase
     .from("contratos")
-    .select("id, origen_hoja, proyecto_ref, tipo_contrato, created_at, updated_at")
+    .select("*")
     .eq("tipo_contrato", "FUNCIONAMIENTO")
     .order("origen_hoja", { ascending: false })
-    .order("proyecto_ref", { ascending: true })
+    .order("numero_contrato", { ascending: true })
     .limit(5000)
 
   if (error) throw new Error(error.message)
 
-  return (data ?? []).map((row: Record<string, unknown>) => ({
-    id:                    Number(row.id),
-    origen_hoja:           String(row.origen_hoja  ?? ""),
-    proyecto_ref:          String(row.proyecto_ref ?? ""),
-    tipo_contrato:         "FUNCIONAMIENTO" as const,
-    id_interadministrativo: null,
-    created_at:            String(row.created_at   ?? ""),
-    updated_at:            String(row.updated_at   ?? ""),
-  }))
+  return (data ?? []) as FuncionamientoContrato[]
+}
+
+export async function getFuncionamientoKPIs(): Promise<{
+  total: number
+  enEjecucion: number
+  terminados: number
+  valorTotal: number
+  valorPagado: number
+  valorPendiente: number
+}> {
+  const supabase = await createSupabaseServerClient()
+
+  const { data, error } = await supabase
+    .from("contratos")
+    .select("estado, valor_final, valor_pagado, valor_pendiente")
+    .eq("tipo_contrato", "FUNCIONAMIENTO")
+    .limit(5000)
+
+  if (error) throw new Error(error.message)
+
+  const rows = data ?? []
+  return {
+    total:          rows.length,
+    enEjecucion:    rows.filter((r) => r.estado === "EN EJECUCIÓN").length,
+    terminados:     rows.filter((r) => r.estado === "TERMINADO" || r.estado === "LIQUIDADO").length,
+    valorTotal:     rows.reduce((s, r) => s + (r.valor_final ?? 0), 0),
+    valorPagado:    rows.reduce((s, r) => s + (r.valor_pagado ?? 0), 0),
+    valorPendiente: rows.reduce((s, r) => s + (r.valor_pendiente ?? 0), 0),
+  }
 }

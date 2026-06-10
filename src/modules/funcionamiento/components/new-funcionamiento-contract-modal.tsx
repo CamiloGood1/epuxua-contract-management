@@ -34,12 +34,12 @@ function Section({ icon: Icon, label }: { icon: typeof Hash; label: string }) {
 const currentYear = new Date().getFullYear()
 
 interface FormState {
-  proyecto_ref: string
+  numero_contrato: string
   origen_hoja: string
 }
 
 const EMPTY: FormState = {
-  proyecto_ref: "",
+  numero_contrato: "",
   origen_hoja: `Contratación_${currentYear}`,
 }
 
@@ -75,7 +75,7 @@ export function NewFuncionamientoContractModal({ open, onClose }: Props) {
   }
 
   function validate(): string | null {
-    if (!form.proyecto_ref.trim()) return "La referencia del contrato es obligatoria"
+    if (!form.numero_contrato.trim()) return "El número de contrato es obligatorio"
     if (!form.origen_hoja.trim()) return "El origen / hoja es obligatorio"
     return null
   }
@@ -87,8 +87,8 @@ export function NewFuncionamientoContractModal({ open, onClose }: Props) {
     setLoading(true); setError(null)
 
     const { error: serverError } = await createFuncionamientoContract({
-      proyecto_ref: form.proyecto_ref,
-      origen_hoja:  form.origen_hoja,
+      numero_contrato: form.numero_contrato,
+      origen_hoja:     form.origen_hoja,
     })
     if (serverError) { setError(serverError); setLoading(false); return }
 
@@ -129,12 +129,12 @@ export function NewFuncionamientoContractModal({ open, onClose }: Props) {
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-1">
               <Section icon={Hash} label="Identificación" />
               <div className="pt-3">
-                <Label required>Referencia del contrato (proyecto_ref)</Label>
+                <Label required>N° Contrato</Label>
                 <input
                   className={inputCls}
                   placeholder="Ej: OPS-001-2024, CPS-123-2025…"
-                  value={form.proyecto_ref}
-                  onChange={(e) => set("proyecto_ref", e.target.value)}
+                  value={form.numero_contrato}
+                  onChange={(e) => set("numero_contrato", e.target.value)}
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">
                   N° o ID único del contrato tal como aparece en la hoja de cálculo origen.

@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import type { EstadoContrato } from "@/types/database"
+import type { EstadoInteradministrativo } from "@/types/database"
 
 // ── Actualizar estado de un interadministrativo (kanban) ──────────────────────
 
 export async function updateProjectLifecycle(
   idContrato: string,
-  estado: EstadoContrato
+  estado: EstadoInteradministrativo
 ): Promise<{ error: string | null }> {
   const supabase = await createSupabaseServerClient()
 
@@ -104,20 +104,23 @@ export const createInteradministrativo = createInteradminProject
 
 export interface NewDerivedContractInput {
   id_interadministrativo: string    // id_contrato del padre
-  proyecto_ref: string              // N° del contrato derivado
+  numero_contrato: string           // N° del contrato derivado (ej: '001-2024')
   origen_hoja?: string              // ej: 'Contratación_2024'
-  // Legacy — no se usan en el nuevo esquema pero se mantienen para compatibilidad
-  project_id?: string
-  parent_contract_id?: string
+  contratista?: string
+  objeto_contrato?: string
+  clase_contrato?: string
+  supervisor?: string
+  fecha_suscripcion?: string
+  fecha_inicio?: string
+  fecha_terminacion?: string
+  valor_inicial?: number
+  valor_final?: number
+  estado?: string
+  // Backward compat
+  proyecto_ref?: string
   contract_number?: string
-  object?: string
-  contractor_name?: string
-  supervisor_name?: string
-  subscription_date?: string
-  start_date?: string
-  end_date?: string
-  initial_value?: number
   year?: number
+  project_id?: string
 }
 
 export async function createDerivedContract(
@@ -125,22 +128,30 @@ export async function createDerivedContract(
 ): Promise<{ error: string | null; contractId?: string }> {
   const supabase = await createSupabaseServerClient()
 
-  // Normalizar: soporta tanto el nuevo formato como el legacy
-  const idInteradmin = input.id_interadministrativo || input.parent_contract_id || ""
-  const proyectoRef  = input.proyecto_ref || input.contract_number || ""
-  const year         = input.year ?? new Date().getFullYear()
-  const origenHoja   = input.origen_hoja || `Contratación_${year}`
+  const idInteradmin  = input.id_interadministrativo || ""
+  const numeroContrato = input.numero_contrato || input.proyecto_ref || input.contract_number || ""
+  const year           = input.year ?? new Date().getFullYear()
+  const origenHoja     = input.origen_hoja || `Contratación_${year}`
 
-  if (!idInteradmin) return { error: "id_interadministrativo es requerido" }
-  if (!proyectoRef)  return { error: "proyecto_ref (N° contrato) es requerido" }
+  if (!idInteradmin)   return { error: "id_interadministrativo es requerido" }
+  if (!numeroContrato) return { error: "numero_contrato es requerido" }
 
   const { data, error } = await supabase
     .from("contratos")
     .insert({
       id_interadministrativo: idInteradmin,
-      proyecto_ref:           proyectoRef,
+      numero_contrato:        numeroContrato,
       origen_hoja:            origenHoja,
       tipo_contrato:          "DERIVADO",
+      contratista:            input.contratista             || null,
+      objeto_contrato:        input.objeto_contrato         || null,
+      clase_contrato:         input.clase_contrato          || null,
+      supervisor:             input.supervisor              || null,
+      fecha_suscripcion:      input.fecha_suscripcion       || null,
+      fecha_inicio:           input.fecha_inicio            || null,
+      fecha_terminacion:      input.fecha_terminacion       || null,
+      valor_inicial:          input.valor_inicial           ?? null,
+      valor_final:            input.valor_final             ?? input.valor_inicial ?? null,
     })
     .select("id")
     .single()
@@ -158,37 +169,29 @@ export async function createDerivedContract(
 // ── Crear contrato de funcionamiento ──────────────────────────────────────────
 
 export interface NewFuncionamientoContractInput {
-  proyecto_ref: string       // N° o ID del contrato
+  numero_contrato: string    // N° o ID del contrato
   origen_hoja?: string       // ej: 'Contratación_2024'
-  // Legacy fields mantenidos para no romper el modal existente
-  project_id?: string
+  contratista?: string
+  objeto_contrato?: string
+  clase_contrato?: string
+  modalidad_seleccion?: string
+  area_responsable?: string
+  supervisor?: string
+  persona_natural_juridica?: string
+  fecha_suscripcion?: string
+  fecha_inicio?: string
+  fecha_terminacion?: string
+  plazo_ejecucion?: string
+  valor_inicial?: number
+  valor_final?: number
+  estado?: string
+  recurso?: string
+  rubro?: string
+  observaciones?: string
+  // Backward compat
+  proyecto_ref?: string
   contract_number?: string
   year?: number
-  contract_type?: string
-  contract_class?: string
-  selection_modality?: string
-  resource_type?: string
-  object?: string
-  contractor_name?: string
-  contractor_document?: string
-  contractor_person_type?: string
-  supervisor_name?: string
-  area_name?: string
-  interventor?: string
-  status?: string
-  subscription_date?: string
-  publication_date?: string
-  start_date?: string
-  end_date?: string
-  initial_term_text?: string
-  initial_term_days?: number
-  initial_value?: number
-  monthly_value?: number
-  paa_code?: string
-  paa_description?: string
-  paa_estimated_value?: number
-  secop_url?: string
-  observations?: string
 }
 
 export async function createFuncionamientoContract(
@@ -196,19 +199,36 @@ export async function createFuncionamientoContract(
 ): Promise<{ error: string | null; contractId?: string }> {
   const supabase = await createSupabaseServerClient()
 
-  const year       = input.year ?? new Date().getFullYear()
-  const origenHoja = input.origen_hoja || `Contratación_${year}`
-  const ref        = input.proyecto_ref || input.contract_number || ""
+  const year           = input.year ?? new Date().getFullYear()
+  const origenHoja     = input.origen_hoja || `Contratación_${year}`
+  const numeroContrato = input.numero_contrato || input.proyecto_ref || input.contract_number || ""
 
-  if (!ref) return { error: "proyecto_ref (N° contrato) es requerido" }
+  if (!numeroContrato) return { error: "numero_contrato es requerido" }
 
   const { data, error } = await supabase
     .from("contratos")
     .insert({
-      proyecto_ref:           ref,
+      numero_contrato:        numeroContrato,
       origen_hoja:            origenHoja,
       tipo_contrato:          "FUNCIONAMIENTO",
       id_interadministrativo: null,
+      contratista:            input.contratista             || null,
+      objeto_contrato:        input.objeto_contrato         || null,
+      clase_contrato:         input.clase_contrato          || null,
+      modalidad_seleccion:    input.modalidad_seleccion     || null,
+      area_responsable:       input.area_responsable        || null,
+      supervisor:             input.supervisor              || null,
+      persona_natural_juridica: input.persona_natural_juridica || null,
+      fecha_suscripcion:      input.fecha_suscripcion       || null,
+      fecha_inicio:           input.fecha_inicio            || null,
+      fecha_terminacion:      input.fecha_terminacion       || null,
+      plazo_ejecucion:        input.plazo_ejecucion         || null,
+      valor_inicial:          input.valor_inicial           ?? null,
+      valor_final:            input.valor_final             ?? input.valor_inicial ?? null,
+      estado:                 input.estado                  || null,
+      recurso:                input.recurso                 || null,
+      rubro:                  input.rubro                   || null,
+      observaciones:          input.observaciones           || null,
     })
     .select("id")
     .single()
