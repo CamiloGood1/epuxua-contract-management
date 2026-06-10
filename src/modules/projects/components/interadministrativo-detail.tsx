@@ -1,12 +1,10 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { cn } from "@/lib/utils"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { ESTADO_CONFIG } from "../lib/lifecycle"
 import { ContractDetailDrawer } from "@/modules/contracts/components/contract-detail-drawer"
 import type { Interadministrativo, Contrato, EstadoInteradministrativo } from "@/types/database"
-import { User, Building2, Calendar, Clock, AlertTriangle, TrendingUp } from "lucide-react"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -15,237 +13,233 @@ function fmtMoney(v: number | null | undefined) { return v == null ? "—" : for
 
 function daysUntil(dateStr: string | null | undefined): number | null {
   if (!dateStr) return null
-  const d = new Date(dateStr)
-  d.setHours(0, 0, 0, 0)
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  return Math.round((d.getTime() - now.getTime()) / 86400000)
+  const d = new Date(dateStr); d.setHours(0,0,0,0)
+  const n = new Date();       n.setHours(0,0,0,0)
+  return Math.round((d.getTime() - n.getTime()) / 86400000)
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function Section({ title }: { title: string }) {
-  return (
-    <div className="flex items-center gap-3 pt-5 pb-2 border-b border-border">
-      <div className="w-1 h-4 rounded-full bg-[var(--corporate-blue)] shrink-0" />
-      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{title}</p>
-    </div>
-  )
-}
-
-function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">{label}</p>
-      <p className={cn("text-sm break-words", value === "—" ? "text-muted-foreground" : "text-foreground", mono && "font-mono")}>
-        {value}
-      </p>
-    </div>
-  )
-}
-
-function Row2({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-x-6 gap-y-4">{children}</div>
-}
-function Row3({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-3 gap-x-6 gap-y-4">{children}</div>
-}
-
-// ── Estado badge ──────────────────────────────────────────────────────────────
+// ── Estado badge interadmin ───────────────────────────────────────────────────
 
 function EstadoBadge({ estado }: { estado: EstadoInteradministrativo }) {
   const cfg = ESTADO_CONFIG[estado]
   return (
-    <span className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border", cfg.bgClass, cfg.textClass, cfg.borderClass)}>
-      <span className={cn("w-2 h-2 rounded-full shrink-0", cfg.dotClass)} />
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${cfg.bgClass} ${cfg.textClass} ${cfg.borderClass}`}>
+      <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dotClass}`} />
       {cfg.label}
     </span>
   )
 }
 
-// ── Contrato estado badge ─────────────────────────────────────────────────────
+// ── Estado badge contrato ─────────────────────────────────────────────────────
 
-const CONTRATO_ESTADO_COLORS: Record<string, { cls: string; dot: string }> = {
-  "EN EJECUCIÓN":              { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-500" },
-  "CIERRE CONTRACTUAL":        { cls: "bg-amber-50  text-amber-700  border-amber-200",    dot: "bg-amber-500"  },
-  "TERMINADO":                 { cls: "bg-slate-50  text-slate-600  border-slate-200",    dot: "bg-slate-400"  },
-  "LIQUIDADO":                 { cls: "bg-blue-50   text-blue-700   border-blue-200",     dot: "bg-blue-500"   },
-  "TERMINADO ANTICIPADAMENTE": { cls: "bg-orange-50 text-orange-700 border-orange-200",   dot: "bg-orange-500" },
-  "SUSPENDIDO":                { cls: "bg-yellow-50 text-yellow-700 border-yellow-200",   dot: "bg-yellow-500" },
-  "DECLARADO FALLIDO":         { cls: "bg-red-50    text-red-700    border-red-200",      dot: "bg-red-500"    },
-  "NO SUSCRITO":               { cls: "bg-gray-50   text-gray-500   border-gray-200",     dot: "bg-gray-400"   },
-  "TERMINADO ANORMALMENTE":    { cls: "bg-rose-50   text-rose-700   border-rose-200",     dot: "bg-rose-500"   },
+const CONT_CFG: Record<string, { dot: string; text: string; bg: string }> = {
+  "EN EJECUCIÓN":              { dot: "bg-[#10B981]", text: "text-[#10B981]", bg: "bg-[#10B981]/10" },
+  "CIERRE CONTRACTUAL":        { dot: "bg-[#F59E0B]", text: "text-[#F59E0B]", bg: "bg-[#F59E0B]/10" },
+  "TERMINADO":                 { dot: "bg-[#747783]", text: "text-[#747783]", bg: "bg-[#747783]/10" },
+  "LIQUIDADO":                 { dot: "bg-[#0B3D91]", text: "text-[#0B3D91]", bg: "bg-[#0B3D91]/10" },
+  "SUSPENDIDO":                { dot: "bg-[#F59E0B]", text: "text-[#F59E0B]", bg: "bg-[#F59E0B]/10" },
+  "TERMINADO ANTICIPADAMENTE": { dot: "bg-orange-500", text: "text-orange-600", bg: "bg-orange-50" },
+  "DECLARADO FALLIDO":         { dot: "bg-[#EF4444]", text: "text-[#EF4444]", bg: "bg-[#EF4444]/10" },
+  "NO SUSCRITO":               { dot: "bg-gray-400",   text: "text-gray-500",   bg: "bg-gray-50" },
+  "TERMINADO ANORMALMENTE":    { dot: "bg-rose-500",   text: "text-rose-600",   bg: "bg-rose-50" },
 }
 
 function ContratoBadge({ estado }: { estado: string | null }) {
-  if (!estado) return <span className="text-muted-foreground text-xs">Sin estado</span>
-  const cfg = CONTRATO_ESTADO_COLORS[estado] ?? { cls: "bg-muted text-muted-foreground border-border", dot: "bg-muted-foreground" }
+  if (!estado) return <span className="text-xs text-[#747783]">Sin estado</span>
+  const cfg = CONT_CFG[estado] ?? { dot: "bg-[#747783]", text: "text-[#747783]", bg: "bg-[#747783]/10" }
   return (
-    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border whitespace-nowrap", cfg.cls)}>
-      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", cfg.dot)} />
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${cfg.bg} ${cfg.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
       {estado}
     </span>
   )
 }
 
-// ── Circular progress ─────────────────────────────────────────────────────────
+// ── Circular progress SVG ─────────────────────────────────────────────────────
 
-function CircularProgress({ pct, size = 100, stroke = 8, color = "#345bab" }: {
-  pct: number; size?: number; stroke?: number; color?: string
-}) {
-  const r = (size - stroke) / 2
+function CircularProgress({ pct }: { pct: number }) {
+  const r    = 15.915
   const circ = 2 * Math.PI * r
-  const dash = circ * Math.min(pct, 100) / 100
+  const dash = (Math.min(pct, 100) / 100) * circ
   return (
-    <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#F0F0F0" strokeWidth={stroke} />
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke={color} strokeWidth={stroke}
-        strokeDasharray={`${dash} ${circ}`}
-        strokeLinecap="round"
-      />
-    </svg>
+    <div className="relative w-28 h-28">
+      <svg className="w-full h-full" style={{ transform: "rotate(-90deg)" }} viewBox="0 0 36 36">
+        <circle cx="18" cy="18" r={r} fill="transparent" stroke="#F1F5F9" strokeWidth="3" />
+        <circle
+          cx="18" cy="18" r={r} fill="transparent"
+          stroke="#0B3D91" strokeWidth="3"
+          strokeDasharray={`${dash} ${circ}`}
+          strokeLinecap="round"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-xl font-bold text-[#002869]">{pct}%</span>
+        <span className="text-[9px] uppercase font-bold text-[#434652] tracking-tight">Ejecución</span>
+      </div>
+    </div>
   )
 }
 
-// ── Sidebar: Actores Clave + Fechas ───────────────────────────────────────────
+// ── Chip de tipo modificación ─────────────────────────────────────────────────
 
-function ActoresSidebar({ p }: { p: Interadministrativo }) {
-  const days = daysUntil(p.fecha_terminacion)
-  const daysInt = days ?? 0
-  const isExpired = daysInt < 0
-  const isCritical = !isExpired && daysInt <= 30
+function ModChip({ tipo }: { tipo: string }) {
+  const map: Record<string, string> = {
+    ADICIÓN:   "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    PRÓRROGA:  "bg-amber-50   text-amber-700   border border-amber-200",
+    SUSPENSIÓN:"bg-yellow-50  text-yellow-700  border border-yellow-200",
+    REINICIO:  "bg-blue-50    text-blue-700    border border-blue-200",
+    ACLARACIÓN:"bg-violet-50  text-violet-700  border border-violet-200",
+  }
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${map[tipo] ?? "bg-gray-50 text-gray-600 border border-gray-200"}`}>
+      {tipo}
+    </span>
+  )
+}
+
+// ── Hito timeline ─────────────────────────────────────────────────────────────
+
+function HitosTimeline({ p }: { p: Interadministrativo }) {
+  const hitos = [
+    { label: "Suscripción",   date: p.fecha_suscripcion,    done: true },
+    { label: "Inicio",        date: p.fecha_inicio_ejecucion,done: !!p.fecha_inicio_ejecucion },
+    { label: "Ejecución",     date: null,                    done: p.estado === "EN EJECUCIÓN", active: p.estado === "EN EJECUCIÓN" },
+    { label: "Terminación",   date: p.fecha_terminacion,    done: p.estado === "TERMINADO" || p.estado === "LIQUIDADO" },
+    { label: "Liquidación",   date: null,                    done: p.estado === "LIQUIDADO" },
+  ]
 
   return (
-    <div className="space-y-4">
+    <div className="relative">
+      <div className="flex items-start justify-between">
+        {hitos.map((h, i) => (
+          <div key={h.label} className="flex flex-col items-center flex-1 relative">
+            {i < hitos.length - 1 && (
+              <div className="absolute top-3.5 left-1/2 w-full h-0.5" style={{ background: h.done ? "#0B3D91" : "#E2E8F0" }} />
+            )}
+            <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center z-10 ${
+              h.done
+                ? "bg-[#0B3D91] border-[#0B3D91]"
+                : (h as { active?: boolean }).active
+                  ? "bg-white border-[#0B3D91]"
+                  : "bg-white border-[#E2E8F0]"
+            }`}>
+              {h.done && (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              )}
+              {(h as { active?: boolean }).active && !h.done && (
+                <div className="w-2 h-2 rounded-full bg-[#0B3D91]" />
+              )}
+            </div>
+            <p className="text-[10px] font-semibold text-[#434652] mt-2 text-center">{h.label}</p>
+            {h.date && <p className="text-[9px] text-[#747783] text-center">{h.date}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Sidebar derecho ───────────────────────────────────────────────────────────
+
+function Sidebar({ p }: { p: Interadministrativo }) {
+  const days = daysUntil(p.fecha_terminacion)
+  const isExpired  = days !== null && days < 0
+  const isCritical = days !== null && !isExpired && days <= 30
+
+  return (
+    <div className="space-y-4 lg:sticky lg:top-4">
 
       {/* Actores Clave */}
-      <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm space-y-3">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-          <User size={11} /> Actores Clave
-        </p>
-        {p.supervision && (
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-[var(--corporate-blue)]/10 flex items-center justify-center shrink-0">
-              <User size={16} className="text-[var(--corporate-blue)]" />
+      <div className="bg-white border border-[#EAEAEA] rounded-xl p-5" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+        <h4 className="text-[12px] font-bold uppercase tracking-widest text-[#747783] mb-4 flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Actores Clave
+        </h4>
+        <div className="space-y-3">
+          {p.supervision && (
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#0B3D91]/10 flex items-center justify-center shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[#151c27] leading-tight">{p.supervision}</p>
+                <p className="text-[10px] text-[#747783] mt-0.5">Supervisor del contrato</p>
+                <span className="text-[9px] font-bold text-[#0B3D91] bg-[#0B3D91]/10 px-1.5 py-0.5 rounded mt-1 inline-block">Contactar</span>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground leading-tight">{p.supervision}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Supervisión del contrato</p>
+          )}
+          {p.secretaria && (
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-violet-50 flex items-center justify-center shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[#151c27] leading-tight">{p.secretaria}</p>
+                <p className="text-[10px] text-[#747783] mt-0.5">Secretaría contratante</p>
+              </div>
             </div>
-          </div>
-        )}
-        {p.secretaria && (
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-violet-50 flex items-center justify-center shrink-0">
-              <Building2 size={16} className="text-violet-600" />
+          )}
+          {p.area_responsable && (
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center shrink-0">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[#151c27] leading-tight">{p.area_responsable}</p>
+                <p className="text-[10px] text-[#747783] mt-0.5">Área responsable</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground leading-tight">{p.secretaria}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Secretaría contratante</p>
-            </div>
-          </div>
-        )}
-        {p.area_responsable && (
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center shrink-0">
-              <Building2 size={16} className="text-teal-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground leading-tight">{p.area_responsable}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Área responsable</p>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Fechas y Plazos */}
-      <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm space-y-3">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-          <Calendar size={11} /> Fechas y Plazos
-        </p>
-        {[
-          { label: "Suscripción",        value: p.fecha_suscripcion },
-          { label: "Inicio de Ejecución", value: p.fecha_inicio_ejecucion },
-          { label: "Terminación",         value: p.fecha_terminacion },
-        ].map(({ label, value }) => (
-          <div key={label} className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground">{label}</span>
-            <span className="text-xs font-semibold tabular-nums">{value ?? "—"}</span>
-          </div>
-        ))}
-        {p.prorroga && (
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground">Prórroga</span>
-            <span className="text-xs font-semibold text-amber-600">{p.prorroga}</span>
-          </div>
-        )}
+      <div className="bg-white border border-[#EAEAEA] rounded-xl p-5" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+        <h4 className="text-[12px] font-bold uppercase tracking-widest text-[#747783] mb-4 flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Fechas y Plazos
+        </h4>
+        <div className="space-y-3">
+          {[
+            { label: "Suscripción",           value: p.fecha_suscripcion,     color: "text-[#151c27]" },
+            { label: "Inicio de Plazo",        value: p.fecha_inicio_ejecucion, color: "text-[#151c27]" },
+            { label: "Vencimiento Original",   value: p.fecha_terminacion,     color: "text-[#151c27]" },
+            { label: "Prórroga",               value: p.prorroga,              color: "text-amber-600" },
+          ].map(({ label, value, color }) => value && (
+            <div key={label} className="flex items-center justify-between">
+              <span className="text-[11px] text-[#434652]">{label}</span>
+              <span className={`text-xs font-semibold tabular-nums ${color}`}>{value}</span>
+            </div>
+          ))}
+        </div>
 
         {/* Días restantes */}
         {days !== null && (
-          <div className={cn(
-            "mt-2 rounded-xl p-3 text-center",
-            isExpired ? "bg-red-50 border border-red-200" : isCritical ? "bg-amber-50 border border-amber-200" : "bg-[var(--corporate-blue)]/5 border border-[var(--corporate-blue)]/20"
-          )}>
-            {isExpired
-              ? <AlertTriangle size={16} className="text-red-500 mx-auto mb-1" />
-              : <Clock size={16} className={cn("mx-auto mb-1", isCritical ? "text-amber-500" : "text-[var(--corporate-blue)]")} />
-            }
-            <p className={cn("text-2xl font-bold tabular-nums", isExpired ? "text-red-600" : isCritical ? "text-amber-600" : "text-[var(--corporate-blue)]")}>
-              {Math.abs(daysInt)}
+          <div className={`mt-4 rounded-xl p-4 text-center ${
+            isExpired  ? "bg-red-50 border border-red-200" :
+            isCritical ? "bg-amber-50 border border-amber-200" :
+                        "bg-[#0B3D91]/5 border border-[#0B3D91]/20"
+          }`}>
+            <p className={`text-3xl font-bold tabular-nums ${isExpired ? "text-[#EF4444]" : isCritical ? "text-amber-600" : "text-[#0B3D91]"}`}>
+              {Math.abs(days)}
             </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#434652] mt-1">
               {isExpired ? "días vencido" : "días restantes"}
             </p>
             {p.plazo_ejecucion_inicial && (
-              <p className="text-[9px] text-muted-foreground mt-1">Plazo inicial: {p.plazo_ejecucion_inicial}</p>
+              <p className="text-[9px] text-[#747783] mt-1">Plazo inicial: {p.plazo_ejecucion_inicial}</p>
             )}
           </div>
         )}
       </div>
 
-      {/* Financiero rápido */}
-      <div className="bg-white border border-[#EAEAEA] rounded-2xl p-5 shadow-sm">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 mb-3">
-          <TrendingUp size={11} /> Resumen Financiero
-        </p>
-        {(() => {
-          const total = p.total_contrato ?? 0
-          const cuota = p.total_cuota_admin ?? 0
-          const pendiente = p.valor_pendiente_cobrar ?? cuota
-          const pct = cuota > 0 ? Math.round((cuota - pendiente) / cuota * 100) : 0
-          return (
-            <div className="flex items-center gap-4">
-              <div className="relative shrink-0">
-                <CircularProgress pct={pct} size={72} stroke={7} />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-bold">{pct}%</span>
-                </div>
-              </div>
-              <div className="flex-1 space-y-2">
-                {[
-                  { label: "Total contrato", val: fmtMoney(total) },
-                  { label: "Cuota admin", val: fmtMoney(cuota) },
-                  { label: "Pendiente", val: fmtMoney(pendiente), accent: "text-amber-600" },
-                ].map(({ label, val, accent }) => (
-                  <div key={label}>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wide">{label}</p>
-                    <p className={cn("text-xs font-bold tabular-nums", accent)}>{val}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )
-        })()}
-      </div>
-
-      {/* Link SECOP si existe */}
     </div>
   )
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 interface Props {
   project: Interadministrativo
@@ -254,201 +248,290 @@ interface Props {
   contratosError?: string
 }
 
-type TabId = "resumen" | "contratos"
+type TabId = "info" | "contratos"
+
+// ── Componente principal ──────────────────────────────────────────────────────
 
 export function InteradministrativoDetail({ project: p, contratos, contratosError }: Props) {
-  const [tab, setTab] = useState<TabId>("resumen")
+  const [tab, setTab]       = useState<TabId>("info")
   const [selected, setSelected] = useState<Contrato | null>(null)
 
   const derivados      = useMemo(() => contratos.filter((c) => c.tipo_contrato === "DERIVADO"), [contratos])
   const enEjecucion    = useMemo(() => derivados.filter((c) => c.estado === "EN EJECUCIÓN").length, [derivados])
   const valorDerivados = useMemo(() => derivados.reduce((s, c) => s + (c.valor_final ?? c.valor_inicial ?? 0), 0), [derivados])
 
-  const tabCls = (t: TabId) => cn(
-    "px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors",
-    tab === t ? "bg-[var(--corporate-blue)] text-white shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-  )
+  // Financiero
+  const total    = p.total_contrato    ?? 0
+  const cuota    = p.total_cuota_admin ?? 0
+  const pendiente = p.valor_pendiente_cobrar ?? cuota
+  const cobrado   = Math.max(0, cuota - pendiente)
+  const pct       = cuota > 0 ? Math.round(cobrado / cuota * 100) : 0
+
+  // Modificaciones: armar desde campos disponibles
+  const mods = [
+    p.adicion && p.adicion > 0
+      ? { tipo: "ADICIÓN",    fecha: p.fecha_suscripcion ?? "—", detalle: "Adición al valor del contrato", impacto: `+${fmtMoney(p.adicion)}`, accent: "text-emerald-600" }
+      : null,
+    p.prorroga
+      ? { tipo: "PRÓRROGA",   fecha: p.fecha_terminacion ?? "—", detalle: p.prorroga, impacto: "Extensión de plazo", accent: "text-amber-600" }
+      : null,
+    p.suspension
+      ? { tipo: "SUSPENSIÓN", fecha: "—", detalle: p.suspension, impacto: "Suspensión efectiva", accent: "text-yellow-600" }
+      : null,
+    p.reinicio
+      ? { tipo: "REINICIO",   fecha: "—", detalle: p.reinicio, impacto: "Reinicio de ejecución", accent: "text-blue-600" }
+      : null,
+  ].filter(Boolean) as { tipo: string; fecha: string; detalle: string; impacto: string; accent: string }[]
 
   return (
-    <div className="px-6 py-5 max-w-screen-xl mx-auto space-y-5">
+    <div className="p-8 max-w-[1600px] mx-auto space-y-6">
 
-      {/* ── Header card ── */}
-      <div className="bg-white border border-[#EAEAEA] rounded-2xl p-6 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 mb-3">
-          <span className="font-mono text-xl font-bold text-[var(--corporate-blue)]">{p.id_contrato}</span>
-          <EstadoBadge estado={p.estado} />
-          {p.clase_contrato && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">{p.clase_contrato}</span>
-          )}
+      {/* ── Header ── */}
+      <div>
+        <div className="flex items-center gap-2 text-[12px] text-[#747783] mb-3">
+          <span>Contratos</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+          <span className="text-[#002869] font-semibold">{p.id_contrato}</span>
         </div>
+
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {p.clase_contrato && (
+              <span className="text-[11px] font-bold uppercase tracking-wide bg-[#0B3D91]/10 text-[#0B3D91] px-3 py-1 rounded-full">
+                {p.clase_contrato}
+              </span>
+            )}
+            <EstadoBadge estado={p.estado} />
+          </div>
+          <div className="flex gap-2">
+            <button className="flex items-center gap-1.5 px-4 py-2 border border-[#EAEAEA] bg-white rounded-lg text-sm text-[#434652] hover:bg-[#f0f3ff] transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar Ficha
+            </button>
+            <button className="flex items-center gap-1.5 px-4 py-2 bg-[#0B3D91] text-white rounded-lg text-sm font-medium hover:bg-[#002869] transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Editar Registro
+            </button>
+          </div>
+        </div>
+
+        <h2 className="text-[24px] font-bold text-[#002869] mt-3 leading-snug">
+          CONTRATO No. {p.id_contrato}
+        </h2>
         {p.objeto_contrato && (
-          <p className="text-base text-foreground leading-relaxed border-l-2 border-[var(--corporate-blue)]/30 pl-3">
-            {p.objeto_contrato}
-          </p>
+          <p className="text-[#434652] mt-2 max-w-3xl leading-relaxed">{p.objeto_contrato}</p>
         )}
       </div>
 
-      {/* ── KPI row ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {[
-          { label: "Total contrato",      value: fmtMoney(p.total_contrato) },
-          { label: "Cuota admin total",   value: fmtMoney(p.total_cuota_admin) },
-          { label: "Pendiente cobrar",    value: fmtMoney(p.valor_pendiente_cobrar ?? p.total_cuota_admin) },
-          { label: "Contratos derivados", value: String(derivados.length) },
-          { label: "En ejecución",        value: String(enEjecucion) },
-        ].map((k) => (
-          <div key={k.label} className="bg-white border border-[#EAEAEA] rounded-2xl p-4 text-center shadow-sm">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-1 leading-tight">{k.label}</p>
-            <p className="text-sm font-bold text-foreground tabular-nums">{k.value}</p>
-          </div>
+      {/* ── Tabs ── */}
+      <div className="border-b border-[#EAEAEA] flex gap-0">
+        {([
+          { id: "info" as TabId,      label: "Información General" },
+          { id: "contratos" as TabId, label: `Contratos Derivados`, badge: derivados.length },
+        ]).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors -mb-px flex items-center gap-1.5 ${
+              tab === t.id
+                ? "border-[#0B3D91] text-[#0B3D91]"
+                : "border-transparent text-[#747783] hover:text-[#434652]"
+            }`}
+          >
+            {t.label}
+            {t.badge != null && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab === t.id ? "bg-[#0B3D91]/10 text-[#0B3D91]" : "bg-[#f0f3ff] text-[#747783]"}`}>
+                {t.badge}
+              </span>
+            )}
+          </button>
         ))}
       </div>
 
-      {/* ── Tabs ── */}
-      <div className="flex gap-2">
-        <button type="button" className={tabCls("resumen")} onClick={() => setTab("resumen")}>
-          Información general
-        </button>
-        <button type="button" className={tabCls("contratos")} onClick={() => setTab("contratos")}>
-          Contratos derivados
-          <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-white/20">{derivados.length}</span>
-        </button>
-      </div>
-
-      {/* ── Tab: Resumen + Sidebar ── */}
-      {tab === "resumen" && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-start">
+      {/* ── Tab: Información General ── */}
+      {tab === "info" && (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
 
           {/* Contenido principal */}
-          <div className="bg-white border border-[#EAEAEA] rounded-2xl p-6 shadow-sm space-y-1">
+          <div className="space-y-5">
 
-            <Section title="Identificación" />
-            <div className="pt-4 space-y-4">
-              <Row2>
-                <Field label="N° Contrato" value={fmt(p.id_contrato)} mono />
-                <Field label="Modalidad de selección" value={fmt(p.modalidad_seleccion)} />
-              </Row2>
-              <Row2>
-                <Field label="Clase de contrato" value={fmt(p.clase_contrato)} />
-                <Field label="Secretaría" value={fmt(p.secretaria)} />
-              </Row2>
-              <Row2>
-                <Field label="Área responsable" value={fmt(p.area_responsable)} />
-                <Field label="Supervisión" value={fmt(p.supervision)} />
-              </Row2>
-            </div>
+            {/* Resumen Financiero */}
+            <div className="bg-white border border-[#EAEAEA] rounded-xl p-6" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-[18px] font-semibold text-[#151c27] flex items-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                  Resumen Financiero
+                </h3>
+                <span className="text-[11px] text-[#747783]">Corte: {new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })}</span>
+              </div>
 
-            <Section title="Fechas y Plazos" />
-            <div className="pt-4 space-y-4">
-              <Row3>
-                <Field label="Fecha suscripción" value={fmt(p.fecha_suscripcion)} />
-                <Field label="Fecha inicio ejecución" value={fmt(p.fecha_inicio_ejecucion)} />
-                <Field label="Plazo ejecución inicial" value={fmt(p.plazo_ejecucion_inicial)} />
-              </Row3>
-              <Row3>
-                <Field label="Prórroga" value={fmt(p.prorroga)} />
-                <Field label="Suspensión" value={fmt(p.suspension)} />
-                <Field label="Reinicio" value={fmt(p.reinicio)} />
-              </Row3>
-              <Row2>
-                <Field label="Fecha terminación" value={fmt(p.fecha_terminacion)} />
-              </Row2>
-            </div>
+              <div className="flex flex-wrap items-center gap-8">
+                <CircularProgress pct={pct} />
 
-            <Section title="Información Financiera" />
-            <div className="pt-4 space-y-4">
-              <Row3>
-                <Field label="Valor inicial" value={fmtMoney(p.valor_inicial)} />
-                <Field label="Adición" value={fmtMoney(p.adicion)} />
-                <Field label="Total contrato" value={fmtMoney(p.total_contrato)} />
-              </Row3>
-              <Row3>
-                <Field label="Cuota admin inicial" value={fmtMoney(p.cuota_admin_inicial)} />
-                <Field label="Adición cuota admin" value={fmtMoney(p.adicion_cuota_admin)} />
-                <Field label="Total cuota admin" value={fmtMoney(p.total_cuota_admin)} />
-              </Row3>
-              <Row3>
-                <Field label="Bolsa gerencia inicial" value={fmtMoney(p.bolsa_gerencia_inicial)} />
-                <Field label="Adición bolsa mandato" value={fmtMoney(p.adicion_bolsa_mandato)} />
-                <Field label="Total bolsa mandato" value={fmtMoney(p.total_bolsa_mandato)} />
-              </Row3>
-              <Row2>
-                <Field label="Pendiente por cobrar" value={fmtMoney(p.valor_pendiente_cobrar ?? p.total_cuota_admin)} />
-                <Field label="Vigencias futuras" value={fmtMoney(p.vigencias_futuras)} />
-              </Row2>
-            </div>
-
-            {p.observaciones && (
-              <>
-                <Section title="Observaciones" />
-                <div className="pt-3">
-                  <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{p.observaciones}</p>
+                <div className="flex-1 min-w-[240px] space-y-4">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#747783] mb-0.5">Valor Inicial</p>
+                    <p className="text-xl font-bold text-[#151c27] tabular-nums">{fmtMoney(p.valor_inicial)}</p>
+                  </div>
+                  {p.adicion != null && p.adicion > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#747783] mb-0.5">Adiciones / Reducciones</p>
+                      <p className="text-xl font-bold text-emerald-600 tabular-nums">+{fmtMoney(p.adicion)}</p>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[#EAEAEA]">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#747783] mb-0.5">Cuota Admin Total</p>
+                      <p className="text-base font-bold text-[#0B3D91] tabular-nums">{fmtMoney(cuota)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#747783] mb-0.5">Saldo Pendiente</p>
+                      <p className="text-base font-bold text-amber-600 tabular-nums">{fmtMoney(pendiente)}</p>
+                    </div>
+                  </div>
                 </div>
-              </>
+              </div>
+            </div>
+
+            {/* Modificaciones al Contrato */}
+            {mods.length > 0 && (
+              <div className="bg-white border border-[#EAEAEA] rounded-xl overflow-hidden" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
+                  <h3 className="text-[18px] font-semibold text-[#151c27] flex items-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" strokeWidth="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+                    Modificaciones al Contrato
+                  </h3>
+                  <span className="text-[11px] text-[#0B3D91] font-semibold cursor-pointer hover:underline">HISTORIAL COMPLETO</span>
+                </div>
+                <table className="w-full text-left">
+                  <thead className="bg-[#f9f9ff] border-b border-[#EAEAEA]">
+                    <tr>
+                      {["Tipo", "Fecha", "Detalle", "Impacto"].map((h) => (
+                        <th key={h} className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#747783]">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#EAEAEA]">
+                    {mods.map((m, i) => (
+                      <tr key={i} className="hover:bg-[#f0f3ff] transition-colors">
+                        <td className="px-6 py-3.5"><ModChip tipo={m.tipo} /></td>
+                        <td className="px-6 py-3.5 text-sm text-[#434652]">{m.fecha}</td>
+                        <td className="px-6 py-3.5 text-sm text-[#434652] max-w-xs"><span className="line-clamp-2">{m.detalle}</span></td>
+                        <td className={`px-6 py-3.5 text-sm font-semibold ${m.accent}`}>{m.impacto}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
+
+            {/* Avance Físico & Hitos */}
+            <div className="bg-white border border-[#EAEAEA] rounded-xl p-6" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+              <h3 className="text-[18px] font-semibold text-[#151c27] mb-6 flex items-center gap-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" strokeWidth="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Avance Físico &amp; Hitos
+              </h3>
+              <HitosTimeline p={p} />
+
+              {/* Info adicional */}
+              <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: "Plazo inicial",   value: fmt(p.plazo_ejecucion_inicial) },
+                  { label: "Suspensión",      value: fmt(p.suspension) },
+                  { label: "Reinicio",        value: fmt(p.reinicio) },
+                  { label: "Vigencias fut.",  value: fmtMoney(p.vigencias_futuras) },
+                ].map((k) => (
+                  <div key={k.label} className="bg-[#f9f9ff] rounded-lg p-3">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-[#747783] mb-1">{k.label}</p>
+                    <p className="text-sm font-semibold text-[#151c27]">{k.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {(p.observaciones) && (
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
+                  <svg width="16" height="16" className="text-amber-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <p className="text-sm text-amber-800 leading-relaxed">{p.observaciones}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Identificación */}
+            <div className="bg-white border border-[#EAEAEA] rounded-xl p-6" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+              <h3 className="text-[18px] font-semibold text-[#151c27] mb-5">Información General</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-4">
+                {[
+                  { label: "N° Contrato",              value: fmt(p.id_contrato),            mono: true },
+                  { label: "Modalidad de selección",   value: fmt(p.modalidad_seleccion) },
+                  { label: "Clase de contrato",        value: fmt(p.clase_contrato) },
+                  { label: "Secretaría",               value: fmt(p.secretaria) },
+                  { label: "Área responsable",         value: fmt(p.area_responsable) },
+                  { label: "Supervisión",              value: fmt(p.supervision) },
+                  { label: "Valor inicial",            value: fmtMoney(p.valor_inicial),     mono: true },
+                  { label: "Adición",                  value: fmtMoney(p.adicion),           mono: true },
+                  { label: "Total contrato",           value: fmtMoney(p.total_contrato),    mono: true },
+                  { label: "Cuota admin inicial",      value: fmtMoney(p.cuota_admin_inicial), mono: true },
+                  { label: "Total cuota admin",        value: fmtMoney(p.total_cuota_admin), mono: true },
+                  { label: "Pendiente por cobrar",     value: fmtMoney(p.valor_pendiente_cobrar ?? p.total_cuota_admin), mono: true },
+                ].map((f) => (
+                  <div key={f.label}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[#747783] mb-0.5">{f.label}</p>
+                    <p className={`text-sm ${f.value === "—" ? "text-[#747783]" : "text-[#151c27] font-medium"} ${f.mono ? "font-mono" : ""}`}>{f.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Sidebar */}
-          <ActoresSidebar p={p} />
+          <Sidebar p={p} />
         </div>
       )}
 
-      {/* ── Tab: Contratos derivados ── */}
+      {/* ── Tab: Contratos Derivados ── */}
       {tab === "contratos" && (
-        <div className="bg-white border border-[#EAEAEA] rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-[#EAEAEA] rounded-xl overflow-hidden" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
           {contratosError ? (
-            <div className="p-6 text-sm text-destructive">{contratosError}</div>
+            <div className="p-6 text-sm text-red-600">{contratosError}</div>
           ) : derivados.length === 0 ? (
-            <div className="p-12 text-center text-sm text-muted-foreground">
-              No hay contratos derivados registrados para este convenio.
+            <div className="p-12 text-center">
+              <p className="text-sm font-semibold text-[#151c27]">Sin contratos derivados</p>
+              <p className="text-xs text-[#747783] mt-1">No hay contratos derivados registrados para este convenio.</p>
             </div>
           ) : (
             <>
-              <div className="px-5 py-3 border-b border-border bg-[#F8FAFC] flex flex-wrap gap-6 text-xs">
+              <div className="px-6 py-4 border-b border-[#EAEAEA] bg-[#f0f3ff] flex flex-wrap gap-6 text-sm">
                 <span><strong>{derivados.length}</strong> contratos derivados</span>
-                <span><strong className="text-emerald-600">{enEjecucion}</strong> en ejecución</span>
-                <span>Valor total: <strong>{fmtMoney(valorDerivados)}</strong></span>
+                <span><strong className="text-[#10B981]">{enEjecucion}</strong> en ejecución</span>
+                <span>Valor total: <strong className="text-[#D9A520]">{fmtMoney(valorDerivados)}</strong></span>
               </div>
-
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border bg-[#F8FAFC] text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-2.5 font-semibold whitespace-nowrap">N° Contrato</th>
-                      <th className="px-4 py-2.5 font-semibold min-w-[180px]">Objeto</th>
-                      <th className="px-4 py-2.5 font-semibold min-w-[130px]">Contratista</th>
-                      <th className="px-4 py-2.5 font-semibold">Estado</th>
-                      <th className="px-4 py-2.5 font-semibold whitespace-nowrap">Supervisor</th>
-                      <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-right">Valor final</th>
-                      <th className="px-4 py-2.5 font-semibold whitespace-nowrap text-right">Pendiente</th>
-                      <th className="px-4 py-2.5 font-semibold whitespace-nowrap">F. terminación</th>
+                <table className="w-full text-left">
+                  <thead className="bg-white border-b border-[#EAEAEA]">
+                    <tr>
+                      {["N° Contrato", "Objeto", "Contratista", "Estado", "Supervisor", "Valor Final", "Pendiente", "F. Terminación"].map((h) => (
+                        <th key={h} className="px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-[#747783]">{h}</th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-[#EAEAEA]">
                     {derivados.map((c) => (
                       <tr key={c.id} onClick={() => setSelected(c)}
-                        className="border-b border-border/60 last:border-0 hover:bg-[var(--corporate-blue)]/5 transition-colors cursor-pointer"
+                        className="hover:bg-[#f0f3ff] transition-colors cursor-pointer"
                       >
-                        <td className="px-4 py-2.5">
-                          <span className="font-semibold text-xs font-mono text-[var(--corporate-blue)]">{c.numero_contrato ?? "—"}</span>
-                        </td>
-                        <td className="px-4 py-2.5 max-w-xs">
-                          <span className="text-xs line-clamp-2">{c.objeto_contrato ?? "—"}</span>
-                        </td>
-                        <td className="px-4 py-2.5 max-w-[140px]">
-                          <span className="text-xs truncate block">{c.contratista ?? "—"}</span>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <ContratoBadge estado={c.estado} />
-                        </td>
-                        <td className="px-4 py-2.5 text-xs max-w-[110px] truncate">{c.supervisor ?? "—"}</td>
-                        <td className="px-4 py-2.5 text-right font-medium tabular-nums text-xs whitespace-nowrap">
+                        <td className="px-6 py-3.5 text-sm font-bold text-[#0B3D91] font-mono whitespace-nowrap">{c.numero_contrato ?? "—"}</td>
+                        <td className="px-6 py-3.5 text-sm text-[#434652] max-w-xs"><span className="line-clamp-2">{c.objeto_contrato ?? "—"}</span></td>
+                        <td className="px-6 py-3.5 text-sm font-medium text-[#151c27] max-w-[140px]"><span className="truncate block">{c.contratista ?? "—"}</span></td>
+                        <td className="px-6 py-3.5"><ContratoBadge estado={c.estado} /></td>
+                        <td className="px-6 py-3.5 text-sm text-[#434652] max-w-[110px]"><span className="truncate block">{c.supervisor ?? "—"}</span></td>
+                        <td className="px-6 py-3.5 text-sm font-bold text-[#D9A520] text-right tabular-nums whitespace-nowrap">
                           {c.valor_final != null ? fmtMoney(c.valor_final) : fmtMoney(c.valor_inicial)}
                         </td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-xs whitespace-nowrap text-amber-700">
+                        <td className="px-6 py-3.5 text-sm text-amber-600 font-medium text-right tabular-nums whitespace-nowrap">
                           {c.valor_pendiente != null ? fmtMoney(c.valor_pendiente) : "—"}
                         </td>
-                        <td className="px-4 py-2.5 text-xs text-muted-foreground whitespace-nowrap">{c.fecha_terminacion ?? "—"}</td>
+                        <td className="px-6 py-3.5 text-sm text-[#747783] whitespace-nowrap">{c.fecha_terminacion ?? "—"}</td>
                       </tr>
                     ))}
                   </tbody>
