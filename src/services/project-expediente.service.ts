@@ -8,7 +8,7 @@ import type {
   ProjectExpedienteData,
 } from "@/types/project-expediente"
 import {
-  getProjectById,
+  getProjectByNumericId,
   getProjectContractTree,
   getProjectFollowups,
   getProjectAssignments,
@@ -160,9 +160,12 @@ export async function getProjectExpedienteData(
 ): Promise<ProjectExpedienteData | null> {
   const warnings: string[] = []
 
+  const numericId = parseInt(projectId, 10)
+  if (isNaN(numericId)) return null
+
   const project = await safeExpedienteLoad(
     "Proyecto",
-    () => getProjectById(projectId),
+    () => getProjectByNumericId(numericId),
     null,
     warnings
   )
