@@ -19,12 +19,12 @@ function yearFromRef(ref: string | null | undefined): string {
 
 function EstadoBadge({ estado }: { estado: DerivedContractRow["parent_estado"] }) {
   if (!estado) return <span className="text-muted-foreground text-xs">—</span>
-  const map = {
+  const map: Record<string, { cls: string; dot: string; label: string }> = {
     "EN EJECUCIÓN": { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", dot: "bg-emerald-400", label: "En ejecución" },
     "TERMINADO":    { cls: "bg-slate-50 text-slate-700 border-slate-200",   dot: "bg-slate-400",   label: "Terminado" },
     "LIQUIDADO":    { cls: "bg-blue-50 text-blue-700 border-blue-200",      dot: "bg-blue-400",    label: "Liquidado" },
   }
-  const cfg = map[estado]
+  const cfg = map[estado] ?? map["TERMINADO"]
   return (
     <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border", cfg.cls)}>
       <span className={cn("w-1.5 h-1.5 rounded-full", cfg.dot)} />
