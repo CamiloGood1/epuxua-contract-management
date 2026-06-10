@@ -55,7 +55,12 @@ export async function getInteradminDashboardKPIs(): Promise<InteradminDashboardK
   const terminated = rows.filter((r) => r.estado === "TERMINADO").length
   const liquidated = rows.filter((r) => r.estado === "LIQUIDADO").length
   const totalValue      = rows.reduce((s, r) => s + Number(r.total_contrato       ?? 0), 0)
-  const pendingValue    = rows.reduce((s, r) => s + Number(r.valor_pendiente_cobrar ?? 0), 0)
+  // valor_pendiente_cobrar puede ser NULL en la importación — usar total_cuota_admin como fallback
+  const pendingValue    = rows.reduce((s, r) => {
+    const pdc = r.valor_pendiente_cobrar != null ? Number(r.valor_pendiente_cobrar) : null
+    const fallback = pdc != null && pdc > 0 ? pdc : Number(r.total_cuota_admin ?? 0)
+    return s + fallback
+  }, 0)
   const totalCuotaAdmin = rows.reduce((s, r) => s + Number(r.total_cuota_admin    ?? 0), 0)
 
   return {

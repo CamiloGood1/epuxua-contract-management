@@ -1,56 +1,60 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
-import { getProjectExpedienteData } from "@/services/project-expediente.service"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/services/user.service"
 import { canEditProjects } from "@/modules/projects/lib/access"
-import { ProjectExpediente } from "@/modules/projects/components/project-expediente"
+import { InteradministrativoDetail } from "@/modules/projects/components/interadministrativo-detail"
+import type { Interadministrativo, Contrato } from "@/types/database"
 
 interface PageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ tab?: string }>
 }
 
-function ExpedienteLoadError({ message }: { message: string }) {
-  return (
-    <div className="max-w-lg mx-auto py-16 px-4 text-center space-y-4">
-      <h1 className="text-lg font-semibold">No se pudo cargar el expediente</h1>
-      <p className="text-sm text-muted-foreground">{message}</p>
-      <Link
-        href="/proyectos"
-        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-      >
-        <ArrowLeft size={14} />
-        Volver a proyectos
-      </Link>
-    </div>
-  )
-}
-
-export default async function ProyectoExpedientePage({ params, searchParams }: PageProps) {
+export default async function ProyectoDetallePage({ params }: PageProps) {
   const { id } = await params
-  const { tab } = await searchParams
 
-  try {
-    const [data, profile] = await Promise.all([
-      getProjectExpedienteData(id),
-      getCurrentUserProfile(),
+  const numericId = parseInt(id, 10)
+  if (isNaN(numericId)) notFound()
+
+  const supabase = await createSupabaseServerClient()
+
+  const [{ data: project, error: projError }, { data: contratos, error: contError }, profile] =
+    await Promise.all([
+      supabase
+        .from("interadministrativos")
+        .select("*")
+        .eq("id", numericId)
+        .maybeSingle(),
+      supabase
+        .from("contratos")
+        .select("*")
+        .eq("id_interadministrativo", id)
+        .order("numero_contrato", { ascending: true })
+        .limit(500),
+      getCurrentUserProfile().catch(() => null),
     ])
 
-    if (!data) notFound()
+  if (projError || !project) notFound()
 
-    return (
-      <ProjectExpediente
-        data={data}
-        initialTab={tab}
+  return (
+    <div className="space-y-0">
+      <div className="px-6 pt-5">
+        <Link
+          href="/proyectos"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft size={14} />
+          Volver a proyectos
+        </Link>
+      </div>
+
+      <InteradministrativoDetail
+        project={project as Interadministrativo}
+        contratos={(contratos ?? []) as Contrato[]}
         canEdit={canEditProjects(profile?.role)}
+        contratosError={contError?.message}
       />
-    )
-  } catch (e) {
-    const message =
-      e instanceof Error
-        ? e.message
-        : "Ocurrió un error inesperado al cargar el proyecto."
-    return <ExpedienteLoadError message={message} />
-  }
+    </div>
+  )
 }
