@@ -1,9 +1,8 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { Contrato, EstadoInteradministrativo } from "@/types/database"
 
-export interface DerivedContractRow extends Contrato {
+export type DerivedContractRow = Omit<Contrato, "tipo_contrato"> & {
   tipo_contrato: "DERIVADO"
-  // From JOIN with interadministrativos
   parent_objeto:     string | null
   parent_secretaria: string | null
   parent_area:       string | null
