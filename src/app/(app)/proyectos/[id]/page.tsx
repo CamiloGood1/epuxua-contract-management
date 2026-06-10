@@ -19,23 +19,23 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
 
   const supabase = await createSupabaseServerClient()
 
-  const [{ data: project, error: projError }, { data: contratos, error: contError }, profile] =
-    await Promise.all([
-      supabase
-        .from("interadministrativos")
-        .select("*")
-        .eq("id", numericId)
-        .maybeSingle(),
-      supabase
-        .from("contratos")
-        .select("*")
-        .eq("id_interadministrativo", id)
-        .order("numero_contrato", { ascending: true })
-        .limit(500),
-      getCurrentUserProfile().catch(() => null),
-    ])
+  const [{ data: project, error: projError }, profile] = await Promise.all([
+    supabase
+      .from("interadministrativos")
+      .select("*")
+      .eq("id", numericId)
+      .maybeSingle(),
+    getCurrentUserProfile().catch(() => null),
+  ])
 
   if (projError || !project) notFound()
+
+  const { data: contratos, error: contError } = await supabase
+    .from("contratos")
+    .select("*")
+    .eq("id_interadministrativo", project.id_contrato)
+    .order("numero_contrato", { ascending: true })
+    .limit(500)
 
   return (
     <div className="space-y-0">
