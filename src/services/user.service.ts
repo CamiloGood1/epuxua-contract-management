@@ -24,12 +24,12 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
     .maybeSingle()
 
   if (error) {
-    // user_profiles table may not exist in current schema — return default
+    // user_profiles table doesn't exist yet — grant full access until roles system is implemented
     return {
       id: user.id,
       email: user.email ?? null,
       full_name: null,
-      role: "ESPECTADOR" as UserRole,
+      role: "ADMIN" as UserRole,
     }
   }
   if (!data) {
@@ -37,7 +37,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
       id: user.id,
       email: user.email ?? null,
       full_name: null,
-      role: "ESPECTADOR",
+      role: "ADMIN" as UserRole,
     }
   }
 

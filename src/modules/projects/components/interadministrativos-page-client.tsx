@@ -3,12 +3,13 @@
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { FolderKanban, ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { FolderKanban, ChevronLeft, ChevronRight, Search, Plus, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import type { Interadministrativo, EstadoInteradministrativo } from "@/types/database"
 import { ESTADO_CONFIG, ESTADO_ORDER } from "../lib/lifecycle"
 import { formatDate } from "../lib/project-utils"
+import { NewInteradminProjectModal } from "./new-interadmin-project-modal"
 
 const PAGE_SIZE = 20
 
@@ -18,6 +19,61 @@ interface Props {
   years: number[]
 }
 
+function fmt(v: number | null | undefined): string {
+  if (v == null) return ""
+  return new Intl.NumberFormat("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v)
+}
+
+async function downloadExcel(data: Interadministrativo[]) {
+  const { utils, writeFile } = await import("xlsx")
+
+  const rows = data.map((p) => ({
+    "N° Contrato":             p.id_contrato,
+    "Estado":                  p.estado,
+    "Objeto del Contrato":     p.objeto_contrato ?? "",
+    "Categoría":               p.categoria ?? "",
+    "Secretaría":              p.secretaria ?? "",
+    "Área Responsable":        p.area_responsable ?? "",
+    "Supervisión":             p.supervision ?? "",
+    "Clase Contrato":          p.clase_contrato ?? "",
+    "Modalidad Selección":     p.modalidad_seleccion ?? "",
+    "Fecha Suscripción":       p.fecha_suscripcion ?? "",
+    "Fecha Inicio Ejecución":  p.fecha_inicio_ejecucion ?? "",
+    "Fecha Terminación":       p.fecha_terminacion ?? "",
+    "Plazo Ejecución":         p.plazo_ejecucion_inicial ?? "",
+    "% Cuota Gerencia":        p.pct_cuota_gerencia ?? "",
+    "Valor Inicial (COP)":     fmt(p.valor_inicial),
+    "Adición (COP)":           fmt(p.adicion),
+    "Total Contrato (COP)":    fmt(p.total_contrato),
+    "Cuota Admin Inicial (COP)": fmt(p.cuota_admin_inicial),
+    "Adición Cuota Admin (COP)": fmt(p.adicion_cuota_admin),
+    "Total Cuota Admin (COP)": fmt(p.total_cuota_admin),
+    "Bolsa Gerencia Inicial (COP)": fmt(p.bolsa_gerencia_inicial),
+    "Total Bolsa Mandato (COP)": fmt(p.total_bolsa_mandato),
+    "Valor Pendiente Cobrar (COP)": fmt(p.valor_pendiente_cobrar),
+    "Observaciones":           p.observaciones ?? "",
+    "Link SECOP II":           p.link_secop ?? "",
+    "Link Documentación":      p.link_documentacion ?? "",
+  }))
+
+  const ws = utils.json_to_sheet(rows)
+
+  // Anchos de columna aproximados
+  ws["!cols"] = [
+    { wch: 22 }, { wch: 24 }, { wch: 60 }, { wch: 20 }, { wch: 30 }, { wch: 24 },
+    { wch: 24 }, { wch: 20 }, { wch: 24 }, { wch: 18 }, { wch: 22 }, { wch: 18 },
+    { wch: 16 }, { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 22 }, { wch: 24 },
+    { wch: 24 }, { wch: 24 }, { wch: 26 }, { wch: 26 }, { wch: 28 }, { wch: 30 },
+    { wch: 40 }, { wch: 40 },
+  ]
+
+  const wb = utils.book_new()
+  utils.book_append_sheet(wb, ws, "Contratos Interadministrativos")
+
+  const date = new Date().toISOString().slice(0, 10)
+  writeFile(wb, `EPUXUA_Interadministrativos_${date}.xlsx`)
+}
+
 export function InteradministrativosPageClient({ projects, entities, years }: Props) {
   const router = useRouter()
   const [search, setSearch] = useState("")
@@ -25,6 +81,8 @@ export function InteradministrativosPageClient({ projects, entities, years }: Pr
   const [entity, setEntity] = useState<string>("all")
   const [year, setYear] = useState<string>("all")
   const [page, setPage] = useState(0)
+  const [showNewModal, setShowNewModal] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
   const filtered = useMemo(() => {
     return projects.filter((p) => {
@@ -57,10 +115,41 @@ export function InteradministrativosPageClient({ projects, entities, years }: Pr
     setSearch(""); setEstado("all"); setEntity("all"); setYear("all"); setPage(0)
   }
 
+  async function handleDownload() {
+    setDownloading(true)
+    try {
+      // Descarga los contratos actualmente filtrados (o todos si no hay filtros)
+      await downloadExcel(filtered)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   const sel = "h-9 rounded-lg border border-[#EAEAEA] bg-white pl-3 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-[var(--corporate-blue)]/20"
 
   return (
     <div className="space-y-4">
+      {/* Encabezado con botones */}
+      <div className="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={handleDownload}
+          disabled={downloading || filtered.length === 0}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#EAEAEA] bg-white text-sm font-semibold text-[#0B3D91] hover:bg-[#f0f4ff] transition-colors shadow-sm disabled:opacity-50"
+        >
+          <Download size={14} />
+          {downloading ? "Generando…" : `Descargar Excel${hasFilters ? ` (${filtered.length})` : ""}`}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowNewModal(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0B3D91] text-white text-sm font-semibold hover:bg-[#002869] transition-colors shadow-sm"
+        >
+          <Plus size={14} />
+          Nuevo Contrato Interadministrativo
+        </button>
+      </div>
+
       {/* Filtros */}
       <div className="epuxua-card p-4 space-y-3">
         <div className="relative">
@@ -215,6 +304,12 @@ export function InteradministrativosPageClient({ projects, entities, years }: Pr
           </motion.div>
         )}
       </AnimatePresence>
+
+      <NewInteradminProjectModal
+        open={showNewModal}
+        onClose={() => setShowNewModal(false)}
+        isAdmin={true}
+      />
     </div>
   )
 }
