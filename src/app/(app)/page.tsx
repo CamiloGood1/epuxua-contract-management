@@ -8,9 +8,11 @@ import {
   getFuncionamientoDashboardKPIs,
   getInteradminDashboardKPIs,
   getDashboardAlerts,
+  getFacturacionDashboardKPIs,
   type FuncionamientoDashboardKPIs,
   type InteradminDashboardKPIs,
   type DashboardAlerts,
+  type FacturacionDashboardKPIs,
 } from "@/services/dashboard.service"
 import { getCurrentUserProfile } from "@/services/user.service"
 import { canCreateProject } from "@/modules/projects/lib/access"
@@ -30,6 +32,9 @@ const EMPTY_INTERADMIN_KPIS: InteradminDashboardKPIs = {
   totalDerivedContracts: 0, activeDerivedContracts: 0,
 }
 const EMPTY_ALERTS: DashboardAlerts = { expiringSoon: [], expired: [] }
+const EMPTY_FACTURACION_KPIS: FacturacionDashboardKPIs = {
+  facturadoTotal: 0, ingresadoTotal: 0, pendienteTotal: 0, facturadoBienes: 0, facturadoCuota: 0,
+}
 
 export default async function Page() {
   let projects: Awaited<ReturnType<typeof getProjects>> = []
@@ -37,13 +42,14 @@ export default async function Page() {
   let topFuncContracts: FuncionamientoContrato[] = []
   let funcKPIs: FuncionamientoDashboardKPIs = EMPTY_FUNC_KPIS
   let interadminKPIs: InteradminDashboardKPIs = EMPTY_INTERADMIN_KPIS
+  let facturacionKPIs: FacturacionDashboardKPIs = EMPTY_FACTURACION_KPIS
   let alerts: DashboardAlerts = EMPTY_ALERTS
   let fetchError: string | undefined
   let canCreate = false
   let isAdmin   = false
 
   try {
-    const [raw, catalogs, funcContracts, funcKPIsRaw, interadminKPIsRaw, alertsRaw, profile] =
+    const [raw, catalogs, funcContracts, funcKPIsRaw, interadminKPIsRaw, alertsRaw, facturacionRaw, profile] =
       await Promise.all([
         getProjects(),
         getProjectFilterCatalogs(),
@@ -51,14 +57,16 @@ export default async function Page() {
         getFuncionamientoDashboardKPIs(),
         getInteradminDashboardKPIs(),
         getDashboardAlerts(),
+        getFacturacionDashboardKPIs().catch(() => EMPTY_FACTURACION_KPIS),
         getCurrentUserProfile().catch(() => null),
       ])
 
-    funcKPIs       = funcKPIsRaw
-    interadminKPIs = interadminKPIsRaw
-    alerts         = alertsRaw
-    canCreate      = canCreateProject(profile?.role)
-    isAdmin        = profile?.role === "ADMIN"
+    funcKPIs        = funcKPIsRaw
+    interadminKPIs  = interadminKPIsRaw
+    facturacionKPIs = facturacionRaw
+    alerts          = alertsRaw
+    canCreate       = canCreateProject(profile?.role)
+    isAdmin         = profile?.role === "ADMIN"
     topFuncContracts = funcContracts.slice(0, 5)
     projects = await enrichProjectsWithManagers(raw)
     entities = catalogs.entities
@@ -73,6 +81,7 @@ export default async function Page() {
       fetchError={fetchError}
       funcionamientoKPIs={funcKPIs}
       interadminKPIs={interadminKPIs}
+      facturacionKPIs={facturacionKPIs}
       topActiveFuncContracts={topFuncContracts}
       alerts={alerts}
       canCreate={canCreate}

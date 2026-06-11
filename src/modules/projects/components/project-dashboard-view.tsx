@@ -11,7 +11,7 @@ import {
   uniqueProjectYears,
 } from "../lib/dashboard-utils"
 import type { FuncionamientoContrato } from "@/services/funcionamiento.service"
-import type { FuncionamientoDashboardKPIs, InteradminDashboardKPIs, DashboardAlerts, DashboardAlertItem } from "@/services/dashboard.service"
+import type { FuncionamientoDashboardKPIs, InteradminDashboardKPIs, DashboardAlerts, DashboardAlertItem, FacturacionDashboardKPIs } from "@/services/dashboard.service"
 import { projectEntityLabel } from "../lib/project-utils"
 import { NewInteradminProjectModal } from "./new-interadmin-project-modal"
 import { NewDerivedContractModal } from "@/modules/contracts/components/new-derived-contract-modal"
@@ -253,6 +253,7 @@ interface ProjectDashboardViewProps {
   fetchError?: string
   funcionamientoKPIs: FuncionamientoDashboardKPIs
   interadminKPIs: InteradminDashboardKPIs
+  facturacionKPIs: FacturacionDashboardKPIs
   topActiveFuncContracts: FuncionamientoContrato[]
   alerts: DashboardAlerts
   canCreate?: boolean
@@ -267,6 +268,7 @@ export function ProjectDashboardView({
   fetchError,
   funcionamientoKPIs,
   interadminKPIs,
+  facturacionKPIs,
   topActiveFuncContracts,
   alerts,
   canCreate = false,
@@ -663,6 +665,49 @@ export function ProjectDashboardView({
           </div>
         </div>
       </div>
+
+      {/* ── Facturación y Recaudo ── */}
+      {(facturacionKPIs.facturadoTotal > 0 || true) && (
+        <div className="bg-white border border-[#EAEAEA] rounded-xl overflow-hidden" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
+            <h4 className="text-[18px] font-semibold text-[#151c27] flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              Facturación y Recaudo
+            </h4>
+            <span className="text-[11px] text-[#747783]">Todos los contratos interadministrativos</span>
+          </div>
+          <div className="grid grid-cols-3 md:grid-cols-5 divide-x divide-[#EAEAEA]">
+            {[
+              { label: "Facturado Total",   value: fmtCompact(facturacionKPIs.facturadoTotal),  accent: "text-[#0B3D91]" },
+              { label: "Recaudo Total",     value: fmtCompact(facturacionKPIs.ingresadoTotal),  accent: "text-emerald-600" },
+              { label: "Pendiente",         value: fmtCompact(facturacionKPIs.pendienteTotal),  accent: facturacionKPIs.pendienteTotal > 0 ? "text-amber-600" : "text-[#747783]" },
+              { label: "Bienes y Servicios",value: fmtCompact(facturacionKPIs.facturadoBienes), accent: "text-[#0B3D91]" },
+              { label: "Cuota de Gerencia", value: fmtCompact(facturacionKPIs.facturadoCuota),  accent: "text-violet-600" },
+            ].map((k) => (
+              <div key={k.label} className="px-6 py-5 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#747783] mb-1">{k.label}</p>
+                <p className={`text-lg font-bold tabular-nums ${k.accent}`}>{k.value}</p>
+              </div>
+            ))}
+          </div>
+          {facturacionKPIs.facturadoTotal > 0 && (
+            <div className="px-6 pb-5">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[11px] text-[#747783]">Progreso de recaudo global</p>
+                <span className="text-[11px] font-bold text-emerald-600">
+                  {Math.round(facturacionKPIs.ingresadoTotal / facturacionKPIs.facturadoTotal * 100)}%
+                </span>
+              </div>
+              <div className="h-2 bg-[#f0f3ff] rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all"
+                  style={{ width: `${Math.round(facturacionKPIs.ingresadoTotal / facturacionKPIs.facturadoTotal * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Botón nuevo derivado (oculto) */}
       <button type="button" className="hidden" onClick={() => setShowNewDerived(true)} />

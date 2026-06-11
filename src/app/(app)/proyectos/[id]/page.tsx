@@ -8,6 +8,7 @@ import { InteradministrativoDetail } from "@/modules/projects/components/interad
 import type { Interadministrativo, Contrato } from "@/types/database"
 import type { ModificacionesData } from "@/types/modificaciones"
 import { EMPTY_MODIFICACIONES } from "@/types/modificaciones"
+import type { Factura } from "@/types/facturas"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -39,6 +40,7 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
     { data: suspensiones },
     { data: reinicios },
     { data: aclaratorios },
+    { data: facturasRaw },
   ] = await Promise.all([
     supabase.from("contratos").select("*").eq("id_interadministrativo", project.id_contrato).order("numero_contrato", { ascending: true }).limit(500),
     supabase.from("interadmin_adiciones"    as never).select("*").eq("interadministrativo_id", numericId).order("numero_adicion",    { ascending: true }),
@@ -46,6 +48,7 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
     supabase.from("interadmin_suspensiones" as never).select("*").eq("interadministrativo_id", numericId).order("numero_suspension", { ascending: true }),
     supabase.from("interadmin_reinicios"    as never).select("*").eq("interadministrativo_id", numericId).order("numero_reinicio",   { ascending: true }),
     supabase.from("interadmin_aclaratorios" as never).select("*").eq("interadministrativo_id", numericId).order("numero_aclaratorio",{ ascending: true }),
+    supabase.from("interadmin_facturas"     as never).select("*").eq("interadministrativo_id", numericId).order("fecha_remision",   { ascending: false }),
   ])
 
   const modificaciones: ModificacionesData = {
@@ -74,6 +77,7 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
         canEdit={canEditProjects(profile?.role)}
         canDelete={canDeleteProject(profile?.role)}
         modificaciones={modificaciones}
+        facturas={(facturasRaw ?? []) as Factura[]}
         contratosError={contError?.message}
       />
     </div>

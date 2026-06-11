@@ -173,6 +173,44 @@ export async function getInteradminDashboardKPIs(): Promise<InteradminDashboardK
   }
 }
 
+// ── Facturación KPIs ─────────────────────────────────────────────────────────
+
+export interface FacturacionDashboardKPIs {
+  facturadoTotal:  number
+  ingresadoTotal:  number
+  pendienteTotal:  number
+  facturadoBienes: number
+  facturadoCuota:  number
+}
+
+export async function getFacturacionDashboardKPIs(): Promise<FacturacionDashboardKPIs> {
+  const supabase = await createSupabaseServerClient()
+
+  const { data } = await supabase
+    .from("interadmin_facturas" as never)
+    .select("valor_cobrado, valor_ingresado, descuentos, destino")
+    .limit(10000) as { data: Array<{ valor_cobrado: number; valor_ingresado: number; descuentos: number; destino: string }> | null }
+
+  const rows = data ?? []
+  let facturadoTotal = 0, ingresadoTotal = 0, facturadoBienes = 0, facturadoCuota = 0
+
+  for (const r of rows) {
+    const cobrado = Number(r.valor_cobrado ?? 0)
+    facturadoTotal += cobrado
+    ingresadoTotal += Number(r.valor_ingresado ?? 0)
+    if (r.destino === "BIENES_SERVICIOS") facturadoBienes += cobrado
+    else                                  facturadoCuota  += cobrado
+  }
+
+  return {
+    facturadoTotal,
+    ingresadoTotal,
+    pendienteTotal:  Math.max(0, facturadoTotal - ingresadoTotal),
+    facturadoBienes,
+    facturadoCuota,
+  }
+}
+
 // ── Funcionamiento KPIs ───────────────────────────────────────────────────────
 
 export async function getFuncionamientoDashboardKPIs(): Promise<FuncionamientoDashboardKPIs> {

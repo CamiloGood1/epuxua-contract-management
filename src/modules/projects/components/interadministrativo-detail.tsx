@@ -9,6 +9,8 @@ import type { ModificacionesData } from "@/types/modificaciones"
 import { EMPTY_MODIFICACIONES } from "@/types/modificaciones"
 import { EditBasicModal } from "./expediente/edit-basic-modal"
 import { ModificacionesTab } from "./expediente/modificaciones-tab"
+import { FacturacionTab } from "./expediente/facturacion-tab"
+import type { Factura } from "./expediente/facturacion-tab"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -251,14 +253,15 @@ interface Props {
   canEdit: boolean
   canDelete?: boolean
   modificaciones?: ModificacionesData
+  facturas?: Factura[]
   contratosError?: string
 }
 
-type TabId = "info" | "contratos" | "modificaciones" | "pagos" | "seguimiento"
+type TabId = "info" | "contratos" | "modificaciones" | "facturacion" | "seguimiento"
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export function InteradministrativoDetail({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES }: Props) {
+export function InteradministrativoDetail({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES, facturas = [] }: Props) {
   const [tab, setTab]           = useState<TabId>("info")
   const [selected, setSelected] = useState<Contrato | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -346,7 +349,7 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
           { id: "info"           as TabId, label: "Información General" },
           { id: "contratos"      as TabId, label: "Contratos Derivados", badge: derivados.length },
           { id: "modificaciones" as TabId, label: "Modificaciones Contractuales", badge: modificaciones.adiciones.length + modificaciones.prorrogas.length + modificaciones.suspensiones.length + modificaciones.reinicios.length + modificaciones.aclaratorios.length || undefined },
-          { id: "pagos"          as TabId, label: "Pagos" },
+          { id: "facturacion"    as TabId, label: "Facturación y Recaudo", badge: facturas.length || undefined },
           { id: "seguimiento"    as TabId, label: "Seguimiento" },
         ]).map((t) => (
           <button
@@ -576,13 +579,14 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
         />
       )}
 
-      {/* ── Tab: Pagos ── */}
-      {tab === "pagos" && (
-        <div className="bg-white border border-[#EAEAEA] rounded-xl flex flex-col items-center justify-center py-20 text-center" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
-          <svg width="40" height="40" className="text-[#EAEAEA] mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-          <p className="text-sm font-semibold text-[#151c27]">Registro de Pagos</p>
-          <p className="text-xs text-[#747783] mt-1 max-w-xs">El módulo de pagos estará disponible próximamente.</p>
-        </div>
+      {/* ── Tab: Facturación y Recaudo ── */}
+      {tab === "facturacion" && (
+        <FacturacionTab
+          interadministrativoId={p.id}
+          facturas={facturas}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
       )}
 
       {/* ── Tab: Seguimiento ── */}
