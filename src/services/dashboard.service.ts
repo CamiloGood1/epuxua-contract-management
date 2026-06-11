@@ -173,6 +173,40 @@ export async function getInteradminDashboardKPIs(): Promise<InteradminDashboardK
   }
 }
 
+// ── Forma de Pago KPIs ───────────────────────────────────────────────────────
+
+export interface FormaPagoDashboardKPIs {
+  programadoTotal:  number
+  programadoBienes: number
+  programadoCuota:  number
+  programadoMixto:  number
+  contratosConCronograma: number
+}
+
+export async function getFormaPagoDashboardKPIs(): Promise<FormaPagoDashboardKPIs> {
+  const supabase = await createSupabaseServerClient()
+
+  const { data } = await supabase
+    .from("contract_payment_schedule" as never)
+    .select("scheduled_value, destination, interadministrativo_id")
+    .limit(10000) as { data: Array<{ scheduled_value: number; destination: string; interadministrativo_id: number }> | null }
+
+  const rows = data ?? []
+  let programadoTotal = 0, programadoBienes = 0, programadoCuota = 0, programadoMixto = 0
+  const contratos = new Set<number>()
+
+  for (const r of rows) {
+    const v = Number(r.scheduled_value ?? 0)
+    programadoTotal += v
+    contratos.add(r.interadministrativo_id)
+    if (r.destination === "BIENES_SERVICIOS")    programadoBienes += v
+    else if (r.destination === "CUOTA_GERENCIA") programadoCuota  += v
+    else                                         programadoMixto  += v
+  }
+
+  return { programadoTotal, programadoBienes, programadoCuota, programadoMixto, contratosConCronograma: contratos.size }
+}
+
 // ── Facturación KPIs ─────────────────────────────────────────────────────────
 
 export interface FacturacionDashboardKPIs {

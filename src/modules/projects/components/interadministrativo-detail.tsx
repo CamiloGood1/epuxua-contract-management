@@ -11,6 +11,8 @@ import { EditBasicModal } from "./expediente/edit-basic-modal"
 import { ModificacionesTab } from "./expediente/modificaciones-tab"
 import { FacturacionTab } from "./expediente/facturacion-tab"
 import type { Factura } from "./expediente/facturacion-tab"
+import { FormaPagoTab } from "./expediente/forma-pago-tab"
+import type { PaymentMilestone } from "./expediente/forma-pago-tab"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -253,15 +255,16 @@ interface Props {
   canEdit: boolean
   canDelete?: boolean
   modificaciones?: ModificacionesData
+  hitos?: PaymentMilestone[]
   facturas?: Factura[]
   contratosError?: string
 }
 
-type TabId = "info" | "contratos" | "modificaciones" | "facturacion" | "seguimiento"
+type TabId = "info" | "contratos" | "modificaciones" | "forma_pago" | "facturacion" | "seguimiento"
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export function InteradministrativoDetail({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES, facturas = [] }: Props) {
+export function InteradministrativoDetail({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [] }: Props) {
   const [tab, setTab]           = useState<TabId>("info")
   const [selected, setSelected] = useState<Contrato | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -349,6 +352,7 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
           { id: "info"           as TabId, label: "Información General" },
           { id: "contratos"      as TabId, label: "Contratos Derivados", badge: derivados.length },
           { id: "modificaciones" as TabId, label: "Modificaciones Contractuales", badge: modificaciones.adiciones.length + modificaciones.prorrogas.length + modificaciones.suspensiones.length + modificaciones.reinicios.length + modificaciones.aclaratorios.length || undefined },
+          { id: "forma_pago"     as TabId, label: "Forma de Pago Contractual", badge: hitos.length || undefined },
           { id: "facturacion"    as TabId, label: "Facturación y Recaudo", badge: facturas.length || undefined },
           { id: "seguimiento"    as TabId, label: "Seguimiento" },
         ]).map((t) => (
@@ -574,6 +578,16 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
           interadministrativoId={p.id}
           fechaTerminacionOriginal={p.fecha_terminacion}
           modificaciones={modificaciones}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+      )}
+
+      {/* ── Tab: Forma de Pago Contractual ── */}
+      {tab === "forma_pago" && (
+        <FormaPagoTab
+          project={p}
+          hitos={hitos}
           canEdit={canEdit}
           canDelete={canDelete}
         />
