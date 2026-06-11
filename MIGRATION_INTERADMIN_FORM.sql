@@ -47,15 +47,11 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created_at
 
 ALTER TABLE interadmin_audit_log ENABLE ROW LEVEL SECURITY;
 
+-- Política simple: cualquier usuario autenticado puede leer e insertar.
+-- Ajustar cuando exista una tabla de perfiles con roles.
 DROP POLICY IF EXISTS "audit_log_read_staff" ON interadmin_audit_log;
 CREATE POLICY "audit_log_read_staff" ON interadmin_audit_log
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_profiles.id = auth.uid()
-        AND user_profiles.role IN ('ADMIN', 'GERENTE', 'GERENTE_PROYECTO')
-    )
-  );
+  FOR SELECT USING (auth.uid() IS NOT NULL);
 
 DROP POLICY IF EXISTS "audit_log_insert_auth" ON interadmin_audit_log;
 CREATE POLICY "audit_log_insert_auth" ON interadmin_audit_log
