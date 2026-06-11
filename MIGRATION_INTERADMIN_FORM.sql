@@ -1,39 +1,13 @@
 -- ============================================================
 -- EPUXUA: Migración formulario Interadministrativo v2
 -- Fecha: 2026-06-10
--- Ejecutar en Supabase SQL Editor
+-- El campo `estado` es TEXT — no hay ENUM que alterar.
+-- Los nuevos valores (PLANEACIÓN, CONTRATACIÓN, etc.) se
+-- insertan directamente como strings desde la aplicación.
 -- ============================================================
 
 -- ─────────────────────────────────────────────────────────────
--- 1. NUEVOS ESTADOS
--- El campo `estado` en la tabla `interadministrativos` es un
--- ENUM de PostgreSQL. Agregar los 4 estados faltantes.
--- Si el tipo ENUM tiene un nombre distinto, buscar con:
---   SELECT typname FROM pg_type WHERE typname ILIKE '%estado%';
--- ─────────────────────────────────────────────────────────────
-
-ALTER TYPE estado_interadministrativo ADD VALUE IF NOT EXISTS 'PLANEACIÓN';
-ALTER TYPE estado_interadministrativo ADD VALUE IF NOT EXISTS 'CONTRATACIÓN';
-ALTER TYPE estado_interadministrativo ADD VALUE IF NOT EXISTS 'SUSPENDIDO';
-ALTER TYPE estado_interadministrativo ADD VALUE IF NOT EXISTS 'TERMINADO ANTICIPADAMENTE';
-
--- ─────────────────────────────────────────────────────────────
--- ALTERNATIVA: Si el campo es TEXT (no ENUM), ignorar lo de
--- arriba y usar este CHECK en su lugar:
--- ALTER TABLE interadministrativos
---   DROP CONSTRAINT IF EXISTS check_estado_interadmin;
--- ALTER TABLE interadministrativos
---   ADD CONSTRAINT check_estado_interadmin CHECK (
---     estado IN (
---       'PLANEACIÓN','CONTRATACIÓN','EN EJECUCIÓN',
---       'SUSPENDIDO','TERMINADO','LIQUIDADO',
---       'TERMINADO ANTICIPADAMENTE'
---     )
---   );
--- ─────────────────────────────────────────────────────────────
-
--- ─────────────────────────────────────────────────────────────
--- 2. NUEVAS COLUMNAS EN interadministrativos
+-- 1. NUEVAS COLUMNAS EN interadministrativos
 -- ─────────────────────────────────────────────────────────────
 
 ALTER TABLE interadministrativos
@@ -43,15 +17,15 @@ ALTER TABLE interadministrativos
   ADD COLUMN IF NOT EXISTS link_documentacion TEXT;
 
 -- ─────────────────────────────────────────────────────────────
--- 3. TABLA DE AUDITORÍA
+-- 2. TABLA DE AUDITORÍA (opcional)
 -- ─────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS interadmin_audit_log (
   id            BIGSERIAL     PRIMARY KEY,
   interadmin_id BIGINT        REFERENCES interadministrativos(id) ON DELETE SET NULL,
   id_contrato   TEXT          NOT NULL,
-  action        TEXT          NOT NULL,   -- CREATE | UPDATE | DELETE
-  field_name    TEXT,                     -- NULL para CREATE
+  action        TEXT          NOT NULL,
+  field_name    TEXT,
   old_value     TEXT,
   new_value     TEXT,
   user_id       UUID,
@@ -68,7 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created_at
   ON interadmin_audit_log(created_at DESC);
 
 -- ─────────────────────────────────────────────────────────────
--- 4. RLS en la tabla de auditoría
+-- 3. RLS en la tabla de auditoría
 -- ─────────────────────────────────────────────────────────────
 
 ALTER TABLE interadmin_audit_log ENABLE ROW LEVEL SECURITY;
@@ -88,19 +62,11 @@ CREATE POLICY "audit_log_insert_auth" ON interadmin_audit_log
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- ─────────────────────────────────────────────────────────────
--- 5. VERIFICACIÓN FINAL
+-- 4. VERIFICACIÓN
 -- ─────────────────────────────────────────────────────────────
 
-SELECT
-  column_name,
-  data_type,
-  is_nullable
+SELECT column_name, data_type
 FROM information_schema.columns
 WHERE table_name = 'interadministrativos'
   AND column_name IN ('categoria','pct_cuota_gerencia','link_secop','link_documentacion','estado')
 ORDER BY column_name;
-
-SELECT EXISTS (
-  SELECT 1 FROM information_schema.tables
-  WHERE table_name = 'interadmin_audit_log'
-) AS audit_table_exists;
