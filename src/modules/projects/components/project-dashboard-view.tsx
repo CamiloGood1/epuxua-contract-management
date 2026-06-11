@@ -422,7 +422,7 @@ export function ProjectDashboardView({
         <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
           <div className="flex justify-between items-start mb-3">
             <span className="text-[#434652] text-sm font-medium leading-tight">Valor<br/>Interadministrativos</span>
-            <span className="text-[#434652] text-[11px] font-semibold bg-[#f0f3ff] px-2 py-0.5 rounded shrink-0">M/cte</span>
+            <span className="text-[#434652] text-[11px] font-semibold bg-[#f0f3ff] px-2 py-0.5 rounded shrink-0">COP</span>
           </div>
           <span className="text-[32px] font-bold leading-[40px] text-[#D9A520] tabular-nums">
             {fmtCompact(valorInteradmin)}
@@ -482,7 +482,7 @@ export function ProjectDashboardView({
         <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
           <div className="flex justify-between items-start mb-3">
             <span className="text-[#434652] text-sm font-medium leading-tight">Bienes y<br/>Servicios</span>
-            <span className="text-[#434652] text-[11px] font-semibold bg-[#f0f3ff] px-2 py-0.5 rounded shrink-0">M/cte</span>
+            <span className="text-[#434652] text-[11px] font-semibold bg-[#f0f3ff] px-2 py-0.5 rounded shrink-0">COP</span>
           </div>
           <span className="text-[32px] font-bold leading-[40px] text-[#0B3D91] tabular-nums">
             {fmtCompact(Math.max(totalBienes, 0))}
