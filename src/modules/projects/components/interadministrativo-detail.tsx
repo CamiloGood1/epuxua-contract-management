@@ -8,6 +8,7 @@ import type { Interadministrativo, Contrato, EstadoInteradministrativo } from "@
 import type { ModificacionesData } from "@/types/modificaciones"
 import { EMPTY_MODIFICACIONES } from "@/types/modificaciones"
 import { EditBasicModal } from "./expediente/edit-basic-modal"
+import { ChangeLogModal } from "./expediente/change-log-modal"
 import { ModificacionesTab } from "./expediente/modificaciones-tab"
 import { FacturacionTab } from "./expediente/facturacion-tab"
 import type { Factura } from "./expediente/facturacion-tab"
@@ -79,9 +80,10 @@ type TabId = "info" | "contratos" | "modificaciones" | "forma_pago" | "facturaci
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export function InteradministrativoDetail({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [], tareas = [], avances = [] }: Props) {
-  const [tab, setTab]           = useState<TabId>("info")
-  const [selected, setSelected] = useState<Contrato | null>(null)
-  const [showEdit, setShowEdit] = useState(false)
+  const [tab, setTab]             = useState<TabId>("info")
+  const [selected, setSelected]   = useState<Contrato | null>(null)
+  const [showEdit, setShowEdit]   = useState(false)
+  const [showChanges, setShowChanges] = useState(false)
 
   const derivados      = useMemo(() => contratos.filter((c) => c.tipo_contrato === "DERIVADO"), [contratos])
   const enEjecucion    = useMemo(() => derivados.filter((c) => c.estado === "EN EJECUCIÓN").length, [derivados])
@@ -108,9 +110,12 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
             <EstadoBadge estado={p.estado} />
           </div>
           <div className="flex gap-2">
-            <button className="flex items-center gap-1.5 px-4 py-2 border border-[#EAEAEA] bg-white rounded-lg text-sm text-[#434652] hover:bg-[#f0f3ff] transition-colors">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Exportar Ficha
+            <button
+              onClick={() => setShowChanges(true)}
+              className="flex items-center gap-1.5 px-4 py-2 border border-[#EAEAEA] bg-white rounded-lg text-sm text-[#434652] hover:bg-[#f0f3ff] transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="12 8 12 12 14 14"/><circle cx="12" cy="12" r="10"/></svg>
+              Historial
             </button>
             {canEdit && (
               <button
@@ -274,7 +279,8 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
 
       <ContractDetailDrawer contract={selected} onClose={() => setSelected(null)} />
 
-      {showEdit && <EditBasicModal project={p} onClose={() => setShowEdit(false)} />}
+      {showEdit    && <EditBasicModal project={p} onClose={() => setShowEdit(false)} />}
+      {showChanges && <ChangeLogModal interadministrativoId={p.id} contractId={p.id_contrato} onClose={() => setShowChanges(false)} />}
     </div>
   )
 }
