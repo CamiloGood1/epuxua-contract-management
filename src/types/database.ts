@@ -1,7 +1,14 @@
 // ── Enums / tipos base ────────────────────────────────────────────────────────
 
-/** Estado del interadministrativo (ENUM en DB, 3 valores) */
-export type EstadoInteradministrativo = 'EN EJECUCIÓN' | 'TERMINADO' | 'LIQUIDADO'
+/** Estado del interadministrativo (ENUM en DB — ejecutar MIGRATION_INTERADMIN_FORM.sql para los 4 nuevos valores) */
+export type EstadoInteradministrativo =
+  | 'PLANEACIÓN'
+  | 'CONTRATACIÓN'
+  | 'EN EJECUCIÓN'
+  | 'SUSPENDIDO'
+  | 'TERMINADO'
+  | 'LIQUIDADO'
+  | 'TERMINADO ANTICIPADAMENTE'
 
 export type TipoContrato = 'DERIVADO' | 'FUNCIONAMIENTO'
 
@@ -47,6 +54,10 @@ export interface Interadministrativo {
   reinicio: string | null
   fecha_terminacion: string | null
   estado: EstadoInteradministrativo
+  categoria: string | null
+  pct_cuota_gerencia: number | null
+  link_secop: string | null
+  link_documentacion: string | null
   observaciones: string | null
   created_at: string
   updated_at: string

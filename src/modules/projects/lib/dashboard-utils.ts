@@ -56,8 +56,12 @@ export function computeEstadoCounts(
   contracts: Interadministrativo[]
 ): Record<EstadoInteradministrativo, number> {
   return {
-    "EN EJECUCIÓN": contracts.filter((c) => c.estado === "EN EJECUCIÓN").length,
-    "TERMINADO":    contracts.filter((c) => c.estado === "TERMINADO").length,
-    "LIQUIDADO":    contracts.filter((c) => c.estado === "LIQUIDADO").length,
+    "PLANEACIÓN":               contracts.filter((c) => c.estado === "PLANEACIÓN").length,
+    "CONTRATACIÓN":             contracts.filter((c) => c.estado === "CONTRATACIÓN").length,
+    "EN EJECUCIÓN":             contracts.filter((c) => c.estado === "EN EJECUCIÓN").length,
+    "SUSPENDIDO":               contracts.filter((c) => c.estado === "SUSPENDIDO").length,
+    "TERMINADO":                contracts.filter((c) => c.estado === "TERMINADO").length,
+    "LIQUIDADO":                contracts.filter((c) => c.estado === "LIQUIDADO").length,
+    "TERMINADO ANTICIPADAMENTE":contracts.filter((c) => c.estado === "TERMINADO ANTICIPADAMENTE").length,
   }
 }

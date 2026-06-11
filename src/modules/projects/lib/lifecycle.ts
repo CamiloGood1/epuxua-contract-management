@@ -6,6 +6,8 @@ import {
   Scale,
   Archive,
   CheckCircle2,
+  PauseCircle,
+  XCircle,
   type LucideIcon,
 } from "lucide-react"
 import type { ProjectLifecycle } from "@/types/project"
@@ -22,6 +24,24 @@ export interface EstadoConfig {
 }
 
 export const ESTADO_CONFIG: Record<EstadoInteradministrativo, EstadoConfig> = {
+  "PLANEACIÓN": {
+    label:       "Planeación",
+    color:       "#6366F1",
+    bgClass:     "bg-indigo-50",
+    textClass:   "text-indigo-700",
+    borderClass: "border-indigo-200",
+    dotClass:    "bg-indigo-400",
+    icon:        ClipboardList,
+  },
+  "CONTRATACIÓN": {
+    label:       "Contratación",
+    color:       "#3B82F6",
+    bgClass:     "bg-blue-50",
+    textClass:   "text-blue-700",
+    borderClass: "border-blue-200",
+    dotClass:    "bg-blue-400",
+    icon:        FileSignature,
+  },
   "EN EJECUCIÓN": {
     label:       "En ejecución",
     color:       "#10B981",
@@ -30,6 +50,15 @@ export const ESTADO_CONFIG: Record<EstadoInteradministrativo, EstadoConfig> = {
     borderClass: "border-emerald-200",
     dotClass:    "bg-emerald-400",
     icon:        Activity,
+  },
+  "SUSPENDIDO": {
+    label:       "Suspendido",
+    color:       "#F59E0B",
+    bgClass:     "bg-amber-50",
+    textClass:   "text-amber-700",
+    borderClass: "border-amber-200",
+    dotClass:    "bg-amber-400",
+    icon:        PauseCircle,
   },
   "TERMINADO": {
     label:       "Terminado",
@@ -49,9 +78,26 @@ export const ESTADO_CONFIG: Record<EstadoInteradministrativo, EstadoConfig> = {
     dotClass:    "bg-blue-400",
     icon:        Archive,
   },
+  "TERMINADO ANTICIPADAMENTE": {
+    label:       "Term. Anticipado",
+    color:       "#EF4444",
+    bgClass:     "bg-red-50",
+    textClass:   "text-red-700",
+    borderClass: "border-red-200",
+    dotClass:    "bg-red-400",
+    icon:        XCircle,
+  },
 }
 
-export const ESTADO_ORDER: EstadoInteradministrativo[] = ["EN EJECUCIÓN", "TERMINADO", "LIQUIDADO"]
+export const ESTADO_ORDER: EstadoInteradministrativo[] = [
+  "PLANEACIÓN",
+  "CONTRATACIÓN",
+  "EN EJECUCIÓN",
+  "SUSPENDIDO",
+  "TERMINADO",
+  "LIQUIDADO",
+  "TERMINADO ANTICIPADAMENTE",
+]
 
 export interface LifecycleConfig {
   label: string

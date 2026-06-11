@@ -12,6 +12,8 @@ import {
   type InteradminDashboardKPIs,
   type DashboardAlerts,
 } from "@/services/dashboard.service"
+import { getCurrentUserProfile } from "@/services/user.service"
+import { canCreateProject } from "@/modules/projects/lib/access"
 import { ProjectDashboardView } from "@/modules/projects/components/project-dashboard-view"
 import type { FuncionamientoContrato } from "@/services/funcionamiento.service"
 
@@ -37,24 +39,27 @@ export default async function Page() {
   let interadminKPIs: InteradminDashboardKPIs = EMPTY_INTERADMIN_KPIS
   let alerts: DashboardAlerts = EMPTY_ALERTS
   let fetchError: string | undefined
+  let canCreate = false
+  let isAdmin   = false
 
   try {
-    const [raw, catalogs, funcContracts, funcKPIsRaw, interadminKPIsRaw, alertsRaw] = await Promise.all([
-      getProjects(),                      // interadministrativos
-      getProjectFilterCatalogs(),         // interadministrativos
-      getFuncionamientoContracts(),       // contratos WHERE FUNCIONAMIENTO
-      getFuncionamientoDashboardKPIs(),   // count de FUNCIONAMIENTO
-      getInteradminDashboardKPIs(),       // KPIs de interadministrativos
-      getDashboardAlerts(),               // alertas de vencimiento
-    ])
+    const [raw, catalogs, funcContracts, funcKPIsRaw, interadminKPIsRaw, alertsRaw, profile] =
+      await Promise.all([
+        getProjects(),
+        getProjectFilterCatalogs(),
+        getFuncionamientoContracts(),
+        getFuncionamientoDashboardKPIs(),
+        getInteradminDashboardKPIs(),
+        getDashboardAlerts(),
+        getCurrentUserProfile().catch(() => null),
+      ])
 
     funcKPIs       = funcKPIsRaw
     interadminKPIs = interadminKPIsRaw
     alerts         = alertsRaw
-
-    // Top-5 contratos de funcionamiento más recientes
+    canCreate      = canCreateProject(profile?.role)
+    isAdmin        = profile?.role === "ADMIN"
     topFuncContracts = funcContracts.slice(0, 5)
-
     projects = await enrichProjectsWithManagers(raw)
     entities = catalogs.entities
   } catch (error) {
@@ -70,6 +75,8 @@ export default async function Page() {
       interadminKPIs={interadminKPIs}
       topActiveFuncContracts={topFuncContracts}
       alerts={alerts}
+      canCreate={canCreate}
+      isAdmin={isAdmin}
     />
   )
 }

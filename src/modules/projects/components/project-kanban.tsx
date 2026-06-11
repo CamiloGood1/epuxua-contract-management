@@ -22,9 +22,13 @@ export function ProjectKanban({ cards, canEdit = true }: ProjectKanbanProps) {
 
   const byColumn = useMemo(() => {
     const map: Record<EstadoInteradministrativo, Interadministrativo[]> = {
-      "EN EJECUCIÓN": [],
-      "TERMINADO": [],
-      "LIQUIDADO": [],
+      "PLANEACIÓN":               [],
+      "CONTRATACIÓN":             [],
+      "EN EJECUCIÓN":             [],
+      "SUSPENDIDO":               [],
+      "TERMINADO":                [],
+      "LIQUIDADO":                [],
+      "TERMINADO ANTICIPADAMENTE":[],
     }
     for (const card of items) {
       map[card.estado]?.push(card)

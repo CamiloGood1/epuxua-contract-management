@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { EstadoInteradministrativo } from "@/types/database"
+import { getCurrentUserProfile } from "@/services/user.service"
+import { canCreateProject } from "@/modules/projects/lib/access"
 
 // ── Actualizar estado de un interadministrativo (kanban) ──────────────────────
 
@@ -29,52 +31,115 @@ export async function updateProjectLifecycle(
 // ── Crear interadministrativo ─────────────────────────────────────────────────
 
 export interface NewInteradminProjectInput {
-  id_contrato: string          // N° contrato, ej: '3407-2026'
-  secretaria?: string
-  objeto_contrato?: string
-  clase_contrato?: string
-  area_responsable?: string
-  supervision?: string
-  modalidad_seleccion?: string
+  // Identificación
+  id_contrato:              string
+  estado:                   EstadoInteradministrativo
+  // Objeto
+  objeto_contrato:          string
+  categoria?:               string
+  // Responsables
+  secretaria:               string
+  area_responsable?:        string
+  supervision?:             string
+  // Fechas
+  fecha_suscripcion:        string
+  fecha_inicio_ejecucion:   string
+  fecha_terminacion:        string
   plazo_ejecucion_inicial?: string
-  fecha_suscripcion?: string
-  fecha_inicio_ejecucion?: string
-  fecha_terminacion?: string
-  valor_inicial?: number
-  total_contrato?: number
-  cuota_admin_inicial?: number
-  bolsa_gerencia_inicial?: number
-  observaciones?: string
+  // Valores
+  pct_cuota_gerencia?:      number
+  valor_inicial?:           number   // bienes y servicios
+  cuota_admin_inicial?:     number   // cuota de gerencia
+  total_contrato?:          number   // valor total
+  bolsa_gerencia_inicial?:  number
+  // Links
+  link_secop?:              string
+  link_documentacion?:      string
+  // Opcionales legacy
+  clase_contrato?:          string
+  modalidad_seleccion?:     string
+  observaciones?:           string
 }
 
-// Alias para compatibilidad con imports existentes
 export type NewInteradministrativoInput = NewInteradminProjectInput
+
+function isValidUrl(url: string | undefined): boolean {
+  if (!url) return true
+  try { new URL(url); return true } catch { return false }
+}
 
 export async function createInteradminProject(
   input: NewInteradminProjectInput
 ): Promise<{ error: string | null; projectId?: string }> {
+  // ── Permisos ─────────────────────────────────────────────
+  const profile = await getCurrentUserProfile().catch(() => null)
+  if (!canCreateProject(profile?.role)) {
+    return { error: "No tiene permisos para crear contratos interadministrativos." }
+  }
+
+  // ── Validaciones ─────────────────────────────────────────
+  const idContrato = input.id_contrato?.trim()
+  if (!idContrato) return { error: "El número de contrato es obligatorio." }
+
+  const objeto = input.objeto_contrato?.trim() ?? ""
+  if (!objeto) return { error: "El objeto del contrato es obligatorio." }
+  if (objeto.length < 20) return { error: "El objeto debe tener al menos 20 caracteres." }
+  if (!input.secretaria?.trim()) return { error: "La secretaría / área es obligatoria." }
+  if (!input.fecha_suscripcion) return { error: "La fecha de suscripción es obligatoria." }
+  if (!input.fecha_inicio_ejecucion) return { error: "La fecha de inicio es obligatoria." }
+  if (!input.fecha_terminacion) return { error: "La fecha de terminación es obligatoria." }
+
+  if (input.fecha_terminacion < input.fecha_inicio_ejecucion) {
+    return { error: "La fecha de terminación no puede ser anterior a la fecha de inicio." }
+  }
+  if (input.pct_cuota_gerencia != null &&
+    (input.pct_cuota_gerencia < 0 || input.pct_cuota_gerencia > 100)) {
+    return { error: "El porcentaje de cuota de gerencia debe estar entre 0 y 100." }
+  }
+  if (input.total_contrato != null && input.total_contrato <= 0) {
+    return { error: "El valor total debe ser mayor que 0." }
+  }
+  if (!isValidUrl(input.link_secop)) return { error: "El enlace SECOP II no tiene formato URL válido." }
+  if (!isValidUrl(input.link_documentacion)) return { error: "El enlace de documentación no tiene formato URL válido." }
+
   const supabase = await createSupabaseServerClient()
 
+  // ── Unicidad ──────────────────────────────────────────────
+  const { data: existing } = await supabase
+    .from("interadministrativos")
+    .select("id")
+    .eq("id_contrato", idContrato)
+    .maybeSingle()
+
+  if (existing) return { error: `Ya existe un contrato con el número "${idContrato}".` }
+
+  // ── Calcular derivados ────────────────────────────────────
   const cuota = input.cuota_admin_inicial ?? null
   const bolsa = input.bolsa_gerencia_inicial ?? null
+  const total = input.total_contrato
+    ?? (((input.valor_inicial ?? 0) + (cuota ?? 0)) || null)
 
-  const { data, error } = await supabase
+  // ── Insertar ──────────────────────────────────────────────
+  const { data, error: insertError } = await supabase
     .from("interadministrativos")
     .insert({
-      id_contrato:              input.id_contrato.trim(),
-      secretaria:               input.secretaria?.trim()               || null,
-      objeto_contrato:          input.objeto_contrato?.trim()          || null,
-      clase_contrato:           input.clase_contrato?.trim()           || null,
-      area_responsable:         input.area_responsable?.trim()         || null,
-      supervision:              input.supervision?.trim()              || null,
-      modalidad_seleccion:      input.modalidad_seleccion?.trim()      || null,
-      plazo_ejecucion_inicial:  input.plazo_ejecucion_inicial?.trim()  || null,
-      fecha_suscripcion:        input.fecha_suscripcion               || null,
-      fecha_inicio_ejecucion:   input.fecha_inicio_ejecucion          || null,
-      fecha_terminacion:        input.fecha_terminacion               || null,
+      id_contrato:              idContrato,
+      estado:                   input.estado,
+      objeto_contrato:          objeto,
+      categoria:                input.categoria?.trim()               || null,
+      secretaria:               input.secretaria.trim(),
+      area_responsable:         input.area_responsable?.trim()        || null,
+      supervision:              input.supervision?.trim()             || null,
+      clase_contrato:           input.clase_contrato?.trim()          || null,
+      modalidad_seleccion:      input.modalidad_seleccion?.trim()     || null,
+      plazo_ejecucion_inicial:  input.plazo_ejecucion_inicial?.trim() || null,
+      fecha_suscripcion:        input.fecha_suscripcion,
+      fecha_inicio_ejecucion:   input.fecha_inicio_ejecucion,
+      fecha_terminacion:        input.fecha_terminacion,
+      pct_cuota_gerencia:       input.pct_cuota_gerencia              ?? null,
       valor_inicial:            input.valor_inicial                   ?? null,
       adicion:                  0,
-      total_contrato:           input.total_contrato ?? input.valor_inicial ?? null,
+      total_contrato:           total,
       cuota_admin_inicial:      cuota,
       adicion_cuota_admin:      0,
       total_cuota_admin:        cuota,
@@ -83,21 +148,33 @@ export async function createInteradminProject(
       total_bolsa_mandato:      bolsa,
       valor_pendiente_cobrar:   null,
       vigencias_futuras:        null,
-      estado:                   "EN EJECUCIÓN",
-      observaciones:            input.observaciones?.trim()            || null,
+      link_secop:               input.link_secop?.trim()              || null,
+      link_documentacion:       input.link_documentacion?.trim()      || null,
+      observaciones:            input.observaciones?.trim()           || null,
     })
     .select("id, id_contrato")
     .single()
 
-  if (error) return { error: error.message }
+  if (insertError) return { error: insertError.message }
+
+  // ── Auditoría (fire-and-forget) ───────────────────────────
+  supabase.from("interadmin_audit_log" as never).insert({
+    interadmin_id: data.id,
+    id_contrato:   idContrato,
+    action:        "CREATE",
+    new_value:     JSON.stringify({ estado: input.estado, secretaria: input.secretaria }),
+    user_id:       profile?.id    ?? null,
+    user_email:    profile?.email ?? null,
+    metadata:      { total_contrato: total },
+  } as never).then(() => {})
 
   revalidatePath("/")
   revalidatePath("/proyectos")
+  revalidatePath("/proyectos/kanban")
 
   return { error: null, projectId: String(data.id) }
 }
 
-// Alias
 export const createInteradministrativo = createInteradminProject
 
 // ── Crear contrato derivado ────────────────────────────────────────────────────
