@@ -286,21 +286,23 @@ export function ProjectDashboardView({
     }))
     .filter((d) => d.value > 0)
 
-  // Bar data (secretaría) — total + active
+  // Bar data (secretaría) — total + active, normalizado por clave lowercase+trim
   const entityData = useMemo(() => {
-    const counts = new Map<string, { total: number; active: number }>()
+    const counts = new Map<string, { display: string; total: number; active: number }>()
     for (const p of filtered) {
-      const e = p.secretaria ?? p.area_responsable ?? "—"
-      const prev = counts.get(e) ?? { total: 0, active: 0 }
-      counts.set(e, {
-        total:  prev.total  + 1,
-        active: prev.active + (p.estado === "EN EJECUCIÓN" ? 1 : 0),
+      const raw = (p.secretaria ?? p.area_responsable ?? "—").trim()
+      const key = raw.toLowerCase()
+      const prev = counts.get(key) ?? { display: raw, total: 0, active: 0 }
+      counts.set(key, {
+        display: prev.display,   // conservar la primera forma encontrada
+        total:   prev.total  + 1,
+        active:  prev.active + (p.estado === "EN EJECUCIÓN" ? 1 : 0),
       })
     }
-    return [...counts.entries()]
-      .sort((a, b) => b[1].total - a[1].total)
+    return [...counts.values()]
+      .sort((a, b) => b.total - a.total)
       .slice(0, 6)
-      .map(([name, { total, active }]) => ({ name, total, active }))
+      .map(({ display, total, active }) => ({ name: display, total, active }))
   }, [filtered])
 
   return (
