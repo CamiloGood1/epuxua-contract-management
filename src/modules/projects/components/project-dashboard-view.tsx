@@ -84,10 +84,16 @@ function DonutChart({ data, total }: { data: { name: string; value: number; colo
 
 // ── Stacked bar chart (oscuro) ────────────────────────────────────────────────
 
-function SecretariaStackedBar({ data }: { data: { name: string; total: number; active: number }[] }) {
+function SecretariaStackedBar({
+  data,
+  totalAll,
+  activeAll,
+}: {
+  data: { name: string; total: number; active: number }[]
+  totalAll: number
+  activeAll: number
+}) {
   const max = Math.max(...data.map((d) => d.total), 1)
-  const totalSum  = data.reduce((s, d) => s + d.total, 0)
-  const activeSum = data.reduce((s, d) => s + d.active, 0)
 
   return (
     <div
@@ -123,11 +129,11 @@ function SecretariaStackedBar({ data }: { data: { name: string; total: number; a
         <div className="grid grid-cols-2 gap-3 mb-5">
           <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.05)" }}>
             <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">Total contratos</p>
-            <p className="text-lg font-bold text-white tabular-nums">{totalSum.toLocaleString("es-CO")}</p>
+            <p className="text-lg font-bold text-white tabular-nums">{totalAll.toLocaleString("es-CO")}</p>
           </div>
           <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.05)" }}>
             <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">En ejecución</p>
-            <p className="text-lg font-bold text-emerald-400 tabular-nums">{activeSum.toLocaleString("es-CO")}</p>
+            <p className="text-lg font-bold text-emerald-400 tabular-nums">{activeAll.toLocaleString("es-CO")}</p>
           </div>
         </div>
 
@@ -286,23 +292,32 @@ export function ProjectDashboardView({
     }))
     .filter((d) => d.value > 0)
 
-  // Bar data (secretaría) — total + active, normalizado por clave lowercase+trim
-  const entityData = useMemo(() => {
+  // Bar data (secretaría) — total + active, normalizado (lowercase + sin tildes)
+  const { entityBars, entityTotalAll, entityActiveAll } = useMemo(() => {
+    const normalize = (s: string) =>
+      s.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+
     const counts = new Map<string, { display: string; total: number; active: number }>()
     for (const p of filtered) {
       const raw = (p.secretaria ?? p.area_responsable ?? "—").trim()
-      const key = raw.toLowerCase()
+      const key = normalize(raw)
       const prev = counts.get(key) ?? { display: raw, total: 0, active: 0 }
       counts.set(key, {
-        display: prev.display,   // conservar la primera forma encontrada
+        display: prev.display,
         total:   prev.total  + 1,
         active:  prev.active + (p.estado === "EN EJECUCIÓN" ? 1 : 0),
       })
     }
-    return [...counts.values()]
+    const bars = [...counts.values()]
       .sort((a, b) => b.total - a.total)
       .slice(0, 6)
       .map(({ display, total, active }) => ({ name: display, total, active }))
+
+    return {
+      entityBars:      bars,
+      entityTotalAll:  filtered.length,
+      entityActiveAll: filtered.filter((p) => p.estado === "EN EJECUCIÓN").length,
+    }
   }, [filtered])
 
   return (
@@ -509,8 +524,12 @@ export function ProjectDashboardView({
 
         {/* Stacked bar: por secretaría */}
         <div className="lg:col-span-2">
-          {entityData.length > 0 ? (
-            <SecretariaStackedBar data={entityData} />
+          {entityBars.length > 0 ? (
+            <SecretariaStackedBar
+              data={entityBars}
+              totalAll={entityTotalAll}
+              activeAll={entityActiveAll}
+            />
           ) : (
             <div className="rounded-xl p-8 flex items-center justify-center" style={{ background: "#0d1526" }}>
               <p className="text-sm text-slate-400">Sin datos</p>
