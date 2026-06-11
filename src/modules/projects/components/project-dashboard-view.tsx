@@ -198,13 +198,16 @@ export function ProjectDashboardView({
   const years = useMemo(() => uniqueProjectYears(projects), [projects])
 
   // KPIs
-  const totalContratos = interadminKPIs.totalContracts + interadminKPIs.totalDerivedContracts + funcionamientoKPIs.totalContracts
-  const valorTotal     = interadminKPIs.totalValue + funcionamientoKPIs.totalValue
-  const ejecPct        = funcionamientoKPIs.totalValue > 0
-    ? Math.round(funcionamientoKPIs.totalPaidValue / funcionamientoKPIs.totalValue * 100)
-    : 0
-  const totalAlertas   = alerts.expired.length + alerts.expiringSoon.length
-  const allAlerts      = [...alerts.expired, ...alerts.expiringSoon].slice(0, 6)
+  const totalContratos       = interadminKPIs.totalContracts + interadminKPIs.totalDerivedContracts + funcionamientoKPIs.totalContracts
+  const activeContratos      = interadminKPIs.activeContracts + interadminKPIs.activeDerivedContracts + funcionamientoKPIs.activeContracts
+  const valorInteradmin      = interadminKPIs.totalValue
+  const activeValorInteradmin = interadminKPIs.activeValue
+  const totalCuota           = interadminKPIs.totalCuotaAdmin
+  const activeCuota          = interadminKPIs.activeCuotaAdmin
+  const totalBienes          = interadminKPIs.totalValue - interadminKPIs.totalCuotaAdmin
+  const activeBienes         = interadminKPIs.activeValue - interadminKPIs.activeCuotaAdmin
+  const totalAlertas         = alerts.expired.length + alerts.expiringSoon.length
+  const allAlerts            = [...alerts.expired, ...alerts.expiringSoon].slice(0, 6)
 
   // Donut data
   const donutData = ESTADO_ORDER
@@ -267,86 +270,128 @@ export function ProjectDashboardView({
       {/* ── KPIs ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
-        {/* KPI 1: Total Contratos */}
-        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all group">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-[#434652] text-sm font-medium">Total Contratos</span>
-            <span className="text-emerald-600 text-[11px] font-semibold bg-emerald-50 px-2 py-0.5 rounded">+4.2%</span>
+        {/* KPI 1: Total Contratos — card oscura con segmentos */}
+        <div
+          className="rounded-xl p-6 flex flex-col"
+          style={{ background: "linear-gradient(135deg, #0B3D91 0%, #002869 100%)" }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-white/80 text-sm font-medium">Total Contratos</span>
+            <span className="text-emerald-300 text-[11px] font-semibold bg-emerald-900/40 px-2 py-0.5 rounded">
+              {activeContratos} activos
+            </span>
           </div>
-          <span className="text-[32px] font-bold leading-[40px] text-[#002869]">
+          <span className="text-[40px] font-bold leading-none text-white tabular-nums">
             {totalContratos.toLocaleString("es-CO")}
           </span>
-          <div className="mt-4 h-8 flex items-end gap-1">
-            {[40, 60, 45, 70, 55, 80, 100].map((h, i) => (
+          <p className="text-white/50 text-[11px] mt-1 mb-5">contratos totales en el sistema</p>
+
+          {/* Segmentos por tipo — inspirado en weather card */}
+          <div className="mt-auto grid grid-cols-3 gap-1.5">
+            {[
+              { label: "Interadmin", total: interadminKPIs.totalContracts, active: interadminKPIs.activeContracts },
+              { label: "Derivados",  total: interadminKPIs.totalDerivedContracts, active: interadminKPIs.activeDerivedContracts },
+              { label: "Funcionam.", total: funcionamientoKPIs.totalContracts, active: funcionamientoKPIs.activeContracts },
+            ].map((seg) => (
               <div
-                key={i}
-                className={`flex-1 rounded-t-sm ${i === 6 ? "bg-[#0B3D91]" : i === 5 ? "bg-[#0B3D91]/20" : "bg-[#f0f3ff] group-hover:bg-[#0B3D91]/10"} transition-colors`}
-                style={{ height: `${h}%` }}
-              />
+                key={seg.label}
+                className="flex flex-col items-center rounded-lg py-2.5 px-1 cursor-default"
+                style={{ background: "rgba(255,255,255,0.10)" }}
+              >
+                <span className="text-[9px] text-white/60 uppercase tracking-wide font-semibold leading-tight mb-1 text-center">{seg.label}</span>
+                <span className="text-[20px] font-bold text-white leading-none tabular-nums">{seg.total.toLocaleString("es-CO")}</span>
+                <span className="text-[9px] text-emerald-300 font-medium mt-0.5 tabular-nums">{seg.active} activos</span>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* KPI 2: Valor Total */}
-        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-[#434652] text-sm font-medium">Valor Contratado Total</span>
-            <span className="text-[#434652] text-[11px] font-semibold bg-[#f0f3ff] px-2 py-0.5 rounded">M/cte</span>
+        {/* KPI 2: Valor Interadministrativos */}
+        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
+          <div className="flex justify-between items-start mb-3">
+            <span className="text-[#434652] text-sm font-medium leading-tight">Valor<br/>Interadministrativos</span>
+            <span className="text-[#434652] text-[11px] font-semibold bg-[#f0f3ff] px-2 py-0.5 rounded shrink-0">M/cte</span>
           </div>
-          <span className="text-[32px] font-bold leading-[40px] text-[#D9A520]">
-            {fmtCompact(valorTotal)}
+          <span className="text-[32px] font-bold leading-[40px] text-[#D9A520] tabular-nums">
+            {fmtCompact(valorInteradmin)}
           </span>
-          <div className="mt-4 space-y-2">
-            <div className="flex flex-col gap-1">
-              <div className="flex justify-between text-[11px] font-medium">
-                <span className="text-[#434652]">Interadministrativos</span>
-                <span className="text-[#D9A520]">{fmtCompact(interadminKPIs.totalValue)}</span>
-              </div>
-              <div className="w-full bg-[#f0f3ff] h-1.5 rounded-full overflow-hidden">
-                <div className="bg-[#D9A520] h-full" style={{ width: valorTotal > 0 ? `${Math.round(interadminKPIs.totalValue / valorTotal * 100)}%` : "0%" }} />
-              </div>
+          <div className="mt-1 mb-4">
+            <div className="w-full bg-[#f0f3ff] h-1.5 rounded-full overflow-hidden">
+              <div
+                className="bg-[#D9A520] h-full transition-all"
+                style={{ width: valorInteradmin > 0 ? `${Math.round(activeValorInteradmin / valorInteradmin * 100)}%` : "0%" }}
+              />
             </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex justify-between text-[11px] font-medium">
-                <span className="text-[#434652]">Funcionamiento</span>
-                <span className="text-[#D9A520]">{fmtCompact(funcionamientoKPIs.totalValue)}</span>
-              </div>
-              <div className="w-full bg-[#f0f3ff] h-1.5 rounded-full overflow-hidden">
-                <div className="bg-[#D9A520]/40 h-full" style={{ width: valorTotal > 0 ? `${Math.round(funcionamientoKPIs.totalValue / valorTotal * 100)}%` : "0%" }} />
-              </div>
+          </div>
+          <div className="mt-auto grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[10px] text-[#747783] uppercase tracking-wide font-semibold">Total</p>
+              <p className="text-sm font-bold text-[#002869] tabular-nums mt-0.5">{fmtCompact(valorInteradmin)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-[#747783] uppercase tracking-wide font-semibold">En Ejecución</p>
+              <p className="text-sm font-bold text-emerald-600 tabular-nums mt-0.5">{fmtCompact(activeValorInteradmin)}</p>
             </div>
           </div>
         </div>
 
-        {/* KPI 3: Ejecución Financiera */}
-        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-[#434652] text-sm font-medium">Ejecución Financiera</span>
-            <span className="text-amber-600 text-[11px] font-semibold bg-amber-50 px-2 py-0.5 rounded">En progreso</span>
+        {/* KPI 3: Cuota de Administración */}
+        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
+          <div className="flex justify-between items-start mb-3">
+            <span className="text-[#434652] text-sm font-medium leading-tight">Cuota de<br/>Administración</span>
+            <span className="text-amber-600 text-[11px] font-semibold bg-amber-50 px-2 py-0.5 rounded shrink-0">
+              {totalCuota > 0 ? `${Math.round(totalCuota / valorInteradmin * 100)}%` : "—"}
+            </span>
           </div>
-          <span className="text-[32px] font-bold leading-[40px] text-[#D9A520]">{ejecPct}%</span>
-          <div className="mt-4 w-full bg-[#f0f3ff] h-2 rounded-full overflow-hidden">
-            <div className="bg-[#0B3D91] h-full transition-all" style={{ width: `${ejecPct}%` }} />
+          <span className="text-[32px] font-bold leading-[40px] text-[#D9A520] tabular-nums">
+            {fmtCompact(totalCuota)}
+          </span>
+          <div className="mt-1 mb-4">
+            <div className="w-full bg-[#f0f3ff] h-1.5 rounded-full overflow-hidden">
+              <div
+                className="bg-amber-400 h-full transition-all"
+                style={{ width: totalCuota > 0 ? `${Math.round(activeCuota / totalCuota * 100)}%` : "0%" }}
+              />
+            </div>
           </div>
-          <p className="mt-2 text-[11px] text-[#434652]">
-            Pagado: {fmtCompact(funcionamientoKPIs.totalPaidValue)} de {fmtCompact(funcionamientoKPIs.totalValue)}
-          </p>
+          <div className="mt-auto grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[10px] text-[#747783] uppercase tracking-wide font-semibold">Total</p>
+              <p className="text-sm font-bold text-[#002869] tabular-nums mt-0.5">{fmtCompact(totalCuota)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-[#747783] uppercase tracking-wide font-semibold">En Ejecución</p>
+              <p className="text-sm font-bold text-emerald-600 tabular-nums mt-0.5">{fmtCompact(activeCuota)}</p>
+            </div>
+          </div>
         </div>
 
-        {/* KPI 4: Alertas Activas */}
-        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-[#434652] text-sm font-medium">Alertas Activas</span>
-            {totalAlertas > 0 && (
-              <span className="text-red-600 text-[11px] font-semibold bg-red-50 px-2 py-0.5 rounded">Prioridad Alta</span>
-            )}
+        {/* KPI 4: Bienes y Servicios = valor − cuota */}
+        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
+          <div className="flex justify-between items-start mb-3">
+            <span className="text-[#434652] text-sm font-medium leading-tight">Bienes y<br/>Servicios</span>
+            <span className="text-[#434652] text-[11px] font-semibold bg-[#f0f3ff] px-2 py-0.5 rounded shrink-0">M/cte</span>
           </div>
-          <span className="text-[32px] font-bold leading-[40px] text-red-500">
-            {totalAlertas}
+          <span className="text-[32px] font-bold leading-[40px] text-[#0B3D91] tabular-nums">
+            {fmtCompact(Math.max(totalBienes, 0))}
           </span>
-          <div className="mt-4 flex items-center gap-2 text-sm text-[#434652]">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <span>{alerts.expiringSoon.length} próximas a vencer &lt; 30 días</span>
+          <div className="mt-1 mb-4">
+            <div className="w-full bg-[#f0f3ff] h-1.5 rounded-full overflow-hidden">
+              <div
+                className="bg-[#0B3D91] h-full transition-all"
+                style={{ width: totalBienes > 0 ? `${Math.round(Math.max(activeBienes, 0) / totalBienes * 100)}%` : "0%" }}
+              />
+            </div>
+          </div>
+          <div className="mt-auto grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[10px] text-[#747783] uppercase tracking-wide font-semibold">Total</p>
+              <p className="text-sm font-bold text-[#002869] tabular-nums mt-0.5">{fmtCompact(Math.max(totalBienes, 0))}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-[#747783] uppercase tracking-wide font-semibold">En Ejecución</p>
+              <p className="text-sm font-bold text-emerald-600 tabular-nums mt-0.5">{fmtCompact(Math.max(activeBienes, 0))}</p>
+            </div>
           </div>
         </div>
       </div>

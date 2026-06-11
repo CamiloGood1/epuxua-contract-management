@@ -23,8 +23,9 @@ const EMPTY_FUNC_KPIS: FuncionamientoDashboardKPIs = {
 
 const EMPTY_INTERADMIN_KPIS: InteradminDashboardKPIs = {
   totalContracts: 0, activeContracts: 0, terminatedContracts: 0,
-  liquidatedContracts: 0, totalValue: 0, pendingValue: 0,
-  totalCuotaAdmin: 0, totalDerivedContracts: 0,
+  liquidatedContracts: 0, totalValue: 0, activeValue: 0, pendingValue: 0,
+  totalCuotaAdmin: 0, activeCuotaAdmin: 0,
+  totalDerivedContracts: 0, activeDerivedContracts: 0,
 }
 const EMPTY_ALERTS: DashboardAlerts = { expiringSoon: [], expired: [] }
 

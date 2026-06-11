@@ -87,10 +87,13 @@ export interface InteradminDashboardKPIs {
   activeContracts: number       // estado = 'EN EJECUCIÓN'
   terminatedContracts: number   // estado = 'TERMINADO'
   liquidatedContracts: number   // estado = 'LIQUIDADO'
-  totalValue: number            // SUM(total_contrato)
+  totalValue: number            // SUM(total_contrato) all
+  activeValue: number           // SUM(total_contrato) WHERE EN EJECUCIÓN
   pendingValue: number          // SUM(valor_pendiente_cobrar)
-  totalCuotaAdmin: number       // SUM(total_cuota_admin)
+  totalCuotaAdmin: number       // SUM(total_cuota_admin) all
+  activeCuotaAdmin: number      // SUM(total_cuota_admin) WHERE EN EJECUCIÓN
   totalDerivedContracts: number // COUNT(contratos WHERE tipo_contrato = 'DERIVADO')
+  activeDerivedContracts: number // COUNT(contratos WHERE tipo_contrato = 'DERIVADO' AND EN EJECUCIÓN)
 }
 
 // ── KPIs Funcionamiento (desde contratos WHERE tipo_contrato = 'FUNCIONAMIENTO') ─
@@ -116,6 +119,7 @@ export async function getInteradminDashboardKPIs(): Promise<InteradminDashboardK
   const [
     { data: interadmin, error: e1 },
     { count: derivadosCount, error: e2 },
+    { count: activeDerivedCount, error: e3 },
   ] = await Promise.all([
     supabase
       .from("interadministrativos")
@@ -125,33 +129,47 @@ export async function getInteradminDashboardKPIs(): Promise<InteradminDashboardK
       .from("contratos")
       .select("id", { count: "exact", head: true })
       .eq("tipo_contrato", "DERIVADO"),
+    supabase
+      .from("contratos")
+      .select("id", { count: "exact", head: true })
+      .eq("tipo_contrato", "DERIVADO")
+      .eq("estado", "EN EJECUCIÓN"),
   ])
 
   if (e1) throw new Error(e1.message)
   if (e2) throw new Error(e2.message)
+  if (e3) throw new Error(e3.message)
 
-  const rows = interadmin ?? []
-  const active     = rows.filter((r) => r.estado === "EN EJECUCIÓN").length
+  const rows       = interadmin ?? []
+  const activeRows = rows.filter((r) => r.estado === "EN EJECUCIÓN")
+  const active     = activeRows.length
   const terminated = rows.filter((r) => r.estado === "TERMINADO").length
   const liquidated = rows.filter((r) => r.estado === "LIQUIDADO").length
-  const totalValue      = rows.reduce((s, r) => s + Number(r.total_contrato       ?? 0), 0)
+
+  const totalValue      = rows.reduce((s, r) => s + Number(r.total_contrato    ?? 0), 0)
+  const activeValue     = activeRows.reduce((s, r) => s + Number(r.total_contrato ?? 0), 0)
+  const totalCuotaAdmin = rows.reduce((s, r) => s + Number(r.total_cuota_admin  ?? 0), 0)
+  const activeCuotaAdmin = activeRows.reduce((s, r) => s + Number(r.total_cuota_admin ?? 0), 0)
+
   // valor_pendiente_cobrar puede ser NULL en la importación — usar total_cuota_admin como fallback
-  const pendingValue    = rows.reduce((s, r) => {
+  const pendingValue = rows.reduce((s, r) => {
     const pdc = r.valor_pendiente_cobrar != null ? Number(r.valor_pendiente_cobrar) : null
     const fallback = pdc != null && pdc > 0 ? pdc : Number(r.total_cuota_admin ?? 0)
     return s + fallback
   }, 0)
-  const totalCuotaAdmin = rows.reduce((s, r) => s + Number(r.total_cuota_admin    ?? 0), 0)
 
   return {
-    totalContracts:       rows.length,
-    activeContracts:      active,
-    terminatedContracts:  terminated,
-    liquidatedContracts:  liquidated,
+    totalContracts:        rows.length,
+    activeContracts:       active,
+    terminatedContracts:   terminated,
+    liquidatedContracts:   liquidated,
     totalValue,
+    activeValue,
     pendingValue,
     totalCuotaAdmin,
-    totalDerivedContracts: derivadosCount ?? 0,
+    activeCuotaAdmin,
+    totalDerivedContracts:  derivadosCount ?? 0,
+    activeDerivedContracts: activeDerivedCount ?? 0,
   }
 }
 
