@@ -59,6 +59,7 @@ export interface Interadministrativo {
   link_secop: string | null
   link_documentacion: string | null
   observaciones: string | null
+  avance_fisico_pct: number | null
   created_at: string
   updated_at: string
   contratos?: Contrato[]

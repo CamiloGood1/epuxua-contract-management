@@ -5,6 +5,10 @@ import { formatCOP } from "@/modules/contracts/lib/status"
 import { ESTADO_CONFIG } from "../lib/lifecycle"
 import { ContractDetailDrawer } from "@/modules/contracts/components/contract-detail-drawer"
 import type { Interadministrativo, Contrato, EstadoInteradministrativo } from "@/types/database"
+import type { ModificacionesData } from "@/types/modificaciones"
+import { EMPTY_MODIFICACIONES } from "@/types/modificaciones"
+import { EditBasicModal } from "./expediente/edit-basic-modal"
+import { ModificacionesTab } from "./expediente/modificaciones-tab"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -57,7 +61,7 @@ function ContratoBadge({ estado }: { estado: string | null }) {
 
 // ── Circular progress SVG ─────────────────────────────────────────────────────
 
-function CircularProgress({ pct }: { pct: number }) {
+function CircularProgress({ pct, label = "Avance Físico" }: { pct: number; label?: string }) {
   const r    = 15.915
   const circ = 2 * Math.PI * r
   const dash = (Math.min(pct, 100) / 100) * circ
@@ -74,7 +78,7 @@ function CircularProgress({ pct }: { pct: number }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-xl font-bold text-[#002869]">{pct}%</span>
-        <span className="text-[9px] uppercase font-bold text-[#434652] tracking-tight">Ejecución</span>
+        <span className="text-[9px] uppercase font-bold text-[#434652] tracking-tight text-center leading-tight px-1">{label}</span>
       </div>
     </div>
   )
@@ -143,8 +147,8 @@ function HitosTimeline({ p }: { p: Interadministrativo }) {
 
 // ── Sidebar derecho ───────────────────────────────────────────────────────────
 
-function Sidebar({ p }: { p: Interadministrativo }) {
-  const days = daysUntil(p.fecha_terminacion)
+function Sidebar({ p, fechaTerminacionVigente, ultimaProrroga }: { p: Interadministrativo; fechaTerminacionVigente: string | null | undefined; ultimaProrroga?: { nueva_fecha_terminacion: string } | null }) {
+  const days = daysUntil(fechaTerminacionVigente ?? p.fecha_terminacion)
   const isExpired  = days !== null && days < 0
   const isCritical = days !== null && !isExpired && days <= 30
 
@@ -203,10 +207,10 @@ function Sidebar({ p }: { p: Interadministrativo }) {
         </h4>
         <div className="space-y-3">
           {[
-            { label: "Suscripción",           value: p.fecha_suscripcion,     color: "text-[#151c27]" },
-            { label: "Inicio de Plazo",        value: p.fecha_inicio_ejecucion, color: "text-[#151c27]" },
-            { label: "Vencimiento Original",   value: p.fecha_terminacion,     color: "text-[#151c27]" },
-            { label: "Prórroga",               value: p.prorroga,              color: "text-amber-600" },
+            { label: "Suscripción",             value: p.fecha_suscripcion,        color: "text-[#151c27]" },
+            { label: "Inicio de Plazo",          value: p.fecha_inicio_ejecucion,   color: "text-[#151c27]" },
+            { label: "Vencimiento Original",     value: p.fecha_terminacion,        color: "text-[#151c27]" },
+            { label: "Terminación Vigente",      value: ultimaProrroga ? ultimaProrroga.nueva_fecha_terminacion : null, color: "text-amber-600" },
           ].map(({ label, value, color }) => value && (
             <div key={label} className="flex items-center justify-between">
               <span className="text-[11px] text-[#434652]">{label}</span>
@@ -245,16 +249,19 @@ interface Props {
   project: Interadministrativo
   contratos: Contrato[]
   canEdit: boolean
+  canDelete?: boolean
+  modificaciones?: ModificacionesData
   contratosError?: string
 }
 
-type TabId = "info" | "contratos"
+type TabId = "info" | "contratos" | "modificaciones" | "pagos" | "seguimiento"
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export function InteradministrativoDetail({ project: p, contratos, contratosError }: Props) {
-  const [tab, setTab]       = useState<TabId>("info")
+export function InteradministrativoDetail({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES }: Props) {
+  const [tab, setTab]           = useState<TabId>("info")
   const [selected, setSelected] = useState<Contrato | null>(null)
+  const [showEdit, setShowEdit] = useState(false)
 
   const derivados      = useMemo(() => contratos.filter((c) => c.tipo_contrato === "DERIVADO"), [contratos])
   const enEjecucion    = useMemo(() => derivados.filter((c) => c.estado === "EN EJECUCIÓN").length, [derivados])
@@ -265,7 +272,12 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
   const cuota    = p.total_cuota_admin ?? 0
   const pendiente = p.valor_pendiente_cobrar ?? cuota
   const cobrado   = Math.max(0, cuota - pendiente)
-  const pct       = cuota > 0 ? Math.round(cobrado / cuota * 100) : 0
+  const avanceFisico = p.avance_fisico_pct ?? 0
+
+  // Impacto de modificaciones sobre valores y fechas
+  const totalAdicionesNuevo = modificaciones.adiciones.reduce((s, a) => s + (a.valor_total ?? 0), 0)
+  const ultimaProrroga      = modificaciones.prorrogas.at(-1)
+  const fechaTerminacionVigente = ultimaProrroga?.nueva_fecha_terminacion ?? p.fecha_terminacion
 
   // Modificaciones: armar desde campos disponibles
   const mods = [
@@ -308,10 +320,15 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exportar Ficha
             </button>
-            <button className="flex items-center gap-1.5 px-4 py-2 bg-[#0B3D91] text-white rounded-lg text-sm font-medium hover:bg-[#002869] transition-colors">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Editar Registro
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => setShowEdit(true)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#0B3D91] text-white rounded-lg text-sm font-medium hover:bg-[#002869] transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Editar Registro
+              </button>
+            )}
           </div>
         </div>
 
@@ -324,16 +341,19 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
       </div>
 
       {/* ── Tabs ── */}
-      <div className="border-b border-[#EAEAEA] flex gap-0">
+      <div className="border-b border-[#EAEAEA] flex gap-0 overflow-x-auto">
         {([
-          { id: "info" as TabId,      label: "Información General" },
-          { id: "contratos" as TabId, label: `Contratos Derivados`, badge: derivados.length },
+          { id: "info"           as TabId, label: "Información General" },
+          { id: "contratos"      as TabId, label: "Contratos Derivados", badge: derivados.length },
+          { id: "modificaciones" as TabId, label: "Modificaciones Contractuales", badge: modificaciones.adiciones.length + modificaciones.prorrogas.length + modificaciones.suspensiones.length + modificaciones.reinicios.length + modificaciones.aclaratorios.length || undefined },
+          { id: "pagos"          as TabId, label: "Pagos" },
+          { id: "seguimiento"    as TabId, label: "Seguimiento" },
         ]).map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
-            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors -mb-px flex items-center gap-1.5 ${
+            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors -mb-px flex items-center gap-1.5 whitespace-nowrap ${
               tab === t.id
                 ? "border-[#0B3D91] text-[#0B3D91]"
                 : "border-transparent text-[#747783] hover:text-[#434652]"
@@ -367,17 +387,20 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
               </div>
 
               <div className="flex flex-wrap items-center gap-8">
-                <CircularProgress pct={pct} />
+                <CircularProgress pct={Math.round(avanceFisico)} label="Avance Físico" />
 
                 <div className="flex-1 min-w-[240px] space-y-4">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-[#747783] mb-0.5">Valor Inicial</p>
                     <p className="text-xl font-bold text-[#151c27] tabular-nums">{fmtMoney(p.valor_inicial)}</p>
                   </div>
-                  {p.adicion != null && p.adicion > 0 && (
+                  {(totalAdicionesNuevo > 0 || (p.adicion != null && p.adicion > 0)) && (
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#747783] mb-0.5">Adiciones / Reducciones</p>
-                      <p className="text-xl font-bold text-emerald-600 tabular-nums">+{fmtMoney(p.adicion)}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[#747783] mb-0.5">+ Adiciones</p>
+                      <p className="text-xl font-bold text-emerald-600 tabular-nums">+{fmtMoney(totalAdicionesNuevo > 0 ? totalAdicionesNuevo : p.adicion)}</p>
+                      {totalAdicionesNuevo > 0 && (
+                        <p className="text-[10px] text-[#747783] mt-0.5">Total contrato actualizado: <strong className="text-[#151c27]">{fmtMoney((p.valor_inicial ?? 0) + totalAdicionesNuevo)}</strong></p>
+                      )}
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-4 pt-2 border-t border-[#EAEAEA]">
@@ -485,7 +508,7 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
           </div>
 
           {/* Sidebar */}
-          <Sidebar p={p} />
+          <Sidebar p={p} fechaTerminacionVigente={fechaTerminacionVigente} ultimaProrroga={ultimaProrroga} />
         </div>
       )}
 
@@ -542,7 +565,38 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
         </div>
       )}
 
+      {/* ── Tab: Modificaciones Contractuales ── */}
+      {tab === "modificaciones" && (
+        <ModificacionesTab
+          interadministrativoId={p.id}
+          fechaTerminacionOriginal={p.fecha_terminacion}
+          modificaciones={modificaciones}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+      )}
+
+      {/* ── Tab: Pagos ── */}
+      {tab === "pagos" && (
+        <div className="bg-white border border-[#EAEAEA] rounded-xl flex flex-col items-center justify-center py-20 text-center" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+          <svg width="40" height="40" className="text-[#EAEAEA] mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          <p className="text-sm font-semibold text-[#151c27]">Registro de Pagos</p>
+          <p className="text-xs text-[#747783] mt-1 max-w-xs">El módulo de pagos estará disponible próximamente.</p>
+        </div>
+      )}
+
+      {/* ── Tab: Seguimiento ── */}
+      {tab === "seguimiento" && (
+        <div className="bg-white border border-[#EAEAEA] rounded-xl flex flex-col items-center justify-center py-20 text-center" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+          <svg width="40" height="40" className="text-[#EAEAEA] mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <p className="text-sm font-semibold text-[#151c27]">Seguimiento del Proyecto</p>
+          <p className="text-xs text-[#747783] mt-1 max-w-xs">El módulo de seguimiento estará disponible próximamente.</p>
+        </div>
+      )}
+
       <ContractDetailDrawer contract={selected} onClose={() => setSelected(null)} />
+
+      {showEdit && <EditBasicModal project={p} onClose={() => setShowEdit(false)} />}
     </div>
   )
 }
