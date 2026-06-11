@@ -13,6 +13,8 @@ import { FacturacionTab } from "./expediente/facturacion-tab"
 import type { Factura } from "./expediente/facturacion-tab"
 import { FormaPagoTab } from "./expediente/forma-pago-tab"
 import type { PaymentMilestone } from "./expediente/forma-pago-tab"
+import { SeguimientoTab } from "./expediente/seguimiento-tab"
+import type { Tarea, Avance } from "./expediente/seguimiento-tab"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -257,6 +259,8 @@ interface Props {
   modificaciones?: ModificacionesData
   hitos?: PaymentMilestone[]
   facturas?: Factura[]
+  tareas?: Tarea[]
+  avances?: Avance[]
   contratosError?: string
 }
 
@@ -264,7 +268,7 @@ type TabId = "info" | "contratos" | "modificaciones" | "forma_pago" | "facturaci
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export function InteradministrativoDetail({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [] }: Props) {
+export function InteradministrativoDetail({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [], tareas = [], avances = [] }: Props) {
   const [tab, setTab]           = useState<TabId>("info")
   const [selected, setSelected] = useState<Contrato | null>(null)
   const [showEdit, setShowEdit] = useState(false)
@@ -354,7 +358,7 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
           { id: "modificaciones" as TabId, label: "Modificaciones Contractuales", badge: modificaciones.adiciones.length + modificaciones.prorrogas.length + modificaciones.suspensiones.length + modificaciones.reinicios.length + modificaciones.aclaratorios.length || undefined },
           { id: "forma_pago"     as TabId, label: "Forma de Pago Contractual", badge: hitos.length || undefined },
           { id: "facturacion"    as TabId, label: "Facturación y Recaudo", badge: facturas.length || undefined },
-          { id: "seguimiento"    as TabId, label: "Seguimiento" },
+          { id: "seguimiento"    as TabId, label: "Seguimiento", badge: tareas.filter(t => t.status !== "COMPLETADA").length || undefined },
         ]).map((t) => (
           <button
             key={t.id}
@@ -605,11 +609,13 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
 
       {/* ── Tab: Seguimiento ── */}
       {tab === "seguimiento" && (
-        <div className="bg-white border border-[#EAEAEA] rounded-xl flex flex-col items-center justify-center py-20 text-center" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
-          <svg width="40" height="40" className="text-[#EAEAEA] mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          <p className="text-sm font-semibold text-[#151c27]">Seguimiento del Proyecto</p>
-          <p className="text-xs text-[#747783] mt-1 max-w-xs">El módulo de seguimiento estará disponible próximamente.</p>
-        </div>
+        <SeguimientoTab
+          interadministrativoId={p.id}
+          tareas={tareas}
+          avances={avances}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
       )}
 
       <ContractDetailDrawer contract={selected} onClose={() => setSelected(null)} />

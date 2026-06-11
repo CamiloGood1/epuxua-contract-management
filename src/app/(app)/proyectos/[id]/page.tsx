@@ -10,6 +10,7 @@ import type { ModificacionesData } from "@/types/modificaciones"
 import { EMPTY_MODIFICACIONES } from "@/types/modificaciones"
 import type { Factura } from "@/types/facturas"
 import type { PaymentMilestone } from "@/types/forma-pago"
+import type { Tarea, Avance } from "@/types/seguimiento"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -43,6 +44,8 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
     { data: aclaratorios },
     { data: facturasRaw },
     { data: hitosRaw },
+    { data: tareasRaw },
+    { data: avancesRaw },
   ] = await Promise.all([
     supabase.from("contratos").select("*").eq("id_interadministrativo", project.id_contrato).order("numero_contrato", { ascending: true }).limit(500),
     supabase.from("interadmin_adiciones"    as never).select("*").eq("interadministrativo_id", numericId).order("numero_adicion",    { ascending: true }),
@@ -52,6 +55,8 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
     supabase.from("interadmin_aclaratorios" as never).select("*").eq("interadministrativo_id", numericId).order("numero_aclaratorio",{ ascending: true }),
     supabase.from("interadmin_facturas"           as never).select("*").eq("interadministrativo_id", numericId).order("fecha_remision",      { ascending: false }),
     supabase.from("contract_payment_schedule" as never).select("*").eq("interadministrativo_id", numericId).order("milestone_number", { ascending: true  }),
+    supabase.from("interadmin_tasks"   as never).select("*").eq("interadministrativo_id", numericId).order("created_at", { ascending: true }),
+    supabase.from("interadmin_avances" as never).select("*").eq("interadministrativo_id", numericId).order("fecha",      { ascending: false }),
   ])
 
   const modificaciones: ModificacionesData = {
@@ -82,6 +87,8 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
         modificaciones={modificaciones}
         hitos={(hitosRaw ?? []) as PaymentMilestone[]}
         facturas={(facturasRaw ?? []) as Factura[]}
+        tareas={(tareasRaw ?? []) as Tarea[]}
+        avances={(avancesRaw ?? []) as Avance[]}
         contratosError={contError?.message}
       />
     </div>
