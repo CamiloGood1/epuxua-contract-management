@@ -130,11 +130,7 @@ export function resolveStatus(raw: string | null | undefined): StatusConfig {
 export function formatCOP(value: number | null | undefined): string {
   if (value == null) return "—"
   const n = Number(value)
-  if (n >= 1_000_000_000)
-    return `$${(n / 1_000_000_000).toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} B`
-  if (n >= 1_000_000)
-    return `$${(n / 1_000_000).toLocaleString("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} M`
-  return `$${n.toLocaleString("es-CO")}`
+  return `$${n.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
 export function formatDate(dateStr: string | null | undefined): string {

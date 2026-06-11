@@ -19,8 +19,6 @@ import { NewDerivedContractModal } from "@/modules/contracts/components/new-deri
 // ── Color helpers ─────────────────────────────────────────────────────────────
 
 function fmtCompact(n: number): string {
-  if (n >= 1_000_000) return `$${new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 }).format(n / 1_000_000)}M`
-  if (n >= 1_000)     return `$${(n / 1_000).toFixed(0)}K`
   return formatCOP(n)
 }
 
