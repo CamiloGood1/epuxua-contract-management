@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { X } from "lucide-react"
 import { updateInteradminBasicInfo } from "@/services/modificaciones.actions"
 import { ESTADO_ORDER, ESTADO_CONFIG } from "../../lib/lifecycle"
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function EditBasicModal({ project: p, onClose }: Props) {
+  const router = useRouter()
   const [estado, setEstado]   = useState<EstadoInteradministrativo>(p.estado)
   const [fechaInicio, setFechaInicio] = useState(p.fecha_inicio_ejecucion ?? "")
   const [avance, setAvance]   = useState<string>(String(p.avance_fisico_pct ?? 0))
@@ -28,13 +30,14 @@ export function EditBasicModal({ project: p, onClose }: Props) {
     }
     start(async () => {
       const res = await updateInteradminBasicInfo({
-        id:                   p.id,
+        id:                     p.id,
         estado,
         fecha_inicio_ejecucion: fechaInicio || null,
-        avance_fisico_pct:    avanceNum,
+        avance_fisico_pct:      avanceNum,
       })
       if (res.error) { setError(res.error); return }
       onClose()
+      router.refresh()
     })
   }
 
