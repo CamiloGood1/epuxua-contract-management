@@ -137,42 +137,49 @@ function SecretariaStackedBar({
           </div>
         </div>
 
-        {/* Stacked bar chart */}
-        <div className="h-36 flex items-end justify-between gap-2">
-          {data.map((d) => {
-            const totalPct  = Math.max(Math.round((d.total  / max) * 100), 4)
-            const activeFrac = d.total > 0 ? d.active / d.total : 0
-            const words = d.name.split(" ")
-            let line1 = "", line2 = ""
-            for (const w of words) {
-              if ((line1 + " " + w).trim().length <= 13) line1 = (line1 + " " + w).trim()
-              else line2 = (line2 + " " + w).trim()
-            }
-            return (
-              <div key={d.name} className="flex-1 flex flex-col items-center h-full justify-end">
-                {/* total count above */}
-                <span className="text-[10px] font-bold text-white/70 mb-1 tabular-nums">{d.total}</span>
-                {/* bar: outer = total, inner fills from bottom = active */}
-                <div
-                  className="w-full rounded-t relative overflow-hidden transition-all duration-300"
-                  style={{ height: `${totalPct}%`, background: "rgba(99,102,241,0.25)" }}
-                >
+        {/* Stacked bar chart — barras y labels en filas separadas */}
+        <div>
+          {/* Fila de barras */}
+          <div className="h-32 flex items-end gap-2">
+            {data.map((d) => {
+              const totalPct   = Math.max(Math.round((d.total / max) * 100), 4)
+              const activeFrac = d.total > 0 ? d.active / d.total : 0
+              return (
+                <div key={d.name} className="flex-1 flex flex-col items-center justify-end h-full">
+                  <span className="text-[10px] font-bold text-white/70 mb-1 tabular-nums">{d.total}</span>
                   <div
-                    className="absolute bottom-0 left-0 right-0 transition-all duration-500"
-                    style={{
-                      height: `${Math.round(activeFrac * 100)}%`,
-                      background: "linear-gradient(to top, #3B82F6, #6366F1)",
-                    }}
-                  />
+                    className="w-full rounded-t relative overflow-hidden transition-all duration-300"
+                    style={{ height: `${totalPct}%`, background: "rgba(99,102,241,0.25)" }}
+                  >
+                    <div
+                      className="absolute bottom-0 left-0 right-0 transition-all duration-500"
+                      style={{
+                        height: `${Math.round(activeFrac * 100)}%`,
+                        background: "linear-gradient(to top, #3B82F6, #6366F1)",
+                      }}
+                    />
+                  </div>
                 </div>
-                {/* labels */}
-                <div className="mt-2 text-center leading-tight">
+              )
+            })}
+          </div>
+          {/* Fila de labels — siempre al mismo nivel */}
+          <div className="flex gap-2 mt-2">
+            {data.map((d) => {
+              const words = d.name.split(" ")
+              let line1 = "", line2 = ""
+              for (const w of words) {
+                if ((line1 + " " + w).trim().length <= 13) line1 = (line1 + " " + w).trim()
+                else line2 = (line2 + " " + w).trim()
+              }
+              return (
+                <div key={d.name} className="flex-1 text-center leading-tight">
                   <span className="text-[8px] text-slate-400 font-medium block">{line1}</span>
                   {line2 && <span className="text-[8px] text-slate-400 font-medium block">{line2}</span>}
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
 
         {/* Legend */}
@@ -271,17 +278,30 @@ export function ProjectDashboardView({
   )
   const years = useMemo(() => uniqueProjectYears(projects), [projects])
 
+  // KPIs interadmin derivados del año filtrado (responden al selector de año)
+  const filteredInteradmin = useMemo(() => {
+    const active = filtered.filter((p) => p.estado === "EN EJECUCIÓN")
+    return {
+      totalContracts:   filtered.length,
+      activeContracts:  active.length,
+      totalValue:       filtered.reduce((s, p) => s + Number(p.total_contrato   ?? 0), 0),
+      activeValue:      active.reduce ((s, p) => s + Number(p.total_contrato   ?? 0), 0),
+      totalCuotaAdmin:  filtered.reduce((s, p) => s + Number(p.total_cuota_admin ?? 0), 0),
+      activeCuotaAdmin: active.reduce ((s, p) => s + Number(p.total_cuota_admin ?? 0), 0),
+    }
+  }, [filtered])
+
   // KPIs
-  const totalContratos       = interadminKPIs.totalContracts + interadminKPIs.totalDerivedContracts + funcionamientoKPIs.totalContracts
-  const activeContratos      = interadminKPIs.activeContracts + interadminKPIs.activeDerivedContracts + funcionamientoKPIs.activeContracts
-  const valorInteradmin      = interadminKPIs.totalValue
-  const activeValorInteradmin = interadminKPIs.activeValue
-  const totalCuota           = interadminKPIs.totalCuotaAdmin
-  const activeCuota          = interadminKPIs.activeCuotaAdmin
-  const totalBienes          = interadminKPIs.totalValue - interadminKPIs.totalCuotaAdmin
-  const activeBienes         = interadminKPIs.activeValue - interadminKPIs.activeCuotaAdmin
-  const totalAlertas         = alerts.expired.length + alerts.expiringSoon.length
-  const allAlerts            = [...alerts.expired, ...alerts.expiringSoon].slice(0, 6)
+  const totalContratos        = filtered.length + interadminKPIs.totalDerivedContracts + funcionamientoKPIs.totalContracts
+  const activeContratos       = filteredInteradmin.activeContracts + interadminKPIs.activeDerivedContracts + funcionamientoKPIs.activeContracts
+  const valorInteradmin       = filteredInteradmin.totalValue
+  const activeValorInteradmin = filteredInteradmin.activeValue
+  const totalCuota            = filteredInteradmin.totalCuotaAdmin
+  const activeCuota           = filteredInteradmin.activeCuotaAdmin
+  const totalBienes           = filteredInteradmin.totalValue - filteredInteradmin.totalCuotaAdmin
+  const activeBienes          = filteredInteradmin.activeValue - filteredInteradmin.activeCuotaAdmin
+  const totalAlertas          = alerts.expired.length + alerts.expiringSoon.length
+  const allAlerts             = [...alerts.expired, ...alerts.expiringSoon].slice(0, 6)
 
   // Donut data
   const donutData = ESTADO_ORDER
@@ -308,10 +328,16 @@ export function ProjectDashboardView({
         active:  prev.active + (p.estado === "EN EJECUCIÓN" ? 1 : 0),
       })
     }
-    const bars = [...counts.values()]
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 6)
-      .map(({ display, total, active }) => ({ name: display, total, active }))
+    const sorted = [...counts.values()].sort((a, b) => b.total - a.total)
+    const top5   = sorted.slice(0, 5)
+    const rest   = sorted.slice(5)
+    const otros  = rest.reduce(
+      (acc, d) => ({ name: "Otros", total: acc.total + d.total, active: acc.active + d.active }),
+      { name: "Otros", total: 0, active: 0 }
+    )
+    const bars = otros.total > 0
+      ? [...top5.map(({ display, total, active }) => ({ name: display, total, active })), otros]
+      : top5.map(({ display, total, active }) => ({ name: display, total, active }))
 
     return {
       entityBars:      bars,
