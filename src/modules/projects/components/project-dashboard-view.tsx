@@ -19,8 +19,8 @@ import { NewDerivedContractModal } from "@/modules/contracts/components/new-deri
 // ── Color helpers ─────────────────────────────────────────────────────────────
 
 function fmtCompact(n: number): string {
-  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`
-  if (n >= 1_000_000)     return `$${(n / 1_000_000).toFixed(0)}M`
+  if (n >= 1_000_000) return `$${new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 }).format(n / 1_000_000)}M`
+  if (n >= 1_000)     return `$${(n / 1_000).toFixed(0)}K`
   return formatCOP(n)
 }
 
@@ -82,37 +82,105 @@ function DonutChart({ data, total }: { data: { name: string; value: number; colo
   )
 }
 
-// ── Bar chart (CSS) ───────────────────────────────────────────────────────────
+// ── Stacked bar chart (oscuro) ────────────────────────────────────────────────
 
-function SecretariaBar({ data }: { data: { name: string; value: number }[] }) {
-  const max = Math.max(...data.map((d) => d.value), 1)
+function SecretariaStackedBar({ data }: { data: { name: string; total: number; active: number }[] }) {
+  const max = Math.max(...data.map((d) => d.total), 1)
+  const totalSum  = data.reduce((s, d) => s + d.total, 0)
+  const activeSum = data.reduce((s, d) => s + d.active, 0)
+
   return (
-    <div className="h-[300px] flex items-end justify-between gap-2 pt-8">
-      {data.slice(0, 6).map((d) => {
-        const pct = Math.round((d.value / max) * 100)
-        // Split long names into two lines at word boundaries
-        const words = d.name.split(" ")
-        let line1 = "", line2 = ""
-        for (const w of words) {
-          if ((line1 + " " + w).trim().length <= 14) line1 = (line1 + " " + w).trim()
-          else line2 = (line2 + " " + w).trim()
-        }
-        return (
-          <div key={d.name} className="flex-1 flex flex-col items-center group h-full justify-end" title={d.name}>
-            {/* Valor numérico encima */}
-            <span className="text-[11px] font-bold text-[#0B3D91] mb-1 tabular-nums">{d.value}</span>
+    <div
+      className="group relative rounded-xl p-6 shadow-2xl overflow-hidden"
+      style={{ background: "#0d1526" }}
+    >
+      {/* glow overlay */}
+      <div
+        className="absolute inset-0 rounded-xl opacity-10 blur-sm pointer-events-none"
+        style={{ background: "linear-gradient(135deg, #3B82F6, #6366F1, #8B5CF6)" }}
+      />
+      <div className="relative">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
             <div
-              className="w-full bg-[#0B3D91] group-hover:bg-[#002869] transition-all rounded-t"
-              style={{ height: `${Math.max(pct, 4)}%` }}
-            />
-            {/* Nombre en dos líneas */}
-            <div className="mt-2 text-center leading-tight">
-              <span className="text-[9px] text-[#434652] font-medium block">{line1}</span>
-              {line2 && <span className="text-[9px] text-[#434652] font-medium block">{line2}</span>}
+              className="flex h-8 w-8 items-center justify-center rounded-lg"
+              style={{ background: "linear-gradient(135deg, #3B82F6, #6366F1)" }}
+            >
+              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
             </div>
+            <h3 className="text-sm font-semibold text-white">Contratos por Secretaría</h3>
           </div>
-        )
-      })}
+          <span className="flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-emerald-400" style={{ background: "rgba(16,185,129,0.1)" }}>
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            En vivo
+          </span>
+        </div>
+
+        {/* Mini stats */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.05)" }}>
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">Total contratos</p>
+            <p className="text-lg font-bold text-white tabular-nums">{totalSum.toLocaleString("es-CO")}</p>
+          </div>
+          <div className="rounded-lg p-3" style={{ background: "rgba(255,255,255,0.05)" }}>
+            <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">En ejecución</p>
+            <p className="text-lg font-bold text-emerald-400 tabular-nums">{activeSum.toLocaleString("es-CO")}</p>
+          </div>
+        </div>
+
+        {/* Stacked bar chart */}
+        <div className="h-36 flex items-end justify-between gap-2">
+          {data.map((d) => {
+            const totalPct  = Math.max(Math.round((d.total  / max) * 100), 4)
+            const activeFrac = d.total > 0 ? d.active / d.total : 0
+            const words = d.name.split(" ")
+            let line1 = "", line2 = ""
+            for (const w of words) {
+              if ((line1 + " " + w).trim().length <= 13) line1 = (line1 + " " + w).trim()
+              else line2 = (line2 + " " + w).trim()
+            }
+            return (
+              <div key={d.name} className="flex-1 flex flex-col items-center h-full justify-end">
+                {/* total count above */}
+                <span className="text-[10px] font-bold text-white/70 mb-1 tabular-nums">{d.total}</span>
+                {/* bar: outer = total, inner fills from bottom = active */}
+                <div
+                  className="w-full rounded-t relative overflow-hidden transition-all duration-300"
+                  style={{ height: `${totalPct}%`, background: "rgba(99,102,241,0.25)" }}
+                >
+                  <div
+                    className="absolute bottom-0 left-0 right-0 transition-all duration-500"
+                    style={{
+                      height: `${Math.round(activeFrac * 100)}%`,
+                      background: "linear-gradient(to top, #3B82F6, #6366F1)",
+                    }}
+                  />
+                </div>
+                {/* labels */}
+                <div className="mt-2 text-center leading-tight">
+                  <span className="text-[8px] text-slate-400 font-medium block">{line1}</span>
+                  {line2 && <span className="text-[8px] text-slate-400 font-medium block">{line2}</span>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-4 mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-sm" style={{ background: "rgba(99,102,241,0.25)" }} />
+            <span className="text-[10px] text-slate-400 font-medium">Total</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-sm" style={{ background: "linear-gradient(to top, #3B82F6, #6366F1)" }} />
+            <span className="text-[10px] text-slate-400 font-medium">En Ejecución</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -218,14 +286,21 @@ export function ProjectDashboardView({
     }))
     .filter((d) => d.value > 0)
 
-  // Bar data (secretaría)
+  // Bar data (secretaría) — total + active
   const entityData = useMemo(() => {
-    const counts = new Map<string, number>()
+    const counts = new Map<string, { total: number; active: number }>()
     for (const p of filtered) {
       const e = p.secretaria ?? p.area_responsable ?? "—"
-      counts.set(e, (counts.get(e) ?? 0) + 1)
+      const prev = counts.get(e) ?? { total: 0, active: 0 }
+      counts.set(e, {
+        total:  prev.total  + 1,
+        active: prev.active + (p.estado === "EN EJECUCIÓN" ? 1 : 0),
+      })
     }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([name, value]) => ({ name, value }))
+    return [...counts.entries()]
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 6)
+      .map(([name, { total, active }]) => ({ name, total, active }))
   }, [filtered])
 
   return (
@@ -430,24 +505,14 @@ export function ProjectDashboardView({
           )}
         </div>
 
-        {/* Bar: por secretaría */}
-        <div className="bg-white p-8 rounded-xl border border-[#EAEAEA] lg:col-span-2">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h3 className="text-[20px] font-semibold leading-[28px] text-[#002869]">Contratos por Secretaría</h3>
-              <p className="text-[#434652] text-sm">Distribución por entidad contratante</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-1 bg-[#0B3D91] rounded-full" />
-                <span className="text-[11px] font-semibold text-[#434652] uppercase">Contratos</span>
-              </div>
-            </div>
-          </div>
+        {/* Stacked bar: por secretaría */}
+        <div className="lg:col-span-2">
           {entityData.length > 0 ? (
-            <SecretariaBar data={entityData} />
+            <SecretariaStackedBar data={entityData} />
           ) : (
-            <p className="py-12 text-center text-sm text-[#434652]">Sin datos</p>
+            <div className="rounded-xl p-8 flex items-center justify-center" style={{ background: "#0d1526" }}>
+              <p className="text-sm text-slate-400">Sin datos</p>
+            </div>
           )}
         </div>
       </div>
