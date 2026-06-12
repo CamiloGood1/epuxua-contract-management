@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ChevronLeft, ChevronRight, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MaterialIcon } from "@/components/ui/material-icon"
+import { canManageUsers, roleLabel } from "@/modules/projects/lib/access"
+import type { UserRole } from "@/types/project"
 
 const SIDEBAR_WIDTH = 260
 
@@ -75,6 +77,9 @@ interface SidebarProps {
   onToggleCollapse: () => void
   mobileOpen: boolean
   onMobileClose: () => void
+  userRole?: UserRole | null
+  userName?: string
+  userEmail?: string
 }
 
 function isItemActive(pathname: string, href: string): boolean {
@@ -144,6 +149,31 @@ function NavSectionBlock({
   const sectionActive = section.items.some((item) => isItemActive(pathname, item.href))
   const [open, setOpen] = useState(section.defaultOpen ?? sectionActive)
 
+  // Ocultar sección sin ítems visibles
+  if (section.items.length === 0) return null
+
+  // Administración: pocos ítems → siempre visibles (sin acordeón)
+  if (section.label === "Administración" && showLabel) {
+    return (
+      <div>
+        <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-white/35">
+          {section.label}
+        </p>
+        <div className="space-y-0.5">
+          {section.items.map((item) => (
+            <NavItemRow
+              key={item.href}
+              item={item}
+              collapsed={collapsed}
+              isMobile={isMobile}
+              nested
+            />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   if (section.collapsible && showLabel) {
     return (
       <div>
@@ -209,13 +239,31 @@ function SidebarContent({
   onToggleCollapse,
   onMobileClose,
   isMobile = false,
+  userRole,
+  userName,
+  userEmail,
 }: {
   collapsed: boolean
   onToggleCollapse: () => void
   onMobileClose?: () => void
   isMobile?: boolean
+  userRole?: UserRole | null
+  userName?: string
+  userEmail?: string
 }) {
   const showLabel = !collapsed || isMobile
+
+  const sections = navSections.map((section) => {
+    if (section.label !== "Administración") return section
+    const isAdmin = canManageUsers(userRole)
+    return {
+      ...section,
+      defaultOpen: true,
+      items: section.items.filter(
+        (item) => item.href !== "/administracion/usuarios" || isAdmin
+      ),
+    }
+  })
 
   return (
     <div className="flex flex-col h-full select-none bg-[var(--corporate-blue)] text-[#dce2fb]">
@@ -248,7 +296,7 @@ function SidebarContent({
       </div>
 
       <nav className="flex-1 px-3 py-4 overflow-y-auto scrollbar-thin space-y-6">
-        {navSections.map((section) => (
+        {sections.map((section) => (
           <NavSectionBlock
             key={section.label}
             section={section}
@@ -274,8 +322,11 @@ function SidebarContent({
           />
           {showLabel && (
             <div className="min-w-0">
-              <p className="text-white text-sm font-semibold truncate">Administrador</p>
-              <p className="text-[#ADBDCC] text-[11px] truncate">Admin General</p>
+              <p className="text-white text-sm font-semibold truncate">{userName ?? "Usuario"}</p>
+              <p className="text-[#ADBDCC] text-[11px] truncate">
+                {roleLabel(userRole)}
+                {userEmail ? ` · ${userEmail.split("@")[0]}` : ""}
+              </p>
             </div>
           )}
         </div>
@@ -302,6 +353,9 @@ export function Sidebar({
   onToggleCollapse,
   mobileOpen,
   onMobileClose,
+  userRole,
+  userName,
+  userEmail,
 }: SidebarProps) {
   const width = collapsed ? 72 : SIDEBAR_WIDTH
 
@@ -313,7 +367,13 @@ export function Sidebar({
         className="hidden md:flex flex-col overflow-hidden shrink-0 z-50"
         style={{ width }}
       >
-        <SidebarContent collapsed={collapsed} onToggleCollapse={onToggleCollapse} />
+        <SidebarContent
+          collapsed={collapsed}
+          onToggleCollapse={onToggleCollapse}
+          userRole={userRole}
+          userName={userName}
+          userEmail={userEmail}
+        />
       </motion.aside>
 
       <AnimatePresence>
@@ -339,6 +399,9 @@ export function Sidebar({
                 onToggleCollapse={onToggleCollapse}
                 onMobileClose={onMobileClose}
                 isMobile
+                userRole={userRole}
+                userName={userName}
+                userEmail={userEmail}
               />
             </motion.aside>
           </>

@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { ChevronDown, ChevronUp, ExternalLink, AlertTriangle, Clock, CheckCircle2, TrendingUp } from "lucide-react"
 import { formatCOP } from "@/modules/contracts/lib/status"
+import { formatDateShort } from "@/lib/date-format"
 import { calcFacturacionKPIs } from "@/types/facturas"
 import { getKanbanColumn } from "@/types/seguimiento"
 import type { Interadministrativo, Contrato } from "@/types/database"
@@ -15,8 +16,7 @@ import type { Tarea } from "@/types/seguimiento"
 
 function fmtCOP(v: number | null | undefined) { return v == null ? "—" : formatCOP(v) }
 function fmtDate(d: string | null | undefined) {
-  if (!d) return "—"
-  return new Date(d + "T00:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
+  return formatDateShort(d)
 }
 function fmt(v: string | null | undefined) { return v ?? "—" }
 

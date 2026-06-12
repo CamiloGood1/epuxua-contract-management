@@ -3,10 +3,17 @@
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "./user.service"
+import { assertInteradminWriteAccess } from "./interadmin-access"
 import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
 import type { DestinoHito } from "@/types/forma-pago"
 
 type Res = { error: string | null }
+
+async function requireWrite(interadminId: number): Promise<Res | null> {
+  const access = await assertInteradminWriteAccess(interadminId)
+  if (access.error) return { error: access.error }
+  return null
+}
 
 export interface CreateMilestoneInput {
   interadministrativo_id: number
@@ -29,6 +36,8 @@ async function audit(
 export async function createMilestone(input: CreateMilestoneInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar hitos de pago." }
+  const denied = await requireWrite(input.interadministrativo_id)
+  if (denied) return denied
   if (!input.milestone_name.trim())     return { error: "El nombre del hito es obligatorio." }
   if (!input.payment_condition.trim())  return { error: "La condición de pago es obligatoria." }
   if (input.scheduled_value <= 0)       return { error: "El valor programado debe ser mayor a cero." }
@@ -78,6 +87,8 @@ export async function updateMilestone(
 ): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar hitos de pago." }
+  const denied = await requireWrite(interadministrativoId)
+  if (denied) return denied
   if (updates.scheduled_value !== undefined && updates.scheduled_value <= 0) {
     return { error: "El valor programado debe ser mayor a cero." }
   }
@@ -126,6 +137,8 @@ export async function deleteMilestone(
 ): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canDeleteProject(profile?.role)) return { error: "Sin permisos para eliminar hitos de pago." }
+  const denied = await requireWrite(interadministrativoId)
+  if (denied) return denied
 
   const supabase = await createSupabaseServerClient()
 

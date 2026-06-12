@@ -22,6 +22,8 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   "/documentos": { title: "Documentos", subtitle: "Repositorio documental" },
   "/usuarios": { title: "Usuarios", subtitle: "Administración de accesos" },
   "/configuracion": { title: "Configuración", subtitle: "Parámetros del sistema" },
+  "/administracion/usuarios": { title: "Usuarios", subtitle: "Roles e invitaciones" },
+  "/administracion/configuracion": { title: "Configuración", subtitle: "Administración del sistema" },
 }
 
 function getPageMeta(pathname: string) {

@@ -9,6 +9,7 @@ import { calcFormaPagoSummary } from "@/types/forma-pago"
 import type { PaymentMilestone, DestinoHito } from "@/types/forma-pago"
 import type { CreateMilestoneInput } from "@/services/forma-pago.actions"
 import type { Interadministrativo } from "@/types/database"
+import { formatDateShort } from "@/lib/date-format"
 
 export type { PaymentMilestone }
 
@@ -34,7 +35,7 @@ function fmt(v: number | null | undefined) {
 }
 
 function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
+  return formatDateShort(d.includes("T") ? d.slice(0, 10) : d)
 }
 
 function pctBar(value: number, total: number, color: string) {

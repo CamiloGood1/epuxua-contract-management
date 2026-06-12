@@ -3,11 +3,10 @@
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "./user.service"
+import { assertInteradminWriteAccess } from "./interadmin-access"
 import { canEditProjects } from "@/modules/projects/lib/access"
 import type { EstadoInteradministrativo } from "@/types/database"
 import type { ChangeLogEntry } from "@/types/change-log"
-
-export type { ChangeLogEntry }
 
 // ── Input type ────────────────────────────────────────────────────────────────
 
@@ -55,10 +54,59 @@ export async function getChangeLog(interadministrativoId: number): Promise<Chang
 
 // ── Server action ─────────────────────────────────────────────────────────────
 
-export async function updateInteradministrativo(input: UpdateInteradminInput): Promise<{ error: string | null }> {
+const NUMERIC_FIELDS = new Set([
+  "pct_cuota_gerencia",
+  "valor_inicial",
+  "cuota_admin_inicial",
+  "total_contrato",
+  "avance_fisico_pct",
+])
+
+function fieldValuesEqual(key: string, oldVal: unknown, newVal: unknown): boolean {
+  if (NUMERIC_FIELDS.has(key)) {
+    const toNum = (v: unknown): number | null => {
+      if (v === null || v === undefined || v === "") return null
+      const n = Number(v)
+      return Number.isFinite(n) ? n : null
+    }
+    let oldN = toNum(oldVal)
+    let newN = toNum(newVal)
+    // La UI muestra null como 0% en el formulario de edición
+    if (key === "avance_fisico_pct") {
+      if (oldN === null) oldN = 0
+      if (newN === null) newN = 0
+    }
+    if (oldN === null && newN === null) return true
+    if (oldN === null || newN === null) return false
+    return Math.abs(oldN - newN) < 0.001
+  }
+
+  const norm = (v: unknown): string | null => {
+    if (v === null || v === undefined || v === "") return null
+    return String(v).trim()
+  }
+  return norm(oldVal) === norm(newVal)
+}
+
+function safeRevalidate(projectId: number) {
+  try {
+    revalidatePath(`/proyectos/${projectId}`, "page")
+    revalidatePath("/proyectos", "page")
+    revalidatePath("/", "page")
+  } catch (e) {
+    console.warn("[updateInteradministrativo] revalidatePath:", e)
+  }
+}
+
+export async function updateInteradministrativo(
+  input: UpdateInteradminInput
+): Promise<{ error: string | null }> {
   try {
     const profile = await getCurrentUserProfile().catch(() => null)
     if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar contratos." }
+
+    const access = await assertInteradminWriteAccess(input.id)
+    if (access.error) return access
 
     if (input.avance_fisico_pct != null && (input.avance_fisico_pct < 0 || input.avance_fisico_pct > 100))
       return { error: "El avance físico debe estar entre 0 y 100." }
@@ -75,11 +123,13 @@ export async function updateInteradministrativo(input: UpdateInteradminInput): P
       .from("interadministrativos")
       .select("*")
       .eq("id", input.id)
-      .single()
+      .maybeSingle()
 
-    if (fetchErr || !prev) return { error: "No se pudo cargar el registro actual." }
+    if (fetchErr) return { error: fetchErr.message }
+    if (!prev) return { error: "No se pudo cargar el registro actual." }
 
     const prevRecord = prev as Record<string, unknown>
+    const prevIdContrato = prevRecord.id_contrato as string
 
     const EDITABLE_KEYS: (keyof UpdateInteradminInput)[] = [
       "id_contrato", "objeto_contrato", "secretaria", "area_responsable", "categoria",
@@ -93,66 +143,95 @@ export async function updateInteradministrativo(input: UpdateInteradminInput): P
     const patch: Record<string, unknown> = {}
     const changes: Array<{ field: string; oldVal: string | null; newVal: string | null }> = []
 
+    const normForLog = (v: unknown): string | null => {
+      if (v === null || v === undefined || v === "") return null
+      return String(v)
+    }
+
     for (const key of EDITABLE_KEYS) {
       if (!(key in input)) continue
       const newVal = input[key] as unknown
       const oldVal = prevRecord[key]
 
-      const norm = (v: unknown): string | null => {
-        if (v === null || v === undefined || v === "") return null
-        return String(v)
-      }
+      if (fieldValuesEqual(key, oldVal, newVal)) continue
 
-      const oldStr = norm(oldVal)
-      const newStr = norm(newVal)
-
-      if (oldStr !== newStr) {
-        patch[key] = (newVal === "" || newVal === undefined) ? null : newVal
-        changes.push({ field: key, oldVal: oldStr, newVal: newStr })
-      }
+      patch[key] = newVal === "" || newVal === undefined ? null : newVal
+      changes.push({
+        field: key,
+        oldVal: normForLog(oldVal),
+        newVal: normForLog(newVal),
+      })
     }
 
     if (Object.keys(patch).length === 0) return { error: null }
 
     patch.updated_at = new Date().toISOString()
-    const { error: updateErr } = await supabase
+    const { data: updated, error: updateErr } = await supabase
       .from("interadministrativos")
       .update(patch)
       .eq("id", input.id)
+      .select("id")
+      .maybeSingle()
 
-    if (updateErr) return { error: updateErr.message }
+    if (updateErr) {
+      if (updateErr.message.includes("avance_fisico_pct")) {
+        return {
+          error:
+            "Falta la columna avance_fisico_pct en Supabase. Ejecute MIGRATION_MODIFICACIONES.sql.",
+        }
+      }
+      return { error: updateErr.message }
+    }
 
-    // Fire-and-forget audit writes — do not let failures block the response
+    if (!updated) {
+      return {
+        error:
+          "No se guardaron los cambios. Verifique permisos de escritura (RLS) en Supabase — ejecute MIGRATION_INTERADMIN_RLS.sql.",
+      }
+    }
+
+    // Si cambió el N° de contrato, actualizar referencias en contratos derivados
+    const newIdContrato = patch.id_contrato as string | undefined
+    if (newIdContrato && newIdContrato !== prevIdContrato) {
+      const { error: syncErr } = await supabase
+        .from("contratos")
+        .update({ id_interadministrativo: newIdContrato })
+        .eq("id_interadministrativo", prevIdContrato)
+
+      if (syncErr) {
+        console.warn("[updateInteradministrativo] sync contratos:", syncErr.message)
+      }
+    }
+
+    // Fire-and-forget audit — no bloquear la respuesta si falla el historial
     const now = new Date().toISOString()
-    Promise.all([
-      supabase
-        .from("contract_change_log" as never)
-        .insert(
-          changes.map(c => ({
-            interadministrativo_id: input.id,
-            field_name:    c.field,
-            old_value:     c.oldVal,
-            new_value:     c.newVal,
-            changed_by:    profile?.email ?? null,
-            changed_by_id: profile?.id    ?? null,
-            changed_at:    now,
-          })) as never,
-        ),
-      supabase
-        .from("interadmin_audit_log" as never)
-        .insert({
-          interadmin_id: input.id,
-          id_contrato:   prevRecord.id_contrato as string,
-          action:        "UPDATE_FULL",
-          old_value:     JSON.stringify(Object.fromEntries(changes.map(c => [c.field, c.oldVal]))),
-          new_value:     JSON.stringify(Object.fromEntries(changes.map(c => [c.field, c.newVal]))),
-          user_id:       profile?.id    ?? null,
-          user_email:    profile?.email ?? null,
-        } as never),
-    ]).catch(() => {})
+    const auditIdContrato = (newIdContrato ?? prevIdContrato) as string
+    void Promise.all([
+      changes.length > 0
+        ? supabase.from("contract_change_log" as never).insert(
+            changes.map((c) => ({
+              interadministrativo_id: input.id,
+              field_name: c.field,
+              old_value: c.oldVal,
+              new_value: c.newVal,
+              changed_by: profile?.email ?? null,
+              changed_by_id: profile?.id ?? null,
+              changed_at: now,
+            })) as never
+          )
+        : Promise.resolve({ error: null }),
+      supabase.from("interadmin_audit_log" as never).insert({
+        interadmin_id: input.id,
+        id_contrato: auditIdContrato,
+        action: "UPDATE_FULL",
+        old_value: JSON.stringify(Object.fromEntries(changes.map((c) => [c.field, c.oldVal]))),
+        new_value: JSON.stringify(Object.fromEntries(changes.map((c) => [c.field, c.newVal]))),
+        user_id: profile?.id ?? null,
+        user_email: profile?.email ?? null,
+      } as never),
+    ]).catch((e) => console.warn("[updateInteradministrativo] audit:", e))
 
-    revalidatePath(`/proyectos/${input.id}`)
-    revalidatePath("/proyectos")
+    safeRevalidate(input.id)
     return { error: null }
   } catch (e) {
     console.error("[updateInteradministrativo]", e)

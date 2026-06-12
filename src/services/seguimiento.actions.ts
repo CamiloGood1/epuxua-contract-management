@@ -3,10 +3,17 @@
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "./user.service"
+import { assertInteradminWriteAccess } from "./interadmin-access"
 import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
 import type { TareaPrioridad, TareaStatus } from "@/types/seguimiento"
 
 type Res = { error: string | null }
+
+async function requireWrite(interadminId: number): Promise<Res | null> {
+  const access = await assertInteradminWriteAccess(interadminId)
+  if (access.error) return { error: access.error }
+  return null
+}
 
 async function audit(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
@@ -34,6 +41,8 @@ export interface CreateTareaInput {
 export async function createTarea(input: CreateTareaInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para crear tareas." }
+  const denied = await requireWrite(input.interadministrativo_id)
+  if (denied) return denied
   if (!input.nombre.trim())       return { error: "El nombre de la tarea es obligatorio." }
   if (!input.descripcion.trim())  return { error: "La descripción es obligatoria." }
   if (!input.fecha_compromiso)    return { error: "La fecha compromiso es obligatoria." }
@@ -75,6 +84,8 @@ export async function startTarea(
 ): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos." }
+  const denied = await requireWrite(interadministrativoId)
+  if (denied) return denied
 
   const supabase = await createSupabaseServerClient()
 
@@ -109,6 +120,8 @@ export interface CompleteTareaInput {
 export async function completeTarea(input: CompleteTareaInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos." }
+  const denied = await requireWrite(input.interadministrativo_id)
+  if (denied) return denied
   if (!input.enlace_evidencia_cierre.trim()) return { error: "El enlace de evidencia es obligatorio." }
   try { new URL(input.enlace_evidencia_cierre) }
   catch { return { error: "El enlace de evidencia no es una URL válida." } }
@@ -147,6 +160,8 @@ export async function deleteTarea(
 ): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canDeleteProject(profile?.role)) return { error: "Solo los administradores pueden eliminar tareas." }
+  const denied = await requireWrite(interadministrativoId)
+  if (denied) return denied
 
   const supabase = await createSupabaseServerClient()
 
@@ -181,6 +196,8 @@ export interface CreateAvanceInput {
 export async function createAvance(input: CreateAvanceInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar avances." }
+  const denied = await requireWrite(input.interadministrativo_id)
+  if (denied) return denied
   if (!input.fecha)                    return { error: "La fecha es obligatoria." }
   if (!input.descripcion.trim())       return { error: "La descripción es obligatoria." }
   if (!input.enlace_evidencia.trim())  return { error: "El enlace de evidencia es obligatorio." }
@@ -212,6 +229,8 @@ export async function deleteAvance(
 ): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canDeleteProject(profile?.role)) return { error: "Solo los administradores pueden eliminar avances." }
+  const denied = await requireWrite(interadministrativoId)
+  if (denied) return denied
 
   const supabase = await createSupabaseServerClient()
 

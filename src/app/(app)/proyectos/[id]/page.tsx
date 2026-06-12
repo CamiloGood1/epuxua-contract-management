@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/services/user.service"
+import { canCurrentUserAccessInteradmin } from "@/services/interadmin-access"
 import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
 import { InteradministrativoDetail } from "@/modules/projects/components/interadministrativo-detail"
 import type { Interadministrativo, Contrato } from "@/types/database"
@@ -15,6 +16,8 @@ import type { Tarea, Avance } from "@/types/seguimiento"
 interface PageProps {
   params: Promise<{ id: string }>
 }
+
+export const dynamic = "force-dynamic"
 
 export default async function ProyectoDetallePage({ params }: PageProps) {
   const { id } = await params
@@ -34,6 +37,9 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
   ])
 
   if (projError || !project) notFound()
+
+  const hasAccess = await canCurrentUserAccessInteradmin(numericId)
+  if (!hasAccess) notFound()
 
   const [
     { data: contratos, error: contError },

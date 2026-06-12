@@ -1,4 +1,5 @@
 import type { Interadministrativo } from "@/types/database"
+import { formatDateNumeric } from "@/lib/date-format"
 
 /** Etiqueta de entidad contratante — acepta tanto el esquema nuevo como el viejo */
 export function projectEntityLabel(
@@ -21,10 +22,5 @@ export function projectContractsCount(
 
 /** Formatea fecha ISO a DD/MM/YYYY */
 export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "—"
-  return new Date(iso + "T12:00:00").toLocaleDateString("es-CO", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  })
+  return formatDateNumeric(iso)
 }

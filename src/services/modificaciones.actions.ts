@@ -3,10 +3,17 @@
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/services/user.service"
+import { assertInteradminWriteAccess } from "@/services/interadmin-access"
 import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
 import type { EstadoInteradministrativo } from "@/types/database"
 
 type Res = { error: string | null }
+
+async function requireWrite(interadminId: number): Promise<Res | null> {
+  const access = await assertInteradminWriteAccess(interadminId)
+  if (access.error) return { error: access.error }
+  return null
+}
 
 function revalidate(projectId: number) {
   revalidatePath(`/proyectos/${projectId}`)
@@ -33,6 +40,9 @@ export interface UpdateBasicInfoInput {
 export async function updateInteradminBasicInfo(input: UpdateBasicInfoInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar." }
+
+  const deniedBasic = await requireWrite(input.id)
+  if (deniedBasic) return deniedBasic
 
   if (input.avance_fisico_pct != null && (input.avance_fisico_pct < 0 || input.avance_fisico_pct > 100)) {
     return { error: "El avance físico debe estar entre 0 y 100." }
@@ -88,6 +98,8 @@ export interface CreateAdicionInput {
 export async function createAdicion(input: CreateAdicionInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar adiciones." }
+  const denied = await requireWrite(input.interadministrativo_id)
+  if (denied) return denied
   if (!input.fecha_adicion) return { error: "La fecha de la adición es obligatoria." }
   if (!input.numero_adicion) return { error: "El número de adición es obligatorio." }
   if (input.link_documental) {
@@ -124,6 +136,8 @@ export async function createAdicion(input: CreateAdicionInput): Promise<Res> {
 export async function deleteAdicion(id: number, interadministrativo_id: number): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canDeleteProject(profile?.role)) return { error: "Solo ADMIN puede eliminar adiciones." }
+  const deniedDelAd = await requireWrite(interadministrativo_id)
+  if (deniedDelAd) return deniedDelAd
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("interadmin_adiciones").delete().eq("id", id)
   if (error) return { error: error.message }
@@ -145,6 +159,8 @@ export interface CreateProrrogaInput {
 export async function createProrroga(input: CreateProrrogaInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar prórrogas." }
+  const deniedPr = await requireWrite(input.interadministrativo_id)
+  if (deniedPr) return deniedPr
   if (!input.fecha_suscripcion) return { error: "La fecha de suscripción es obligatoria." }
   if (!input.nueva_fecha_terminacion) return { error: "La nueva fecha de terminación es obligatoria." }
   if (input.nueva_fecha_terminacion < input.fecha_suscripcion)
@@ -178,6 +194,8 @@ export async function createProrroga(input: CreateProrrogaInput): Promise<Res> {
 export async function deleteProrroga(id: number, interadministrativo_id: number): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canDeleteProject(profile?.role)) return { error: "Solo ADMIN puede eliminar prórrogas." }
+  const deniedDelPr = await requireWrite(interadministrativo_id)
+  if (deniedDelPr) return deniedDelPr
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("interadmin_prorrogas").delete().eq("id", id)
   if (error) return { error: error.message }
@@ -200,6 +218,8 @@ export interface CreateSuspensionInput {
 export async function createSuspension(input: CreateSuspensionInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar suspensiones." }
+  const deniedSu = await requireWrite(input.interadministrativo_id)
+  if (deniedSu) return deniedSu
   if (!input.inicio_suspension) return { error: "La fecha de inicio de suspensión es obligatoria." }
   if (input.fin_suspension && input.fin_suspension < input.inicio_suspension)
     return { error: "La fecha de fin debe ser posterior al inicio de la suspensión." }
@@ -233,6 +253,8 @@ export async function createSuspension(input: CreateSuspensionInput): Promise<Re
 export async function deleteSuspension(id: number, interadministrativo_id: number): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canDeleteProject(profile?.role)) return { error: "Solo ADMIN puede eliminar suspensiones." }
+  const deniedDelSu = await requireWrite(interadministrativo_id)
+  if (deniedDelSu) return deniedDelSu
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("interadmin_suspensiones").delete().eq("id", id)
   if (error) return { error: error.message }
@@ -254,6 +276,8 @@ export interface CreateReinicioInput {
 export async function createReinicio(input: CreateReinicioInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar reinicios." }
+  const deniedRe = await requireWrite(input.interadministrativo_id)
+  if (deniedRe) return deniedRe
   if (!input.fecha_reinicio) return { error: "La fecha de reinicio es obligatoria." }
 
   const supabase = await createSupabaseServerClient()
@@ -284,6 +308,8 @@ export async function createReinicio(input: CreateReinicioInput): Promise<Res> {
 export async function deleteReinicio(id: number, interadministrativo_id: number): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canDeleteProject(profile?.role)) return { error: "Solo ADMIN puede eliminar reinicios." }
+  const deniedDelRe = await requireWrite(interadministrativo_id)
+  if (deniedDelRe) return deniedDelRe
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("interadmin_reinicios").delete().eq("id", id)
   if (error) return { error: error.message }
@@ -304,6 +330,8 @@ export interface CreateAclaratorioInput {
 export async function createAclaratorio(input: CreateAclaratorioInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar aclaratorios." }
+  const deniedAc = await requireWrite(input.interadministrativo_id)
+  if (deniedAc) return deniedAc
   if (!input.fecha_suscripcion) return { error: "La fecha de suscripción es obligatoria." }
 
   const supabase = await createSupabaseServerClient()
@@ -333,6 +361,8 @@ export async function createAclaratorio(input: CreateAclaratorioInput): Promise<
 export async function deleteAclaratorio(id: number, interadministrativo_id: number): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canDeleteProject(profile?.role)) return { error: "Solo ADMIN puede eliminar aclaratorios." }
+  const deniedDelAc = await requireWrite(interadministrativo_id)
+  if (deniedDelAc) return deniedDelAc
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("interadmin_aclaratorios").delete().eq("id", id)
   if (error) return { error: error.message }

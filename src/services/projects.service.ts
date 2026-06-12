@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { getAssignedInteradminIdsForCurrentUser } from "@/services/interadmin-access"
 import type { Interadministrativo, EstadoInteradministrativo } from "@/types/database"
 
 // ── Lista de interadministrativos ─────────────────────────────────────────────
@@ -23,6 +24,12 @@ export async function getProjects(filters?: {
   }
   if (filters?.area && filters.area !== "all") {
     query = query.eq("area_responsable", filters.area)
+  }
+
+  const assignedIds = await getAssignedInteradminIdsForCurrentUser()
+  if (assignedIds !== null) {
+    if (assignedIds.length === 0) return []
+    query = query.in("id", assignedIds)
   }
 
   const { data, error } = await query.limit(5000)

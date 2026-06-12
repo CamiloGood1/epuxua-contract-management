@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { ContractStatus } from "@/types/contract"
+import { formatDateShort } from "@/lib/date-format"
 
 export interface StatusConfig {
   label: string
@@ -134,12 +135,7 @@ export function formatCOP(value: number | null | undefined): string {
 }
 
 export function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return "—"
-  return new Date(dateStr).toLocaleDateString("es-CO", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  })
+  return formatDateShort(dateStr)
 }
 
 export function pct(v: number | null | undefined): number {

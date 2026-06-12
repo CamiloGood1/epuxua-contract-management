@@ -16,14 +16,14 @@ import {
 } from "@/types/seguimiento"
 import type { Tarea, Avance, TareaPrioridad } from "@/types/seguimiento"
 import type { CreateTareaInput, CreateAvanceInput } from "@/services/seguimiento.actions"
+import { formatDateShort } from "@/lib/date-format"
 
 export type { Tarea, Avance }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtDate(d: string | null | undefined) {
-  if (!d) return "—"
-  return new Date(d + "T00:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
+  return formatDateShort(d)
 }
 
 function PrioridadBadge({ p }: { p: TareaPrioridad }) {

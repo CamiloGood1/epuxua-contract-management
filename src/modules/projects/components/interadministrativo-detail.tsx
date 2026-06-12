@@ -26,7 +26,13 @@ function fmtMoney(v: number | null | undefined) { return v == null ? "—" : for
 // ── Estado badge interadmin ───────────────────────────────────────────────────
 
 function EstadoBadge({ estado }: { estado: EstadoInteradministrativo }) {
-  const cfg = ESTADO_CONFIG[estado]
+  const cfg = ESTADO_CONFIG[estado] ?? {
+    label: estado,
+    bgClass: "bg-slate-50",
+    textClass: "text-slate-700",
+    borderClass: "border-slate-200",
+    dotClass: "bg-slate-400",
+  }
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${cfg.bgClass} ${cfg.textClass} ${cfg.borderClass}`}>
       <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dotClass}`} />
@@ -279,7 +285,13 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
 
       <ContractDetailDrawer contract={selected} onClose={() => setSelected(null)} />
 
-      {showEdit    && <EditBasicModal project={p} onClose={() => setShowEdit(false)} />}
+      {showEdit    && (
+        <EditBasicModal
+          key={`edit-${p.id}-${p.updated_at}`}
+          project={p}
+          onClose={() => setShowEdit(false)}
+        />
+      )}
       {showChanges && <ChangeLogModal interadministrativoId={p.id} contractId={p.id_contrato} onClose={() => setShowChanges(false)} />}
     </div>
   )

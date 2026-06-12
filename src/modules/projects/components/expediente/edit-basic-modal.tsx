@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useTransition } from "react"
+import { useState, useMemo, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { X, AlertTriangle, CheckCircle2 } from "lucide-react"
 import { updateInteradministrativo } from "@/services/update-interadmin.actions"
@@ -101,6 +101,10 @@ export function EditBasicModal({ project: p, onClose }: Props) {
   const [error, setError]     = useState<string | null>(null)
   const [isPending, start]    = useTransition()
 
+  useEffect(() => {
+    setForm(toForm(p))
+  }, [p])
+
   function setField<K extends keyof FormState>(k: K, v: string) {
     setForm(prev => ({ ...prev, [k]: v }))
   }
@@ -147,8 +151,10 @@ export function EditBasicModal({ project: p, onClose }: Props) {
   function handleSubmit() {
     setError(null)
     const parseNum = (s: string): number | null => {
-      const v = parseFloat(s.replace(/\./g, "").replace(",", "."))
-      return isNaN(v) ? null : v
+      const t = s.trim()
+      if (!t) return null
+      const v = parseFloat(t.replace(",", "."))
+      return Number.isFinite(v) ? v : null
     }
     const nullOrStr = (s: string): string | null => s.trim() || null
 
@@ -178,10 +184,24 @@ export function EditBasicModal({ project: p, onClose }: Props) {
     }
 
     start(async () => {
-      const res = await updateInteradministrativo(input)
-      if (res.error) { setError(res.error); setStep("editing"); return }
-      onClose()
-      router.refresh()
+      try {
+        const res = await updateInteradministrativo(input)
+        if (res.error) {
+          setError(res.error)
+          setStep("editing")
+          return
+        }
+        onClose()
+        router.push(`/proyectos/${p.id}`)
+        router.refresh()
+      } catch (e) {
+        const msg =
+          e instanceof Error
+            ? e.message
+            : "No se pudo guardar. Verifique su sesión e intente de nuevo."
+        setError(msg)
+        setStep("editing")
+      }
     })
   }
 

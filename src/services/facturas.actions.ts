@@ -3,10 +3,17 @@
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "./user.service"
+import { assertInteradminWriteAccess } from "./interadmin-access"
 import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
 import type { DestinoFactura, EstadoFactura } from "@/types/facturas"
 
 type Res = { error: string | null }
+
+async function requireWrite(interadminId: number): Promise<Res | null> {
+  const access = await assertInteradminWriteAccess(interadminId)
+  if (access.error) return { error: access.error }
+  return null
+}
 
 export interface CreateFacturaInput {
   interadministrativo_id: number
@@ -23,6 +30,8 @@ export interface CreateFacturaInput {
 export async function createFactura(input: CreateFacturaInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar facturas." }
+  const denied = await requireWrite(input.interadministrativo_id)
+  if (denied) return denied
   if (!input.numero_factura.trim()) return { error: "El número de factura es obligatorio." }
   if (!input.fecha_remision) return { error: "La fecha de remisión es obligatoria." }
   if (input.valor_cobrado <= 0) return { error: "El valor cobrado debe ser mayor a 0." }
@@ -58,6 +67,8 @@ export async function updateFactura(
 ): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar facturas." }
+  const denied = await requireWrite(interadministrativoId)
+  if (denied) return denied
 
   const supabase = await createSupabaseServerClient()
 
@@ -82,6 +93,8 @@ export async function deleteFactura(
 ): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canDeleteProject(profile?.role)) return { error: "Sin permisos para eliminar facturas." }
+  const denied = await requireWrite(interadministrativoId)
+  if (denied) return denied
 
   const supabase = await createSupabaseServerClient()
 

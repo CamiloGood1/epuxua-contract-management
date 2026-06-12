@@ -8,6 +8,7 @@ import { createFactura, updateFactura, deleteFactura } from "@/services/facturas
 import { calcFacturacionKPIs, computeFactura } from "@/types/facturas"
 import type { Factura, DestinoFactura, EstadoFactura } from "@/types/facturas"
 import type { CreateFacturaInput } from "@/services/facturas.actions"
+import { formatDateShort } from "@/lib/date-format"
 
 export type { Factura }
 
@@ -37,8 +38,7 @@ function EstadoBadge({ estado }: { estado: EstadoFactura }) {
 function fmt(v: number) { return formatCOP(v) }
 
 function fmtDate(d: string | null | undefined) {
-  if (!d) return "—"
-  return new Date(d + "T00:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" })
+  return formatDateShort(d)
 }
 
 function daysSince(dateStr: string) {

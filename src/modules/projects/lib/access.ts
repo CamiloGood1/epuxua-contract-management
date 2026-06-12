@@ -27,7 +27,7 @@ export function isReadOnlyRole(role: UserRole | null | undefined): boolean {
 export function roleLabel(role: UserRole | null | undefined): string {
   const labels: Record<UserRole, string> = {
     ADMIN:              "Administrador",
-    GERENTE:            "Gerente de Proyecto",
+    GERENTE:            "Gerente General",
     GERENTE_PROYECTO:   "Gerente de Proyecto",
     DIRECTIVO:          "Directivo",
     CONSULTOR_PROYECTO: "Consultor de Proyecto",
@@ -36,3 +36,61 @@ export function roleLabel(role: UserRole | null | undefined): string {
   if (!role) return "Usuario"
   return labels[role] ?? role
 }
+
+export function canManageUsers(role: UserRole | null | undefined): boolean {
+  return role === "ADMIN"
+}
+
+export function canViewAllInteradmins(role: UserRole | null | undefined): boolean {
+  if (!role) return false
+  return role === "ADMIN" || role === "GERENTE"
+}
+
+/** Roles que ven todos los interadministrativos en lectura (sin filtro de asignación). */
+export function canReadAllInteradmins(role: UserRole | null | undefined): boolean {
+  if (!role) return false
+  return (
+    canViewAllInteradmins(role) ||
+    role === "ESPECTADOR" ||
+    role === "DIRECTIVO"
+  )
+}
+
+export function canAccessInteradmin(
+  role: UserRole | null | undefined,
+  interadminId: number,
+  assignedIds: ReadonlySet<number> | readonly number[]
+): boolean {
+  if (!role) return false
+  if (canReadAllInteradmins(role)) return true
+  if (role === "GERENTE_PROYECTO" || role === "CONSULTOR_PROYECTO") {
+    const set = assignedIds instanceof Set ? assignedIds : new Set(assignedIds)
+    return set.has(interadminId)
+  }
+  return false
+}
+
+export function canWriteInteradmin(
+  role: UserRole | null | undefined,
+  interadminId: number,
+  assignedIds: ReadonlySet<number> | readonly number[]
+): boolean {
+  if (!role) return false
+  if (canViewAllInteradmins(role)) return true
+  if (role === "GERENTE_PROYECTO") {
+    const set = assignedIds instanceof Set ? assignedIds : new Set(assignedIds)
+    return set.has(interadminId)
+  }
+  return false
+}
+
+export const INVITABLE_ROLES: UserRole[] = [
+  "GERENTE_PROYECTO",
+  "GERENTE",
+  "DIRECTIVO",
+  "CONSULTOR_PROYECTO",
+  "ESPECTADOR",
+]
+
+export const ASSIGNMENT_ROLES = ["GERENTE_PROYECTO", "CONSULTOR_PROYECTO"] as const
+export type InteradminAssignmentRole = (typeof ASSIGNMENT_ROLES)[number]

@@ -2,11 +2,19 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { UserRole } from "@/types/project"
 import type { ProjectAlert } from "@/types/project"
 
+type ProfileRow = {
+  id: string
+  full_name: string
+  role: UserRole
+  active?: boolean
+}
+
 export interface UserProfile {
   id: string
   email: string | null
   full_name: string | null
   role: UserRole
+  active: boolean
 }
 
 export async function getCurrentUserProfile(): Promise<UserProfile | null> {
@@ -17,32 +25,61 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
   } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data, error } = await supabase
-    .from("user_profiles")
-    .select("id, full_name, role")
-    .eq("id", user.id)
-    .maybeSingle()
-
-  if (error) {
-    // user_profiles table doesn't exist yet — grant full access until roles system is implemented
+  async function loadProfile(withActive: boolean): Promise<{
+    data: ProfileRow | null
+    error: { message: string; code?: string } | null
+  }> {
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .select(withActive ? "id, full_name, role, active" : "id, full_name, role")
+      .eq("id", user!.id)
+      .maybeSingle()
     return {
-      id: user.id,
-      email: user.email ?? null,
-      full_name: null,
-      role: "ADMIN" as UserRole,
+      data: (data as ProfileRow | null) ?? null,
+      error: error ? { message: error.message, code: error.code } : null,
     }
   }
+
+  let { data, error } = await loadProfile(true)
+
+  if (error && (error.message.includes("active") || error.code === "42703")) {
+    const fallback = await loadProfile(false)
+    data = fallback.data ? { ...fallback.data, active: true } : null
+    error = fallback.error
+  }
+
+  if (!data) {
+    await supabase.rpc("ensure_user_profile")
+    const retry = await loadProfile(true)
+    if (retry.error && (retry.error.message.includes("active") || retry.error.code === "42703")) {
+      const fallback = await loadProfile(false)
+      data = fallback.data ? { ...fallback.data, active: true } : null
+      error = fallback.error
+    } else {
+      data = retry.data
+      error = retry.error
+    }
+  }
+
+  if (error) {
+    console.warn("[getCurrentUserProfile]", error.message, "userId:", user.id)
+  }
+
   if (!data) {
     return {
       id: user.id,
       email: user.email ?? null,
-      full_name: null,
-      role: "ADMIN" as UserRole,
+      full_name: user.user_metadata?.full_name ?? user.email ?? null,
+      role: "ESPECTADOR",
+      active: true,
     }
   }
 
   return {
-    ...(data as Omit<UserProfile, "email">),
+    id: data.id,
+    full_name: data.full_name,
+    role: data.role as UserRole,
+    active: "active" in data ? Boolean(data.active) : true,
     email: user.email ?? null,
   }
 }

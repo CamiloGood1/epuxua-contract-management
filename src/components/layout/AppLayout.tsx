@@ -3,13 +3,16 @@
 import { useState } from "react"
 import { Sidebar } from "./Sidebar"
 import { Header } from "./Header"
+import type { UserRole } from "@/types/project"
 
 interface AppLayoutProps {
   children: React.ReactNode
   userEmail: string
+  userRole?: UserRole | null
+  userName?: string
 }
 
-export function AppLayout({ children, userEmail }: AppLayoutProps) {
+export function AppLayout({ children, userEmail, userRole, userName }: AppLayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -20,6 +23,9 @@ export function AppLayout({ children, userEmail }: AppLayoutProps) {
         onToggleCollapse={() => setCollapsed((prev) => !prev)}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
+        userRole={userRole}
+        userName={userName}
+        userEmail={userEmail}
       />
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <Header

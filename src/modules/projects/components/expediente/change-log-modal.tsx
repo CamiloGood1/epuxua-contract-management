@@ -5,6 +5,7 @@ import { X, History, Clock } from "lucide-react"
 import { getChangeLog } from "@/services/update-interadmin.actions"
 import { FIELD_LABELS } from "@/types/change-log"
 import type { ChangeLogEntry } from "@/types/change-log"
+import { formatDateTimeParts } from "@/lib/date-format"
 
 interface Props {
   interadministrativoId: number
@@ -26,11 +27,7 @@ export function ChangeLogModal({ interadministrativoId, contractId, onClose }: P
   }, [interadministrativoId])
 
   function fmtDateTime(ts: string) {
-    const d = new Date(ts)
-    return {
-      date: d.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" }),
-      time: d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }),
-    }
+    return formatDateTimeParts(ts)
   }
 
   const fmtVal = (field: string, val: string | null) => {
