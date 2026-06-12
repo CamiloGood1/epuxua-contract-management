@@ -518,7 +518,9 @@ BEGIN
       'interadmin_adiciones', 'interadmin_prorrogas', 'interadmin_suspensiones',
       'interadmin_reinicios', 'interadmin_aclaratorios',
       'interadmin_tasks', 'interadmin_avances', 'contract_payment_schedule',
-      'interadmin_funding_groups', 'interadmin_funding_sources'
+      'interadmin_funding_groups', 'interadmin_funding_sources',
+      'interadmin_financial_returns', 'interadmin_financial_return_distribution',
+      'interadmin_financial_return_repayments'
     ]) AS tbl
   LOOP
     IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = r.tbl) THEN

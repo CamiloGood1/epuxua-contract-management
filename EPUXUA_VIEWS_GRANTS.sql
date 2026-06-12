@@ -35,7 +35,10 @@ BEGIN
       'v_interadmin_funding_kpis',
       'v_interadmin_funding_consolidated',
       'v_interadmin_funding_group_summary',
-      'v_interadmin_funding_principal'
+      'v_interadmin_funding_principal',
+      'v_interadmin_financial_returns_kpis',
+      'v_interadmin_financial_returns_by_source',
+      'v_interadmin_financial_returns_detail'
     ]) AS viewname
   LOOP
     IF EXISTS (

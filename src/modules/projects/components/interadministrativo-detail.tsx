@@ -18,8 +18,11 @@ import { SeguimientoTab } from "./expediente/seguimiento-tab"
 import type { Tarea, Avance } from "./expediente/seguimiento-tab"
 import { InfoGeneralTab } from "./expediente/info-general-tab"
 import { FuentesFinanciacionTab } from "./expediente/fuentes-financiacion-tab"
+import { RendimientosFinancierosTab } from "./expediente/rendimientos-financieros-tab"
 import type { FundingData } from "@/types/funding"
 import { EMPTY_FUNDING } from "@/types/funding"
+import type { FinancialReturnsData } from "@/types/financial-returns"
+import { EMPTY_FINANCIAL_RETURNS } from "@/types/financial-returns"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -82,14 +85,15 @@ interface Props {
   tareas?: Tarea[]
   avances?: Avance[]
   funding?: FundingData
+  financialReturns?: FinancialReturnsData
   contratosError?: string
 }
 
-type TabId = "info" | "contratos" | "modificaciones" | "fuentes" | "forma_pago" | "facturacion" | "seguimiento"
+type TabId = "info" | "contratos" | "modificaciones" | "fuentes" | "forma_pago" | "facturacion" | "rendimientos" | "seguimiento"
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export function InteradministrativoDetail({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [], tareas = [], avances = [], funding = EMPTY_FUNDING }: Props) {
+export function InteradministrativoDetail({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [], tareas = [], avances = [], funding = EMPTY_FUNDING, financialReturns = EMPTY_FINANCIAL_RETURNS }: Props) {
   const [tab, setTab]             = useState<TabId>("info")
   const [selected, setSelected]   = useState<Contrato | null>(null)
   const [showEdit, setShowEdit]   = useState(false)
@@ -156,6 +160,7 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
           { id: "fuentes"        as TabId, label: "Fuentes de Financiación", badge: funding.sources.length || undefined },
           { id: "forma_pago"     as TabId, label: "Forma de Pago Contractual", badge: hitos.length || undefined },
           { id: "facturacion"    as TabId, label: "Facturación y Recaudo", badge: facturas.length || undefined },
+          { id: "rendimientos"   as TabId, label: "Rendimientos Financieros", badge: financialReturns.returns.length || undefined },
           { id: "seguimiento"    as TabId, label: "Seguimiento", badge: tareas.filter(t => t.status !== "COMPLETADA").length || undefined },
         ]).map((t) => (
           <button
@@ -188,6 +193,7 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
           facturas={facturas}
           tareas={tareas}
           funding={funding}
+          financialReturns={financialReturns}
           canEdit={canEdit}
           onTabChange={setTab}
           onEditClick={() => setShowEdit(true)}
@@ -283,6 +289,17 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
         <FacturacionTab
           interadministrativoId={p.id}
           facturas={facturas}
+          canEdit={canEdit}
+          canDelete={canDelete}
+        />
+      )}
+
+      {/* ── Tab: Rendimientos Financieros ── */}
+      {tab === "rendimientos" && (
+        <RendimientosFinancierosTab
+          interadministrativoId={p.id}
+          financialReturns={financialReturns}
+          funding={funding}
           canEdit={canEdit}
           canDelete={canDelete}
         />

@@ -13,6 +13,8 @@ import type { Factura } from "@/types/facturas"
 import type { Tarea } from "@/types/seguimiento"
 import type { FundingData } from "@/types/funding"
 import { calcFundingKPIs, hasFundingInconsistencies, EMPTY_FUNDING } from "@/types/funding"
+import type { FinancialReturnsData } from "@/types/financial-returns"
+import { calcFinancialReturnsKPIs, EMPTY_FINANCIAL_RETURNS } from "@/types/financial-returns"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -33,7 +35,7 @@ function daysFromToday(d: string) {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type TabId = "info" | "contratos" | "modificaciones" | "fuentes" | "forma_pago" | "facturacion" | "seguimiento"
+type TabId = "info" | "contratos" | "modificaciones" | "fuentes" | "forma_pago" | "facturacion" | "rendimientos" | "seguimiento"
 
 type AlertItem = {
   level: "critical" | "warning" | "info"
@@ -202,6 +204,7 @@ interface Props {
   facturas: Factura[]
   tareas: Tarea[]
   funding?: FundingData
+  financialReturns?: FinancialReturnsData
   canEdit: boolean
   onTabChange: (tab: TabId) => void
   onEditClick: () => void
@@ -214,6 +217,7 @@ export function InfoGeneralTab({
   facturas,
   tareas,
   funding = EMPTY_FUNDING,
+  financialReturns = EMPTY_FINANCIAL_RETURNS,
   canEdit,
   onTabChange,
   onEditClick,
@@ -243,6 +247,7 @@ export function InfoGeneralTab({
 
   const fundingKPIs = useMemo(() => calcFundingKPIs(funding), [funding])
   const fundingInconsistent = useMemo(() => hasFundingInconsistencies(funding), [funding])
+  const returnsKPIs = useMemo(() => calcFinancialReturnsKPIs(financialReturns), [financialReturns])
 
   const avanceFinanciero = useMemo(() => {
     const cuota = p.total_cuota_admin ?? 0
@@ -349,6 +354,12 @@ export function InfoGeneralTab({
     if (funding.sources.length === 0 && funding.groups.length > 0)
       list.push({ level: "info", category: "Fuentes de Financiación", description: "No hay fuentes de financiación registradas.", tabId: "fuentes" })
 
+    if (returnsKPIs.registrosPendientes > 0)
+      list.push({ level: "warning", category: "Rendimientos", description: `${returnsKPIs.registrosPendientes} rendimiento${returnsKPIs.registrosPendientes > 1 ? "s" : ""} pendiente${returnsKPIs.registrosPendientes > 1 ? "s" : ""} de devolución.`, tabId: "rendimientos" })
+
+    if (returnsKPIs.pendientePorDevolver > 0 && returnsKPIs.registrosPendientes === 0)
+      list.push({ level: "info", category: "Rendimientos", description: `Pendiente por devolver: ${fmtCOP(returnsKPIs.pendientePorDevolver)}`, tabId: "rendimientos" })
+
     const derivadosVencidos = derivados.filter(c =>
       c.fecha_terminacion && c.fecha_terminacion < today &&
       c.estado !== "TERMINADO" && c.estado !== "LIQUIDADO" && c.estado !== "TERMINADO ANTICIPADAMENTE"
@@ -357,7 +368,7 @@ export function InfoGeneralTab({
       list.push({ level: "warning", category: "Derivados", description: `${derivadosVencidos.length} contrato${derivadosVencidos.length > 1 ? "s" : ""} derivado${derivadosVencidos.length > 1 ? "s" : ""} vencido${derivadosVencidos.length > 1 ? "s" : ""}`, tabId: "contratos" })
 
     return list
-  }, [daysRemaining, tareas, facturacionKPIs, derivados, p.estado, fundingInconsistent, funding.sources.length, funding.groups.length])
+  }, [daysRemaining, tareas, facturacionKPIs, derivados, p.estado, fundingInconsistent, funding.sources.length, funding.groups.length, returnsKPIs])
 
   // ── Health score ───────────────────────────────────────────────────────────
 
@@ -664,6 +675,28 @@ export function InfoGeneralTab({
               <p className="text-[10px] text-amber-700 font-medium">Inconsistencias en la composición de fuentes</p>
             </div>
           )}
+        </div>
+
+        {/* Rendimientos Financieros */}
+        <div className="bg-white border border-[#EAEAEA] rounded-xl p-5" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+          <SectionHeader
+            title="Rendimientos Financieros"
+            action={<TabLink label="Ver Rendimientos" onClick={() => onTabChange("rendimientos")} />}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { l: "Rendimientos Generados", v: returnsKPIs.rendimientosAcumulados > 0 ? fmtCOP(returnsKPIs.rendimientosAcumulados) : "—", accent: "text-[#0B3D91]" },
+              { l: "Rendimientos Devueltos", v: returnsKPIs.rendimientosDevueltos > 0 ? fmtCOP(returnsKPIs.rendimientosDevueltos) : "—", accent: "text-emerald-700" },
+              { l: "Rendimientos Pendientes", v: returnsKPIs.pendientePorDevolver > 0 ? fmtCOP(returnsKPIs.pendientePorDevolver) : "—", accent: "text-amber-600" },
+              { l: "Principal Beneficiario", v: returnsKPIs.principalBeneficiario ?? "—", sub: returnsKPIs.valorPrincipalBeneficiario > 0 ? fmtCOP(returnsKPIs.valorPrincipalBeneficiario) : undefined, accent: "text-violet-700" },
+            ].map(item => (
+              <div key={item.l} className="bg-[#f9f9ff] rounded-lg px-3 py-2.5">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-[#747783] mb-1">{item.l}</p>
+                <p className={`text-lg font-bold tabular-nums ${item.accent}`}>{item.v}</p>
+                {item.sub && <p className="text-[10px] text-[#747783] mt-0.5">{item.sub}</p>}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Modificaciones */}

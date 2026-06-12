@@ -14,6 +14,7 @@ import type { PaymentMilestone } from "@/types/forma-pago"
 import type { Tarea, Avance } from "@/types/seguimiento"
 import type { FundingData, FundingGroup, FundingSource } from "@/types/funding"
 import { calcConsolidatedFromSources } from "@/types/funding"
+import type { FinancialReturnsData, FinancialReturn, FinancialReturnDistribution } from "@/types/financial-returns"
 import { syncFundingGroups } from "@/services/funding.actions"
 
 interface PageProps {
@@ -106,6 +107,27 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
     }
   }
 
+  let financialReturns: FinancialReturnsData = { returns: [], distributions: [] }
+  const [{ data: returnsRaw, error: returnsErr }, { data: distRaw, error: distErr }] = await Promise.all([
+    supabase
+      .from("interadmin_financial_returns" as never)
+      .select("*")
+      .eq("interadministrativo_id", numericId)
+      .order("return_year", { ascending: false })
+      .order("return_month", { ascending: false }),
+    supabase
+      .from("interadmin_financial_return_distribution" as never)
+      .select("*")
+      .eq("interadministrativo_id", numericId),
+  ])
+
+  if (!returnsErr && !distErr) {
+    financialReturns = {
+      returns: (returnsRaw ?? []) as FinancialReturn[],
+      distributions: (distRaw ?? []) as FinancialReturnDistribution[],
+    }
+  }
+
   return (
     <div className="space-y-0">
       <div className="px-3 sm:px-6 pt-4 sm:pt-5">
@@ -129,6 +151,7 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
         tareas={(tareasRaw ?? []) as Tarea[]}
         avances={(avancesRaw ?? []) as Avance[]}
         funding={funding}
+        financialReturns={financialReturns}
         contratosError={contError?.message}
       />
     </div>

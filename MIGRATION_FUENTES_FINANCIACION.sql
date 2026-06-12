@@ -74,10 +74,18 @@ CREATE INDEX IF NOT EXISTS idx_funding_sources_name
 CREATE OR REPLACE FUNCTION recalc_funding_source_percentages(p_group_id BIGINT)
 RETURNS void
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   v_total NUMERIC;
 BEGIN
+  IF current_setting('app.recalc_funding', true) = '1' THEN
+    RETURN;
+  END IF;
+
+  PERFORM set_config('app.recalc_funding', '1', true);
+
   SELECT total_value INTO v_total
   FROM interadmin_funding_groups
   WHERE id = p_group_id;
@@ -86,14 +94,15 @@ BEGIN
     UPDATE interadmin_funding_sources
     SET participation_percentage = 0, updated_at = NOW()
     WHERE funding_group_id = p_group_id;
-    RETURN;
+  ELSE
+    UPDATE interadmin_funding_sources
+    SET
+      participation_percentage = ROUND((source_value / v_total) * 100, 4),
+      updated_at = NOW()
+    WHERE funding_group_id = p_group_id;
   END IF;
 
-  UPDATE interadmin_funding_sources
-  SET
-    participation_percentage = ROUND((source_value / v_total) * 100, 4),
-    updated_at = NOW()
-  WHERE funding_group_id = p_group_id;
+  PERFORM set_config('app.recalc_funding', '0', true);
 END;
 $$;
 
@@ -104,6 +113,10 @@ AS $$
 DECLARE
   v_group_id BIGINT;
 BEGIN
+  IF current_setting('app.recalc_funding', true) = '1' THEN
+    RETURN COALESCE(NEW, OLD);
+  END IF;
+
   v_group_id := COALESCE(NEW.funding_group_id, OLD.funding_group_id);
   PERFORM recalc_funding_source_percentages(v_group_id);
   RETURN COALESCE(NEW, OLD);
