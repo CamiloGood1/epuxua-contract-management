@@ -2,8 +2,9 @@
 
 import { useState, useTransition, useEffect } from "react"
 import { X, History, Clock } from "lucide-react"
-import { getChangeLog, FIELD_LABELS } from "@/services/update-interadmin.actions"
-import type { ChangeLogEntry } from "@/services/update-interadmin.actions"
+import { getChangeLog } from "@/services/update-interadmin.actions"
+import { FIELD_LABELS } from "@/types/change-log"
+import type { ChangeLogEntry } from "@/types/change-log"
 
 interface Props {
   interadministrativoId: number
