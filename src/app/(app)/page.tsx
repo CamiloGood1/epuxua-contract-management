@@ -1,5 +1,5 @@
 import {
-  getProjects,
+  getProjectsForDashboard,
   getProjectFilterCatalogs,
   enrichProjectsWithManagers,
 } from "@/services/projects.service"
@@ -37,7 +37,7 @@ const EMPTY_FACTURACION_KPIS: FacturacionDashboardKPIs = {
 }
 
 export default async function Page() {
-  let projects: Awaited<ReturnType<typeof getProjects>> = []
+  let projects: Awaited<ReturnType<typeof getProjectsForDashboard>> = []
   let entities: string[] = []
   let topFuncContracts: FuncionamientoContrato[] = []
   let funcKPIs: FuncionamientoDashboardKPIs = EMPTY_FUNC_KPIS
@@ -51,7 +51,7 @@ export default async function Page() {
   try {
     const [raw, catalogs, funcContracts, funcKPIsRaw, interadminKPIsRaw, alertsRaw, facturacionRaw, profile] =
       await Promise.all([
-        getProjects(),
+        getProjectsForDashboard(),
         getProjectFilterCatalogs(),
         getFuncionamientoContracts(),
         getFuncionamientoDashboardKPIs(),

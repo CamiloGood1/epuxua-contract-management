@@ -46,7 +46,7 @@ export function canViewAllInteradmins(role: UserRole | null | undefined): boolea
   return role === "ADMIN" || role === "GERENTE"
 }
 
-/** Roles que ven todos los interadministrativos en lectura (sin filtro de asignación). */
+/** Roles que ven todos los interadministrativos en listados (no aplica al dashboard). */
 export function canReadAllInteradmins(role: UserRole | null | undefined): boolean {
   if (!role) return false
   return (

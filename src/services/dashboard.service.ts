@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
 // ── Alertas ───────────────────────────────────────────────────────────────────
 
@@ -218,7 +219,12 @@ export interface FacturacionDashboardKPIs {
 }
 
 export async function getFacturacionDashboardKPIs(): Promise<FacturacionDashboardKPIs> {
-  const supabase = await createSupabaseServerClient()
+  let supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  try {
+    supabase = createSupabaseAdminClient()
+  } catch {
+    supabase = await createSupabaseServerClient()
+  }
 
   const { data } = await supabase
     .from("interadmin_facturas" as never)

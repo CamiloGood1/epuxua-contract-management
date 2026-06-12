@@ -4,11 +4,16 @@ import type { Interadministrativo, EstadoInteradministrativo } from "@/types/dat
 
 // ── Lista de interadministrativos ─────────────────────────────────────────────
 
-export async function getProjects(filters?: {
+type ProjectListFilters = {
   estado?: EstadoInteradministrativo | "all"
   secretaria?: string | "all"
   area?: string | "all"
-}): Promise<Interadministrativo[]> {
+}
+
+async function fetchProjects(
+  filters?: ProjectListFilters,
+  options?: { skipAssignmentFilter?: boolean }
+): Promise<Interadministrativo[]> {
   const supabase = await createSupabaseServerClient()
 
   let query = supabase
@@ -26,15 +31,29 @@ export async function getProjects(filters?: {
     query = query.eq("area_responsable", filters.area)
   }
 
-  const assignedIds = await getAssignedInteradminIdsForCurrentUser()
-  if (assignedIds !== null) {
-    if (assignedIds.length === 0) return []
-    query = query.in("id", assignedIds)
+  if (!options?.skipAssignmentFilter) {
+    const assignedIds = await getAssignedInteradminIdsForCurrentUser()
+    if (assignedIds !== null) {
+      if (assignedIds.length === 0) return []
+      query = query.in("id", assignedIds)
+    }
   }
 
   const { data, error } = await query.limit(5000)
   if (error) throw new Error(error.message)
   return (data ?? []) as Interadministrativo[]
+}
+
+/** Listado de proyectos — respeta asignaciones por rol. */
+export async function getProjects(filters?: ProjectListFilters): Promise<Interadministrativo[]> {
+  return fetchProjects(filters)
+}
+
+/** Dashboard ejecutivo — todos los contratos, sin filtro de asignación. */
+export async function getProjectsForDashboard(
+  filters?: ProjectListFilters
+): Promise<Interadministrativo[]> {
+  return fetchProjects(filters, { skipAssignmentFilter: true })
 }
 
 // Alias explícito

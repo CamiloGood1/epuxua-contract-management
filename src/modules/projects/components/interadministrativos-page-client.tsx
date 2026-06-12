@@ -130,20 +130,20 @@ export function InteradministrativosPageClient({ projects, entities, years }: Pr
   return (
     <div className="space-y-4">
       {/* Encabezado con botones */}
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
         <button
           type="button"
           onClick={handleDownload}
           disabled={downloading || filtered.length === 0}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#EAEAEA] bg-white text-sm font-semibold text-[#0B3D91] hover:bg-[#f0f4ff] transition-colors shadow-sm disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg border border-[#EAEAEA] bg-white text-sm font-semibold text-[#0B3D91] hover:bg-[#f0f4ff] transition-colors shadow-sm disabled:opacity-50 w-full sm:w-auto"
         >
           <Download size={14} />
-          {downloading ? "Generando…" : `Descargar Excel${hasFilters ? ` (${filtered.length})` : ""}`}
+          <span className="truncate">{downloading ? "Generando…" : `Descargar Excel${hasFilters ? ` (${filtered.length})` : ""}`}</span>
         </button>
         <button
           type="button"
           onClick={() => setShowNewModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#0B3D91] text-white text-sm font-semibold hover:bg-[#002869] transition-colors shadow-sm"
+          className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-lg bg-[#0B3D91] text-white text-sm font-semibold hover:bg-[#002869] transition-colors shadow-sm w-full sm:w-auto"
         >
           <Plus size={14} />
           Nuevo Contrato Interadministrativo

@@ -272,7 +272,7 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
                         value={user.role}
                         disabled={pending}
                         onChange={(e) => handleRoleChange(user.id, e.target.value as UserRole)}
-                        className="h-8 rounded-lg border border-input bg-white px-2 text-xs min-w-[160px]"
+                        className="h-8 rounded-lg border border-input bg-white px-2 text-xs w-full max-w-[160px] sm:min-w-[160px]"
                       >
                         {(["ADMIN", ...INVITABLE_ROLES] as UserRole[]).map((r) => (
                           <option key={r} value={r}>
@@ -298,7 +298,7 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
                       {formatDateShort(user.created_at.slice(0, 10))}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-2">
                         {canAssignProjects(user.role) && (
                           <Button
                             type="button"
@@ -344,8 +344,8 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
 
       {/* Modal crear usuario */}
       {createOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="w-full max-w-md rounded-xl bg-white shadow-xl border border-border">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/40">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl border border-border">
             <div className="flex items-center justify-between px-5 py-4 border-b">
               <div>
                 <h2 className="text-lg font-semibold text-[#0B3D91]">Crear usuario</h2>
@@ -446,8 +446,8 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
       )}
 
       {resetUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="w-full max-w-sm rounded-xl bg-white shadow-xl border border-border">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/40">
+          <div className="w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl border border-border">
             <div className="flex items-center justify-between px-5 py-4 border-b">
               <h2 className="text-base font-semibold text-[#0B3D91]">Nueva contraseña</h2>
               <button
@@ -491,8 +491,8 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
 
       {/* Modal asignar proyectos */}
       {assignUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-          <div className="w-full max-w-lg rounded-xl bg-white shadow-xl border border-border max-h-[85vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4 bg-black/40">
+          <div className="w-full max-w-lg rounded-xl bg-white shadow-xl border border-border max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
               <div>
                 <h2 className="text-lg font-semibold text-[#0B3D91]">Asignar proyectos</h2>

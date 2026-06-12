@@ -264,7 +264,8 @@ BEGIN
 END;
 $$;
 
--- Lectura: ADMIN/GERENTE/ESPECTADOR/DIRECTIVO todos; GERENTE_PROYECTO/CONSULTOR asignados.
+-- Lectura en tablas hijas (facturas, tareas, etc.): ADMIN/GERENTE/ESPECTADOR/DIRECTIVO todos;
+-- GERENTE_PROYECTO/CONSULTOR solo asignados. La tabla interadministrativos usa SELECT global (dashboard).
 CREATE OR REPLACE FUNCTION public.user_can_read_interadmin(p_interadmin_id BIGINT)
 RETURNS boolean
 LANGUAGE plpgsql
@@ -398,9 +399,10 @@ DROP POLICY IF EXISTS "interadmin_update_auth" ON public.interadministrativos;
 DROP POLICY IF EXISTS "interadmin_insert_auth" ON public.interadministrativos;
 DROP POLICY IF EXISTS "interadmin_delete_auth" ON public.interadministrativos;
 
+-- SELECT global: dashboard y KPIs para todos los usuarios autenticados.
 CREATE POLICY "interadmin_select_scoped" ON public.interadministrativos
   AS PERMISSIVE FOR SELECT TO authenticated
-  USING (user_can_read_interadmin(id));
+  USING (auth.uid() IS NOT NULL);
 
 CREATE POLICY "interadmin_insert_scoped" ON public.interadministrativos
   AS PERMISSIVE FOR INSERT TO authenticated
@@ -418,16 +420,10 @@ DROP POLICY IF EXISTS "contratos_select_auth" ON public.contratos;
 DROP POLICY IF EXISTS "contratos_update_auth" ON public.contratos;
 DROP POLICY IF EXISTS "contratos_insert_auth" ON public.contratos;
 
+-- SELECT global en contratos: alertas/KPIs del dashboard para todos los autenticados.
 CREATE POLICY "contratos_select_scoped" ON public.contratos
   AS PERMISSIVE FOR SELECT TO authenticated
-  USING (
-    auth.uid() IS NOT NULL
-    AND EXISTS (
-      SELECT 1 FROM interadministrativos i
-      WHERE i.id_contrato = contratos.id_interadministrativo
-        AND user_can_read_interadmin(i.id)
-    )
-  );
+  USING (auth.uid() IS NOT NULL);
 
 CREATE POLICY "contratos_update_scoped" ON public.contratos
   AS PERMISSIVE FOR UPDATE TO authenticated

@@ -353,22 +353,22 @@ export function ProjectDashboardView({
   }, [filtered])
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
 
       {/* ── Page Header ── */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h2 className="text-[24px] font-semibold leading-[32px] text-[#002869] tracking-tight">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-[24px] font-semibold leading-tight sm:leading-[32px] text-[#002869] tracking-tight">
             Dashboard Ejecutivo
           </h2>
-          <p className="text-[#434652] mt-1">Resumen general de la contratación y ejecución financiera.</p>
+          <p className="text-sm sm:text-base text-[#434652] mt-1">Resumen general de la contratación y ejecución financiera.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {years.length > 0 && (
             <select
               value={year}
               onChange={(e) => setYear(e.target.value)}
-              className="bg-white border border-[#EAEAEA] text-[#434652] px-4 py-2 rounded-lg text-sm hover:bg-[#f0f3ff] transition-colors"
+              className="w-full sm:w-auto bg-white border border-[#EAEAEA] text-[#434652] px-3 sm:px-4 py-2 rounded-lg text-sm hover:bg-[#f0f3ff] transition-colors"
             >
               <option value="all">Todos los años</option>
               {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
@@ -384,11 +384,11 @@ export function ProjectDashboardView({
       )}
 
       {/* ── KPIs ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
 
         {/* KPI 1: Total Contratos — card oscura con segmentos */}
         <div
-          className="rounded-xl p-6 flex flex-col"
+          className="rounded-xl p-4 sm:p-6 flex flex-col"
           style={{ background: "linear-gradient(135deg, #0B3D91 0%, #002869 100%)" }}
         >
           <div className="flex items-center justify-between mb-3">
@@ -397,7 +397,7 @@ export function ProjectDashboardView({
               {activeContratos} activos
             </span>
           </div>
-          <span className="text-[40px] font-bold leading-none text-white tabular-nums">
+          <span className="text-3xl sm:text-[40px] font-bold leading-none text-white tabular-nums">
             {totalContratos.toLocaleString("es-CO")}
           </span>
           <p className="text-white/50 text-[11px] mt-1 mb-5">contratos totales en el sistema</p>
@@ -423,12 +423,12 @@ export function ProjectDashboardView({
         </div>
 
         {/* KPI 2: Valor Interadministrativos */}
-        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
           <div className="flex justify-between items-start mb-3">
             <span className="text-[#434652] text-sm font-medium leading-tight">Valor<br/>Interadministrativos</span>
             <span className="text-[#434652] text-[11px] font-semibold bg-[#f0f3ff] px-2 py-0.5 rounded shrink-0">COP</span>
           </div>
-          <span className="text-[32px] font-bold leading-[40px] text-[#D9A520] tabular-nums">
+          <span className="text-2xl sm:text-[32px] font-bold leading-tight sm:leading-[40px] text-[#D9A520] tabular-nums">
             {fmtCompact(valorInteradmin)}
           </span>
           <div className="mt-1 mb-4">
@@ -452,14 +452,14 @@ export function ProjectDashboardView({
         </div>
 
         {/* KPI 3: Cuota de Administración */}
-        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
           <div className="flex justify-between items-start mb-3">
             <span className="text-[#434652] text-sm font-medium leading-tight">Cuota de<br/>Administración</span>
             <span className="text-amber-600 text-[11px] font-semibold bg-amber-50 px-2 py-0.5 rounded shrink-0">
               {totalCuota > 0 ? `${Math.round(totalCuota / valorInteradmin * 100)}%` : "—"}
             </span>
           </div>
-          <span className="text-[32px] font-bold leading-[40px] text-[#D9A520] tabular-nums">
+          <span className="text-2xl sm:text-[32px] font-bold leading-tight sm:leading-[40px] text-[#D9A520] tabular-nums">
             {fmtCompact(totalCuota)}
           </span>
           <div className="mt-1 mb-4">
@@ -483,12 +483,12 @@ export function ProjectDashboardView({
         </div>
 
         {/* KPI 4: Bienes y Servicios = valor − cuota */}
-        <div className="bg-white p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
           <div className="flex justify-between items-start mb-3">
             <span className="text-[#434652] text-sm font-medium leading-tight">Bienes y<br/>Servicios</span>
             <span className="text-[#434652] text-[11px] font-semibold bg-[#f0f3ff] px-2 py-0.5 rounded shrink-0">COP</span>
           </div>
-          <span className="text-[32px] font-bold leading-[40px] text-[#0B3D91] tabular-nums">
+          <span className="text-2xl sm:text-[32px] font-bold leading-tight sm:leading-[40px] text-[#0B3D91] tabular-nums">
             {fmtCompact(Math.max(totalBienes, 0))}
           </span>
           <div className="mt-1 mb-4">
@@ -513,12 +513,12 @@ export function ProjectDashboardView({
       </div>
 
       {/* ── Charts ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
 
         {/* Donut: estados */}
-        <div className="bg-white p-8 rounded-xl border border-[#EAEAEA] lg:col-span-1">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-[20px] font-semibold leading-[28px] text-[#002869]">Contratos por Estado</h3>
+        <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl border border-[#EAEAEA] lg:col-span-1">
+          <div className="flex justify-between items-center mb-4 sm:mb-8">
+            <h3 className="text-base sm:text-[20px] font-semibold leading-tight sm:leading-[28px] text-[#002869]">Contratos por Estado</h3>
           </div>
           {donutData.length > 0 ? (
             <>
@@ -555,7 +555,7 @@ export function ProjectDashboardView({
               activeAll={entityActiveAll}
             />
           ) : (
-            <div className="rounded-xl p-8 flex items-center justify-center" style={{ background: "#0d1526" }}>
+            <div className="rounded-xl p-6 sm:p-8 flex items-center justify-center" style={{ background: "#0d1526" }}>
               <p className="text-sm text-slate-400">Sin datos</p>
             </div>
           )}
@@ -563,15 +563,15 @@ export function ProjectDashboardView({
       </div>
 
       {/* ── Bottom row ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
 
         {/* Col 1: Contratos recientes */}
         <div className="bg-white rounded-xl border border-[#EAEAEA]">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
-            <h4 className="text-[18px] font-semibold leading-[26px] text-[#151c27]">Log de Actividad</h4>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-[#EAEAEA]">
+            <h4 className="text-base sm:text-[18px] font-semibold leading-tight sm:leading-[26px] text-[#151c27]">Log de Actividad</h4>
             <Link href="/proyectos" className="text-[#0B3D91] text-sm font-medium hover:underline">Ver todo</Link>
           </div>
-          <div className="px-6 py-4 space-y-1">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 space-y-1">
             {filtered.slice(0, 5).map((p) => (
               <Link
                 key={p.id}
@@ -599,15 +599,15 @@ export function ProjectDashboardView({
 
         {/* Col 2: Alertas de Prioridad */}
         <div className="bg-white rounded-xl border border-[#EAEAEA]">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
-            <h4 className="text-[18px] font-semibold leading-[26px] text-[#151c27]">Alertas de Prioridad</h4>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-[#EAEAEA]">
+            <h4 className="text-base sm:text-[18px] font-semibold leading-tight sm:leading-[26px] text-[#151c27]">Alertas de Prioridad</h4>
             {totalAlertas > 0 && (
               <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-red-50 text-red-600">
                 {totalAlertas} Pendientes
               </span>
             )}
           </div>
-          <div className="px-6 py-4">
+          <div className="px-4 sm:px-6 py-3 sm:py-4">
             {allAlerts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-center">
                 <p className="text-sm text-[#434652]">Sin alertas activas</p>
@@ -627,11 +627,11 @@ export function ProjectDashboardView({
 
         {/* Col 3: Funcionamiento */}
         <div className="bg-white rounded-xl border border-[#EAEAEA]">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
-            <h4 className="text-[18px] font-semibold leading-[26px] text-[#151c27]">Últimos — Funcionamiento</h4>
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-[#EAEAEA]">
+            <h4 className="text-base sm:text-[18px] font-semibold leading-tight sm:leading-[26px] text-[#151c27]">Últimos — Funcionamiento</h4>
             <Link href="/funcionamiento" className="text-teal-600 text-sm font-medium hover:underline">Ver todo</Link>
           </div>
-          <div className="px-6 py-4 space-y-1">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 space-y-1">
             {/* Mini KPIs */}
             <div className="grid grid-cols-2 gap-2 mb-4">
               {[
@@ -669,14 +669,14 @@ export function ProjectDashboardView({
       {/* ── Facturación y Recaudo ── */}
       {(facturacionKPIs.facturadoTotal > 0 || true) && (
         <div className="bg-white border border-[#EAEAEA] rounded-xl overflow-hidden" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
-            <h4 className="text-[18px] font-semibold text-[#151c27] flex items-center gap-2">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-[#EAEAEA]">
+            <h4 className="text-base sm:text-[18px] font-semibold text-[#151c27] flex items-center gap-2">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
               Facturación y Recaudo
             </h4>
             <span className="text-[11px] text-[#747783]">Todos los contratos interadministrativos</span>
           </div>
-          <div className="grid grid-cols-3 md:grid-cols-5 divide-x divide-[#EAEAEA]">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 divide-x divide-y sm:divide-y-0 divide-[#EAEAEA]">
             {[
               { label: "Facturado Total",   value: fmtCompact(facturacionKPIs.facturadoTotal),  accent: "text-[#0B3D91]" },
               { label: "Recaudo Total",     value: fmtCompact(facturacionKPIs.ingresadoTotal),  accent: "text-emerald-600" },
@@ -684,14 +684,14 @@ export function ProjectDashboardView({
               { label: "Bienes y Servicios",value: fmtCompact(facturacionKPIs.facturadoBienes), accent: "text-[#0B3D91]" },
               { label: "Cuota de Gerencia", value: fmtCompact(facturacionKPIs.facturadoCuota),  accent: "text-violet-600" },
             ].map((k) => (
-              <div key={k.label} className="px-6 py-5 text-center">
+              <div key={k.label} className="px-3 sm:px-6 py-4 sm:py-5 text-center">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#747783] mb-1">{k.label}</p>
-                <p className={`text-lg font-bold tabular-nums ${k.accent}`}>{k.value}</p>
+                <p className={`text-base sm:text-lg font-bold tabular-nums ${k.accent}`}>{k.value}</p>
               </div>
             ))}
           </div>
           {facturacionKPIs.facturadoTotal > 0 && (
-            <div className="px-6 pb-5">
+            <div className="px-4 sm:px-6 pb-4 sm:pb-5">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-[11px] text-[#747783]">Progreso de recaudo global</p>
                 <span className="text-[11px] font-bold text-emerald-600">

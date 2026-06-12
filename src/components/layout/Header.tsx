@@ -78,22 +78,22 @@ export function Header({ onMobileMenuOpen, userEmail }: HeaderProps) {
       <button
         type="button"
         onClick={onMobileMenuOpen}
-        className="md:hidden p-2 rounded-lg hover:bg-muted text-muted-foreground shrink-0"
+        className="md:hidden p-2 rounded-lg hover:bg-muted text-muted-foreground shrink-0 -ml-1"
         aria-label="Abrir menú"
       >
         <Menu className="w-5 h-5" />
       </button>
 
-      <div className="min-w-0 flex-1 md:flex-none md:max-w-[200px] lg:max-w-none">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground md:hidden">
+      <div className="min-w-0 flex-1 md:hidden">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
           EPUXUA
         </p>
-        <h1 className="text-sm font-bold text-foreground leading-tight truncate md:hidden">
+        <h1 className="text-sm font-bold text-foreground leading-tight truncate">
           {meta.title}
         </h1>
       </div>
 
-      <div className="hidden md:block min-w-0 shrink-0">
+      <div className="hidden md:block min-w-0 shrink-0 max-w-[240px] lg:max-w-none">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           Área principal
         </p>
@@ -117,7 +117,7 @@ export function Header({ onMobileMenuOpen, userEmail }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 sm:gap-1 shrink-0 ml-auto">
         <button
           type="button"
           className="hidden sm:flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted"
@@ -128,27 +128,27 @@ export function Header({ onMobileMenuOpen, userEmail }: HeaderProps) {
 
         <button
           type="button"
-          className="relative p-2.5 rounded-lg hover:bg-muted text-muted-foreground"
+          className="relative p-2 sm:p-2.5 rounded-lg hover:bg-muted text-muted-foreground shrink-0"
         >
           <MaterialIcon name="notifications" size={20} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-[#EF4444] rounded-full ring-2 ring-white" />
+          <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-2 h-2 bg-[#EF4444] rounded-full ring-2 ring-white" />
         </button>
 
-        <div className="relative ml-1">
+        <div className="relative shrink-0">
           <button
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-muted"
+            className="flex items-center gap-1 sm:gap-2 pl-1 pr-1.5 sm:pr-2 py-1 rounded-lg hover:bg-muted"
           >
             <div
-              className="w-8 h-8 rounded-full bg-[var(--corporate-blue)] flex items-center justify-center text-[10px] font-bold text-white"
+              className="w-8 h-8 rounded-full bg-[var(--corporate-blue)] flex items-center justify-center text-[10px] font-bold text-white shrink-0"
             >
               {initials}
             </div>
             <span className="text-xs font-medium hidden lg:block max-w-[120px] truncate">
               {userEmail.split("@")[0]}
             </span>
-            <ChevronDown size={14} className={cn("text-muted-foreground transition-transform", menuOpen && "rotate-180")} />
+            <ChevronDown size={14} className={cn("text-muted-foreground transition-transform shrink-0", menuOpen && "rotate-180")} />
           </button>
 
           <AnimatePresence>
@@ -159,7 +159,7 @@ export function Header({ onMobileMenuOpen, userEmail }: HeaderProps) {
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 4 }}
-                  className="absolute right-0 top-full mt-2 w-52 bg-white border border-[#EAEAEA] rounded-xl shadow-xl z-20 p-1"
+                  className="absolute right-0 top-full mt-2 w-52 max-w-[calc(100vw-1.5rem)] bg-white border border-[#EAEAEA] rounded-xl shadow-xl z-20 p-1"
                 >
                   <p className="px-3 py-2 text-[10px] text-muted-foreground truncate border-b border-border mb-1">
                     {userEmail}

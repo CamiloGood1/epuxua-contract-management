@@ -75,7 +75,7 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
 
   return (
     <div className="space-y-0">
-      <div className="px-6 pt-5">
+      <div className="px-3 sm:px-6 pt-4 sm:pt-5">
         <Link
           href="/proyectos"
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
