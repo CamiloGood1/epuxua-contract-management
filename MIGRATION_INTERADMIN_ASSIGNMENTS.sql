@@ -398,6 +398,10 @@ DROP POLICY IF EXISTS "interadmin_select_auth" ON public.interadministrativos;
 DROP POLICY IF EXISTS "interadmin_update_auth" ON public.interadministrativos;
 DROP POLICY IF EXISTS "interadmin_insert_auth" ON public.interadministrativos;
 DROP POLICY IF EXISTS "interadmin_delete_auth" ON public.interadministrativos;
+DROP POLICY IF EXISTS "interadmin_select_scoped" ON public.interadministrativos;
+DROP POLICY IF EXISTS "interadmin_insert_scoped" ON public.interadministrativos;
+DROP POLICY IF EXISTS "interadmin_update_scoped" ON public.interadministrativos;
+DROP POLICY IF EXISTS "interadmin_delete_scoped" ON public.interadministrativos;
 
 -- SELECT global: dashboard y KPIs para todos los usuarios autenticados.
 CREATE POLICY "interadmin_select_scoped" ON public.interadministrativos
@@ -419,6 +423,10 @@ ALTER TABLE public.contratos ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "contratos_select_auth" ON public.contratos;
 DROP POLICY IF EXISTS "contratos_update_auth" ON public.contratos;
 DROP POLICY IF EXISTS "contratos_insert_auth" ON public.contratos;
+DROP POLICY IF EXISTS "contratos_select_scoped" ON public.contratos;
+DROP POLICY IF EXISTS "contratos_update_scoped" ON public.contratos;
+DROP POLICY IF EXISTS "contratos_insert_scoped" ON public.contratos;
+DROP POLICY IF EXISTS "contratos_delete_scoped" ON public.contratos;
 
 -- SELECT global en contratos: alertas/KPIs del dashboard para todos los autenticados.
 CREATE POLICY "contratos_select_scoped" ON public.contratos
@@ -475,6 +483,20 @@ CREATE POLICY "ia_assign_delete" ON public.interadmin_assignments
 -- ── 6. Tablas hijas críticas (facturas, modificaciones, seguimiento, forma pago) ─
 
 DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'interadmin_funding_groups') THEN
+    EXECUTE 'DROP POLICY IF EXISTS "funding_groups_read" ON public.interadmin_funding_groups';
+    EXECUTE 'DROP POLICY IF EXISTS "funding_groups_write" ON public.interadmin_funding_groups';
+    EXECUTE 'DROP POLICY IF EXISTS "funding_groups_insert" ON public.interadmin_funding_groups';
+    EXECUTE 'DROP POLICY IF EXISTS "funding_groups_update" ON public.interadmin_funding_groups';
+    EXECUTE 'DROP POLICY IF EXISTS "funding_groups_delete" ON public.interadmin_funding_groups';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'interadmin_funding_sources') THEN
+    EXECUTE 'DROP POLICY IF EXISTS "funding_sources_read" ON public.interadmin_funding_sources';
+    EXECUTE 'DROP POLICY IF EXISTS "funding_sources_write" ON public.interadmin_funding_sources';
+    EXECUTE 'DROP POLICY IF EXISTS "funding_sources_insert" ON public.interadmin_funding_sources';
+    EXECUTE 'DROP POLICY IF EXISTS "funding_sources_update" ON public.interadmin_funding_sources';
+    EXECUTE 'DROP POLICY IF EXISTS "funding_sources_delete" ON public.interadmin_funding_sources';
+  END IF;
   IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'interadmin_facturas') THEN
     EXECUTE 'DROP POLICY IF EXISTS "facturas_read" ON public.interadmin_facturas';
     EXECUTE 'DROP POLICY IF EXISTS "facturas_insert" ON public.interadmin_facturas';
@@ -495,11 +517,13 @@ BEGIN
     SELECT unnest(ARRAY[
       'interadmin_adiciones', 'interadmin_prorrogas', 'interadmin_suspensiones',
       'interadmin_reinicios', 'interadmin_aclaratorios',
-      'interadmin_tasks', 'interadmin_avances', 'contract_payment_schedule'
+      'interadmin_tasks', 'interadmin_avances', 'contract_payment_schedule',
+      'interadmin_funding_groups', 'interadmin_funding_sources'
     ]) AS tbl
   LOOP
     IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = r.tbl) THEN
       EXECUTE format('DROP POLICY IF EXISTS "%s_read" ON public.%I', r.tbl, r.tbl);
+      EXECUTE format('DROP POLICY IF EXISTS "%s_write" ON public.%I', r.tbl, r.tbl);
       EXECUTE format('DROP POLICY IF EXISTS "%s_insert" ON public.%I', r.tbl, r.tbl);
       EXECUTE format('DROP POLICY IF EXISTS "%s_update" ON public.%I', r.tbl, r.tbl);
       EXECUTE format('DROP POLICY IF EXISTS "%s_delete" ON public.%I', r.tbl, r.tbl);

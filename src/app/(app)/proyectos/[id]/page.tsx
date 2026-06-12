@@ -12,6 +12,9 @@ import { EMPTY_MODIFICACIONES } from "@/types/modificaciones"
 import type { Factura } from "@/types/facturas"
 import type { PaymentMilestone } from "@/types/forma-pago"
 import type { Tarea, Avance } from "@/types/seguimiento"
+import type { FundingData, FundingGroup, FundingSource } from "@/types/funding"
+import { calcConsolidatedFromSources } from "@/types/funding"
+import { syncFundingGroups } from "@/services/funding.actions"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -73,6 +76,36 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
     aclaratorios: (aclaratorios as ModificacionesData["aclaratorios"] | null) ?? EMPTY_MODIFICACIONES.aclaratorios,
   }
 
+  await syncFundingGroups(
+    numericId,
+    project.valor_inicial,
+    modificaciones.adiciones,
+  ).catch(() => {})
+
+  let funding: FundingData = { groups: [], sources: [], consolidated: [] }
+  const [{ data: fundingGroupsRaw, error: groupsErr }, { data: fundingSourcesRaw, error: sourcesErr }] = await Promise.all([
+    supabase
+      .from("interadmin_funding_groups" as never)
+      .select("*")
+      .eq("interadministrativo_id", numericId)
+      .order("group_type", { ascending: true })
+      .order("id", { ascending: true }),
+    supabase
+      .from("interadmin_funding_sources" as never)
+      .select("*")
+      .eq("interadministrativo_id", numericId)
+      .order("source_name", { ascending: true }),
+  ])
+
+  if (!groupsErr && !sourcesErr) {
+    const fundingSources = (fundingSourcesRaw ?? []) as FundingSource[]
+    funding = {
+      groups: (fundingGroupsRaw ?? []) as FundingGroup[],
+      sources: fundingSources,
+      consolidated: calcConsolidatedFromSources(numericId, fundingSources),
+    }
+  }
+
   return (
     <div className="space-y-0">
       <div className="px-3 sm:px-6 pt-4 sm:pt-5">
@@ -95,6 +128,7 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
         facturas={(facturasRaw ?? []) as Factura[]}
         tareas={(tareasRaw ?? []) as Tarea[]}
         avances={(avancesRaw ?? []) as Avance[]}
+        funding={funding}
         contratosError={contError?.message}
       />
     </div>

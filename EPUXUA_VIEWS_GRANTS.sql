@@ -1,25 +1,75 @@
--- Permisos y RLS en vistas (ejecutar en Supabase SQL Editor después del DDL e importación).
--- Sin esto, la app en Vercel puede devolver 0 filas o errores de permiso.
+-- Permisos y RLS en vistas (ejecutar en Supabase SQL Editor).
+-- Idempotente: solo altera/concede en vistas que existan en public.
+-- No requiere EPUXUA_DDL.sql completo.
 
-ALTER VIEW v_contract_detail SET (security_invoker = true);
-ALTER VIEW v_dashboard_kpis SET (security_invoker = true);
-ALTER VIEW v_contract_tracking SET (security_invoker = true);
-ALTER VIEW v_contract_alerts SET (security_invoker = true);
-ALTER VIEW v_derived_contracts SET (security_invoker = true);
-ALTER VIEW v_project_detail SET (security_invoker = true);
-ALTER VIEW v_project_contract_tree SET (security_invoker = true);
-ALTER VIEW v_project_financial SET (security_invoker = true);
-ALTER VIEW v_project_indicators_app SET (security_invoker = true);
+DO $$
+DECLARE
+  v record;
+BEGIN
+  FOR v IN
+    SELECT unnest(ARRAY[
+      -- Legacy EPUXUA_DDL (opcional)
+      'v_contract_detail',
+      'v_dashboard_kpis',
+      'v_contract_tracking',
+      'v_contract_alerts',
+      'v_derived_contracts',
+      'v_project_detail',
+      'v_project_contract_tree',
+      'v_project_financial',
+      'v_project_indicators_app',
+      -- Dashboard interadmin (FASE2A)
+      'v_funcionamiento_contracts',
+      'v_dashboard_funcionamiento',
+      'v_interadmin_projects',
+      'v_dashboard_interadmin',
+      -- Módulos interadmin
+      'v_interadmin_facturacion_kpis',
+      'v_facturacion_dashboard',
+      'v_cps_summary',
+      'v_cps_dashboard',
+      'v_tasks_kpis',
+      'v_tasks_kpis_por_contrato',
+      'v_tasks_kanban',
+      -- Fuentes de Financiación (MIGRATION_FUENTES_FINANCIACION.sql)
+      'v_interadmin_funding_kpis',
+      'v_interadmin_funding_consolidated',
+      'v_interadmin_funding_group_summary',
+      'v_interadmin_funding_principal'
+    ]) AS viewname
+  LOOP
+    IF EXISTS (
+      SELECT 1
+      FROM pg_views
+      WHERE schemaname = 'public'
+        AND viewname = v.viewname
+    ) THEN
+      EXECUTE format(
+        'ALTER VIEW public.%I SET (security_invoker = true)',
+        v.viewname
+      );
+      EXECUTE format(
+        'GRANT SELECT ON public.%I TO authenticated',
+        v.viewname
+      );
+      RAISE NOTICE 'OK: %', v.viewname;
+    ELSE
+      RAISE NOTICE 'SKIP (no existe): %', v.viewname;
+    END IF;
+  END LOOP;
+END $$;
 
-GRANT SELECT ON v_contract_detail TO authenticated;
-GRANT SELECT ON v_dashboard_kpis TO authenticated;
-GRANT SELECT ON v_contract_tracking TO authenticated;
-GRANT SELECT ON v_contract_alerts TO authenticated;
-GRANT SELECT ON v_derived_contracts TO authenticated;
-GRANT SELECT ON v_project_detail TO authenticated;
-GRANT SELECT ON v_project_contract_tree TO authenticated;
-GRANT SELECT ON v_project_financial TO authenticated;
-GRANT SELECT ON v_project_indicators_app TO authenticated;
+-- Verificación: vistas con grant en public
+SELECT
+  table_name AS vista,
+  grantee,
+  privilege_type
+FROM information_schema.role_table_grants
+WHERE table_schema = 'public'
+  AND grantee = 'authenticated'
+  AND privilege_type = 'SELECT'
+  AND table_name LIKE 'v\_%' ESCAPE '\'
+ORDER BY table_name;
 
 -- Perfiles: el id se asigna solo (auth.users.id). Ejecutar también EPUXUA_USER_PROFILES_AUTO.sql
 -- si el proyecto ya existía antes de ensure_user_profile().

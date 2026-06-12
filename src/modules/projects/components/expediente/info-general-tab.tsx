@@ -11,6 +11,8 @@ import type { ModificacionesData } from "@/types/modificaciones"
 import type { PaymentMilestone } from "@/types/forma-pago"
 import type { Factura } from "@/types/facturas"
 import type { Tarea } from "@/types/seguimiento"
+import type { FundingData } from "@/types/funding"
+import { calcFundingKPIs, hasFundingInconsistencies, EMPTY_FUNDING } from "@/types/funding"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -31,7 +33,7 @@ function daysFromToday(d: string) {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type TabId = "info" | "contratos" | "modificaciones" | "forma_pago" | "facturacion" | "seguimiento"
+type TabId = "info" | "contratos" | "modificaciones" | "fuentes" | "forma_pago" | "facturacion" | "seguimiento"
 
 type AlertItem = {
   level: "critical" | "warning" | "info"
@@ -199,6 +201,7 @@ interface Props {
   hitos: PaymentMilestone[]
   facturas: Factura[]
   tareas: Tarea[]
+  funding?: FundingData
   canEdit: boolean
   onTabChange: (tab: TabId) => void
   onEditClick: () => void
@@ -210,6 +213,7 @@ export function InfoGeneralTab({
   modificaciones,
   facturas,
   tareas,
+  funding = EMPTY_FUNDING,
   canEdit,
   onTabChange,
   onEditClick,
@@ -236,6 +240,9 @@ export function InfoGeneralTab({
   )
 
   const facturacionKPIs = useMemo(() => calcFacturacionKPIs(facturas), [facturas])
+
+  const fundingKPIs = useMemo(() => calcFundingKPIs(funding), [funding])
+  const fundingInconsistent = useMemo(() => hasFundingInconsistencies(funding), [funding])
 
   const avanceFinanciero = useMemo(() => {
     const cuota = p.total_cuota_admin ?? 0
@@ -336,6 +343,12 @@ export function InfoGeneralTab({
     if (facturacionKPIs.facturasVencidas30d > 0)
       list.push({ level: "warning", category: "Facturación", description: `${facturacionKPIs.facturasVencidas30d} factura${facturacionKPIs.facturasVencidas30d > 1 ? "s" : ""} sin recaudar >30 días`, tabId: "facturacion" })
 
+    if (fundingInconsistent)
+      list.push({ level: "warning", category: "Fuentes de Financiación", description: "Hay grupos financieros cuya suma de fuentes no coincide con el valor del grupo.", tabId: "fuentes" })
+
+    if (funding.sources.length === 0 && funding.groups.length > 0)
+      list.push({ level: "info", category: "Fuentes de Financiación", description: "No hay fuentes de financiación registradas.", tabId: "fuentes" })
+
     const derivadosVencidos = derivados.filter(c =>
       c.fecha_terminacion && c.fecha_terminacion < today &&
       c.estado !== "TERMINADO" && c.estado !== "LIQUIDADO" && c.estado !== "TERMINADO ANTICIPADAMENTE"
@@ -344,7 +357,7 @@ export function InfoGeneralTab({
       list.push({ level: "warning", category: "Derivados", description: `${derivadosVencidos.length} contrato${derivadosVencidos.length > 1 ? "s" : ""} derivado${derivadosVencidos.length > 1 ? "s" : ""} vencido${derivadosVencidos.length > 1 ? "s" : ""}`, tabId: "contratos" })
 
     return list
-  }, [daysRemaining, tareas, facturacionKPIs, derivados, p.estado])
+  }, [daysRemaining, tareas, facturacionKPIs, derivados, p.estado, fundingInconsistent, funding.sources.length, funding.groups.length])
 
   // ── Health score ───────────────────────────────────────────────────────────
 
@@ -624,6 +637,34 @@ export function InfoGeneralTab({
 
       {/* ─── 5+6. Modificaciones + Derivados summary ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Fuentes de Financiación */}
+        <div className="bg-white border border-[#EAEAEA] rounded-xl p-5" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+          <SectionHeader
+            title="Fuentes de Financiación"
+            action={<TabLink label="Ver Fuentes" onClick={() => onTabChange("fuentes")} />}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { l: "Total Fuentes",           v: fundingKPIs.totalFuentes > 0 ? String(fundingKPIs.totalFuentes) : "—", accent: "text-[#0B3D91]" },
+              { l: "Valor Financiado",        v: fundingKPIs.valorFinanciadoTotal > 0 ? fmtCOP(fundingKPIs.valorFinanciadoTotal) : "—", accent: "text-[#D9A520]" },
+              { l: "Principal Financiador",   v: fundingKPIs.principalFinanciador ?? "—", sub: fundingKPIs.principalFinanciador ? `${fundingKPIs.participacionPrincipal.toFixed(1)}% participación` : undefined, accent: "text-emerald-700" },
+              { l: "Participación Principal", v: fundingKPIs.participacionPrincipal > 0 ? `${fundingKPIs.participacionPrincipal.toFixed(1)}%` : "—", sub: fundingKPIs.valorPrincipal > 0 ? fmtCOP(fundingKPIs.valorPrincipal) : undefined, accent: "text-violet-700" },
+            ].map(item => (
+              <div key={item.l} className="bg-[#f9f9ff] rounded-lg px-3 py-2.5">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-[#747783] mb-1">{item.l}</p>
+                <p className={`text-lg font-bold tabular-nums ${item.accent}`}>{item.v}</p>
+                {item.sub && <p className="text-[10px] text-[#747783] mt-0.5">{item.sub}</p>}
+              </div>
+            ))}
+          </div>
+          {fundingInconsistent && (
+            <div className="mt-3 flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+              <AlertTriangle size={13} className="text-amber-500 shrink-0" />
+              <p className="text-[10px] text-amber-700 font-medium">Inconsistencias en la composición de fuentes</p>
+            </div>
+          )}
+        </div>
 
         {/* Modificaciones */}
         <div className="bg-white border border-[#EAEAEA] rounded-xl p-5" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
