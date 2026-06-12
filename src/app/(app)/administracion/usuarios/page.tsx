@@ -34,7 +34,7 @@ export default async function AdministracionUsuariosPage() {
   return (
     <PageShell
       title="Usuarios"
-      subtitle="Gestión de usuarios, roles e invitaciones. Asigne contratos interadministrativos a gerentes de proyecto."
+      subtitle="Alta de usuarios con contraseña asignada, roles y asignación de contratos interadministrativos."
     >
       {loadError && (
         <div className="px-4 py-3 rounded-xl border border-destructive/30 bg-destructive/10 text-sm text-destructive mb-4">

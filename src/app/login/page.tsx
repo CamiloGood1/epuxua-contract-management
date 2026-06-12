@@ -133,6 +133,9 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
+            <p className="text-[11px] text-muted-foreground text-center mt-4 px-2">
+              Si le asignaron una contraseña temporal, cámbiela después de ingresar desde el menú de su cuenta → Cambiar contraseña.
+            </p>
           </div>
         </div>
       </div>

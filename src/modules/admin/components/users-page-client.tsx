@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { Mail, Search, UserPlus, FolderKanban, X, Check } from "lucide-react"
+import { Search, UserPlus, FolderKanban, X, Check, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -14,8 +14,9 @@ import {
 } from "@/modules/projects/lib/access"
 import {
   bulkAssignInteradmins,
+  createUserWithPassword,
   fetchUserAssignmentIds,
-  inviteUser,
+  resetUserPassword,
   setUserActive,
   updateUserRole,
 } from "@/services/users.actions"
@@ -37,10 +38,15 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
   const [search, setSearch] = useState("")
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null)
 
-  const [inviteOpen, setInviteOpen] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState("")
-  const [inviteName, setInviteName] = useState("")
-  const [inviteRole, setInviteRole] = useState<UserRole>("GERENTE_PROYECTO")
+  const [createOpen, setCreateOpen] = useState(false)
+  const [newEmail, setNewEmail] = useState("")
+  const [newName, setNewName] = useState("")
+  const [newRole, setNewRole] = useState<UserRole>("GERENTE_PROYECTO")
+  const [newPassword, setNewPassword] = useState("")
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("")
+
+  const [resetUser, setResetUser] = useState<UserDirectoryEntry | null>(null)
+  const [resetPassword, setResetPassword] = useState("")
 
   const [assignUser, setAssignUser] = useState<UserDirectoryEntry | null>(null)
   const [assignSearch, setAssignSearch] = useState("")
@@ -83,24 +89,66 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
     })
   }
 
-  function handleInvite(e: React.FormEvent) {
+  function resetCreateForm() {
+    setNewEmail("")
+    setNewName("")
+    setNewRole("GERENTE_PROYECTO")
+    setNewPassword("")
+    setNewPasswordConfirm("")
+  }
+
+  function handleCreateUser(e: React.FormEvent) {
     e.preventDefault()
+    if (newPassword.length < 8) {
+      flash("err", "La contraseña debe tener al menos 8 caracteres.")
+      return
+    }
+    if (newPassword !== newPasswordConfirm) {
+      flash("err", "Las contraseñas no coinciden.")
+      return
+    }
+
     startTransition(async () => {
-      const result = await inviteUser({
-        email: inviteEmail,
-        full_name: inviteName,
-        role: inviteRole,
+      const result = await createUserWithPassword({
+        email: newEmail,
+        full_name: newName,
+        role: newRole,
+        password: newPassword,
       })
+
       if (result.error) {
         flash("err", result.error)
         return
       }
-      flash("ok", `Se envió correo a ${inviteEmail.trim()} para que defina su contraseña.`)
-      setInviteOpen(false)
-      setInviteEmail("")
-      setInviteName("")
-      setInviteRole("GERENTE_PROYECTO")
+      flash(
+        "ok",
+        result.message ??
+          `Usuario creado. Comparta la contraseña con ${newEmail.trim()}; podrá cambiarla al iniciar sesión.`
+      )
+      setCreateOpen(false)
+      resetCreateForm()
       router.refresh()
+    })
+  }
+
+  function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault()
+    if (!resetUser) return
+    if (resetPassword.length < 8) {
+      flash("err", "La contraseña debe tener al menos 8 caracteres.")
+      return
+    }
+    startTransition(async () => {
+      const result = await resetUserPassword({
+        userId: resetUser.id,
+        password: resetPassword,
+      })
+      if (result.error) flash("err", result.error)
+      else {
+        flash("ok", result.message ?? "Contraseña actualizada.")
+        setResetUser(null)
+        setResetPassword("")
+      }
     })
   }
 
@@ -178,13 +226,18 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
         </div>
         <Button
           type="button"
-          onClick={() => setInviteOpen(true)}
+          onClick={() => setCreateOpen(true)}
           className="bg-[#0B3D91] hover:bg-[#0B3D91]/90 text-white"
         >
           <UserPlus size={16} />
-          Invitar usuario
+          Crear usuario
         </Button>
       </div>
+
+      <p className="text-xs text-muted-foreground -mt-2 flex items-start gap-2">
+        <KeyRound size={14} className="shrink-0 mt-0.5" />
+        Defina la contraseña inicial y compártala al usuario. Luego podrá cambiarla en el menú superior → Cambiar contraseña.
+      </p>
 
       <div className="rounded-xl border border-border bg-white shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -263,6 +316,18 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
                           size="sm"
                           variant="ghost"
                           disabled={pending}
+                          onClick={() => {
+                            setResetUser(user)
+                            setResetPassword("")
+                          }}
+                        >
+                          Contraseña
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          disabled={pending}
                           onClick={() => handleToggleActive(user)}
                         >
                           {user.active ? "Desactivar" : "Activar"}
@@ -277,25 +342,37 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
         </div>
       </div>
 
-      {/* Modal invitar */}
-      {inviteOpen && (
+      {/* Modal crear usuario */}
+      {createOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <div className="w-full max-w-md rounded-xl bg-white shadow-xl border border-border">
             <div className="flex items-center justify-between px-5 py-4 border-b">
-              <h2 className="text-lg font-semibold text-[#0B3D91]">Invitar usuario</h2>
-              <button type="button" onClick={() => setInviteOpen(false)} className="p-1 rounded hover:bg-muted">
+              <div>
+                <h2 className="text-lg font-semibold text-[#0B3D91]">Crear usuario</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Sin correo de invitación — acceso con contraseña asignada
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateOpen(false)
+                  resetCreateForm()
+                }}
+                className="p-1 rounded hover:bg-muted"
+              >
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleInvite} className="p-5 space-y-4">
+            <form onSubmit={handleCreateUser} className="p-5 space-y-4">
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Correo *</label>
+                <label className="text-xs font-medium text-muted-foreground">Correo (usuario de acceso) *</label>
                 <Input
                   type="email"
                   required
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="gerente@epuxua.co"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="usuario@epuxua.co"
                   className="mt-1 bg-white"
                 />
               </div>
@@ -303,8 +380,8 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
                 <label className="text-xs font-medium text-muted-foreground">Nombre completo *</label>
                 <Input
                   required
-                  value={inviteName}
-                  onChange={(e) => setInviteName(e.target.value)}
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
                   placeholder="Nombre Apellido"
                   className="mt-1 bg-white"
                 />
@@ -312,8 +389,8 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Rol *</label>
                 <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value as UserRole)}
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as UserRole)}
                   className="mt-1 h-9 w-full rounded-lg border border-input bg-white px-2 text-sm"
                 >
                   {INVITABLE_ROLES.map((r) => (
@@ -323,16 +400,88 @@ export function UsersPageClient({ users, interadminCatalog }: Props) {
                   ))}
                 </select>
               </div>
-              <p className="text-xs text-muted-foreground flex items-start gap-2">
-                <Mail size={14} className="shrink-0 mt-0.5" />
-                El usuario recibirá un correo de Supabase para definir su contraseña e iniciar sesión.
-              </p>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Contraseña inicial *</label>
+                <Input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  className="mt-1 bg-white"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Confirmar contraseña *</label>
+                <Input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={newPasswordConfirm}
+                  onChange={(e) => setNewPasswordConfirm(e.target.value)}
+                  className="mt-1 bg-white"
+                  autoComplete="new-password"
+                />
+              </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setInviteOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setCreateOpen(false)
+                    resetCreateForm()
+                  }}
+                >
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={pending} className="bg-[#0B3D91] text-white hover:bg-[#0B3D91]/90">
-                  Enviar invitación
+                  Crear usuario
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {resetUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="w-full max-w-sm rounded-xl bg-white shadow-xl border border-border">
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <h2 className="text-base font-semibold text-[#0B3D91]">Nueva contraseña</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setResetUser(null)
+                  setResetPassword("")
+                }}
+                className="p-1 rounded hover:bg-muted"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleResetPassword} className="p-5 space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Usuario: <strong>{resetUser.full_name ?? resetUser.email}</strong>
+              </p>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Contraseña *</label>
+                <Input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  className="mt-1 bg-white"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setResetUser(null)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={pending} className="bg-[#0B3D91] text-white">
+                  Guardar
                 </Button>
               </div>
             </form>

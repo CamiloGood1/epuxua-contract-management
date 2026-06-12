@@ -3,9 +3,10 @@
 import { useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Menu, LogOut, ChevronDown } from "lucide-react"
+import { Menu, LogOut, ChevronDown, KeyRound } from "lucide-react"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 import { MaterialIcon } from "@/components/ui/material-icon"
+import { ChangePasswordDialog } from "@/components/layout/change-password-dialog"
 import { cn } from "@/lib/utils"
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
@@ -59,6 +60,7 @@ export function Header({ onMobileMenuOpen, userEmail }: HeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [passwordOpen, setPasswordOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const meta = getPageMeta(pathname)
   const initials = getInitials(userEmail)
@@ -164,6 +166,17 @@ export function Header({ onMobileMenuOpen, userEmail }: HeaderProps) {
                   </p>
                   <button
                     type="button"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      setPasswordOpen(true)
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-muted"
+                  >
+                    <KeyRound size={14} />
+                    Cambiar contraseña
+                  </button>
+                  <button
+                    type="button"
                     onClick={handleLogout}
                     disabled={loggingOut}
                     className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 disabled:opacity-60"
@@ -177,6 +190,8 @@ export function Header({ onMobileMenuOpen, userEmail }: HeaderProps) {
           </AnimatePresence>
         </div>
       </div>
+
+      <ChangePasswordDialog open={passwordOpen} onClose={() => setPasswordOpen(false)} />
     </header>
   )
 }

@@ -2,13 +2,39 @@
 
 import { revalidatePath } from "next/cache"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
+import { getLoginRedirectUrl } from "@/lib/app-url"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { InteradminAssignmentRole } from "@/modules/projects/lib/access"
 import { canManageUsers } from "@/modules/projects/lib/access"
 import { getCurrentUserProfile } from "@/services/user.service"
 import type { UserRole } from "@/types/project"
 
-type ActionResult = { error: string | null; success?: boolean }
+type ActionResult = { error: string | null; success?: boolean; message?: string }
+
+function validateNewUserInput(
+  email: string,
+  full_name: string,
+  role: UserRole
+): string | null {
+  if (!email || !full_name) return "Correo y nombre son obligatorios."
+  if (role === "ADMIN") return "No se puede crear con rol Administrador."
+  return null
+}
+
+async function syncUserProfileRole(
+  admin: ReturnType<typeof createSupabaseAdminClient>,
+  userId: string,
+  full_name: string,
+  role: UserRole
+) {
+  await admin.from("user_profiles").upsert({
+    id: userId,
+    full_name,
+    role,
+    active: true,
+    updated_at: new Date().toISOString(),
+  })
+}
 
 async function requireAdmin(): Promise<{ error: string | null; adminId?: string }> {
   const profile = await getCurrentUserProfile()
@@ -35,13 +61,12 @@ export async function inviteUser(input: {
   const email = input.email.trim().toLowerCase()
   const full_name = input.full_name.trim()
 
-  if (!email || !full_name) return { error: "Correo y nombre son obligatorios." }
-  if (input.role === "ADMIN") return { error: "No se puede invitar con rol Administrador." }
+  const validation = validateNewUserInput(email, full_name, input.role)
+  if (validation) return { error: validation }
 
   try {
     const admin = createSupabaseAdminClient()
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "")
-    const redirectTo = siteUrl ? `${siteUrl}/login` : undefined
+    const redirectTo = getLoginRedirectUrl()
 
     const { error } = await admin.auth.admin.inviteUserByEmail(email, {
       data: { full_name, role: input.role },
@@ -51,10 +76,89 @@ export async function inviteUser(input: {
     if (error) return { error: error.message }
 
     revalidateUserRoutes()
-    return { error: null, success: true }
+    return {
+      error: null,
+      success: true,
+      message: `Se envió correo a ${email}. El enlace usará ${redirectTo ?? "la Site URL de Supabase"}.`,
+    }
   } catch (e) {
     return {
       error: e instanceof Error ? e.message : "Error al enviar la invitación.",
+    }
+  }
+}
+
+export async function createUserWithPassword(input: {
+  email: string
+  full_name: string
+  role: UserRole
+  password: string
+}): Promise<ActionResult> {
+  const auth = await requireAdmin()
+  if (auth.error) return { error: auth.error }
+
+  const email = input.email.trim().toLowerCase()
+  const full_name = input.full_name.trim()
+  const password = input.password
+
+  const validation = validateNewUserInput(email, full_name, input.role)
+  if (validation) return { error: validation }
+  if (password.length < 8) {
+    return { error: "La contraseña debe tener al menos 8 caracteres." }
+  }
+
+  try {
+    const admin = createSupabaseAdminClient()
+
+    const { data, error } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name, role: input.role },
+    })
+
+    if (error) return { error: error.message }
+    if (!data.user) return { error: "No se pudo crear el usuario." }
+
+    await syncUserProfileRole(admin, data.user.id, full_name, input.role)
+
+    revalidateUserRoutes()
+    return {
+      error: null,
+      success: true,
+      message: `Usuario ${email} creado. Comparta la contraseña asignada por un canal seguro. El usuario puede cambiarla en el menú superior → Cambiar contraseña.`,
+    }
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "Error al crear el usuario.",
+    }
+  }
+}
+
+export async function resetUserPassword(input: {
+  userId: string
+  password: string
+}): Promise<ActionResult> {
+  const auth = await requireAdmin()
+  if (auth.error) return { error: auth.error }
+  if (input.password.length < 8) {
+    return { error: "La contraseña debe tener al menos 8 caracteres." }
+  }
+
+  try {
+    const admin = createSupabaseAdminClient()
+    const { error } = await admin.auth.admin.updateUserById(input.userId, {
+      password: input.password,
+    })
+    if (error) return { error: error.message }
+    return {
+      error: null,
+      success: true,
+      message: "Contraseña actualizada. Comunique la nueva contraseña al usuario.",
+    }
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : "Error al actualizar la contraseña.",
     }
   }
 }
