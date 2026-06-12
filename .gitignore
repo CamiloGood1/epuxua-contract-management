@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# binary/tmp artifacts that confuse Tailwind CSS scanner
+.pages-extract/
+.tmp-codigo-front-preview.jpg
+reference/
