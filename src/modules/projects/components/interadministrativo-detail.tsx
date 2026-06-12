@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { Suspense, useState, useMemo } from "react"
+import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { ESTADO_CONFIG } from "../lib/lifecycle"
 import { ContractDetailDrawer } from "@/modules/contracts/components/contract-detail-drawer"
@@ -91,10 +92,31 @@ interface Props {
 
 type TabId = "info" | "contratos" | "modificaciones" | "fuentes" | "forma_pago" | "facturacion" | "rendimientos" | "seguimiento"
 
+const VALID_TABS = new Set<TabId>([
+  "info", "contratos", "seguimiento", "modificaciones", "fuentes",
+  "forma_pago", "facturacion", "rendimientos",
+])
+
+function parseTab(value: string | null | undefined): TabId {
+  return value && VALID_TABS.has(value as TabId) ? (value as TabId) : "info"
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export function InteradministrativoDetail({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [], tareas = [], avances = [], funding = EMPTY_FUNDING, financialReturns = EMPTY_FINANCIAL_RETURNS }: Props) {
-  const [tab, setTab]             = useState<TabId>("info")
+function InteradministrativoDetailInner({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [], tareas = [], avances = [], funding = EMPTY_FUNDING, financialReturns = EMPTY_FINANCIAL_RETURNS }: Props) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const tab = parseTab(searchParams.get("tab"))
+
+  function setTab(next: TabId) {
+    const params = new URLSearchParams(searchParams.toString())
+    if (next === "info") params.delete("tab")
+    else params.set("tab", next)
+    const qs = params.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }
+
   const [selected, setSelected]   = useState<Contrato | null>(null)
   const [showEdit, setShowEdit]   = useState(false)
   const [showChanges, setShowChanges] = useState(false)
@@ -156,12 +178,12 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
         {([
           { id: "info"           as TabId, label: "Información General" },
           { id: "contratos"      as TabId, label: "Contratos Derivados", badge: derivados.length },
+          { id: "seguimiento"    as TabId, label: "Seguimiento", badge: tareas.filter(t => t.status !== "COMPLETADA").length || undefined },
           { id: "modificaciones" as TabId, label: "Modificaciones Contractuales", badge: modificaciones.adiciones.length + modificaciones.prorrogas.length + modificaciones.suspensiones.length + modificaciones.reinicios.length + modificaciones.aclaratorios.length || undefined },
           { id: "fuentes"        as TabId, label: "Fuentes de Financiación", badge: funding.sources.length || undefined },
           { id: "forma_pago"     as TabId, label: "Forma de Pago Contractual", badge: hitos.length || undefined },
           { id: "facturacion"    as TabId, label: "Facturación y Recaudo", badge: facturas.length || undefined },
           { id: "rendimientos"   as TabId, label: "Rendimientos Financieros", badge: financialReturns.returns.length || undefined },
-          { id: "seguimiento"    as TabId, label: "Seguimiento", badge: tareas.filter(t => t.status !== "COMPLETADA").length || undefined },
         ]).map((t) => (
           <button
             key={t.id}
@@ -327,5 +349,13 @@ export function InteradministrativoDetail({ project: p, contratos, contratosErro
       )}
       {showChanges && <ChangeLogModal interadministrativoId={p.id} contractId={p.id_contrato} onClose={() => setShowChanges(false)} />}
     </div>
+  )
+}
+
+export function InteradministrativoDetail(props: Props) {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-[#747783]">Cargando expediente…</div>}>
+      <InteradministrativoDetailInner {...props} />
+    </Suspense>
   )
 }
