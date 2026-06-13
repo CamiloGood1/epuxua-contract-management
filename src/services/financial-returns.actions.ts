@@ -3,15 +3,15 @@
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/services/user.service"
-import { assertInteradminWriteAccess } from "@/services/interadmin-access"
-import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
+import { assertFinancialWriteAccess } from "@/services/interadmin-access"
+import { canEditFinancialTabs, canDeleteProject } from "@/modules/projects/lib/access"
 import { computeDistributionRows, monthName } from "@/types/financial-returns"
 import type { RepaymentStatus } from "@/types/financial-returns"
 
 type Res = { error: string | null; id?: number }
 
 async function requireWrite(interadminId: number): Promise<Res | null> {
-  const access = await assertInteradminWriteAccess(interadminId)
+  const access = await assertFinancialWriteAccess(interadminId)
   if (access.error) return { error: access.error }
   return null
 }
@@ -98,7 +98,7 @@ export interface CreateFinancialReturnInput {
 
 export async function createFinancialReturn(input: CreateFinancialReturnInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar rendimientos." }
+  if (!canEditFinancialTabs(profile?.role)) return { error: "Sin permisos para registrar rendimientos." }
 
   const denied = await requireWrite(input.interadministrativo_id)
   if (denied) return denied
@@ -183,7 +183,7 @@ export async function updateFinancialReturn(
   updates: Partial<CreateFinancialReturnInput> & { repayment_status?: RepaymentStatus },
 ): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar rendimientos." }
+  if (!canEditFinancialTabs(profile?.role)) return { error: "Sin permisos para editar rendimientos." }
 
   const denied = await requireWrite(interadministrativoId)
   if (denied) return denied

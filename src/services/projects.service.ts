@@ -40,7 +40,10 @@ async function fetchProjects(
   }
 
   const { data, error } = await query.limit(5000)
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.warn("[fetchProjects]", error.message)
+    return []
+  }
   return (data ?? []) as Interadministrativo[]
 }
 
@@ -107,7 +110,10 @@ export async function getProjectFilterCatalogs(): Promise<{
     .select("secretaria, area_responsable, fecha_suscripcion")
     .limit(5000)
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.warn("[getProjectFilterCatalogs]", error.message)
+    return { entities: [], secretarias: [], areas: [], years: [] }
+  }
 
   const entities   = new Set<string>()
   const secretarias = new Set<string>()

@@ -79,7 +79,9 @@ interface Props {
   project: Interadministrativo
   contratos: Contrato[]
   canEdit: boolean
+  canEditFinancial?: boolean
   canDelete?: boolean
+  canDownloadReport?: boolean
   modificaciones?: ModificacionesData
   hitos?: PaymentMilestone[]
   facturas?: Factura[]
@@ -103,7 +105,7 @@ function parseTab(value: string | null | undefined): TabId {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-function InteradministrativoDetailInner({ project: p, contratos, contratosError, canEdit, canDelete = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [], tareas = [], avances = [], funding = EMPTY_FUNDING, financialReturns = EMPTY_FINANCIAL_RETURNS }: Props) {
+function InteradministrativoDetailInner({ project: p, contratos, contratosError, canEdit, canEditFinancial = false, canDelete = false, canDownloadReport = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [], tareas = [], avances = [], funding = EMPTY_FUNDING, financialReturns = EMPTY_FINANCIAL_RETURNS }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -120,6 +122,56 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
   const [selected, setSelected]   = useState<Contrato | null>(null)
   const [showEdit, setShowEdit]   = useState(false)
   const [showChanges, setShowChanges] = useState(false)
+  const [isDownloading, setIsDownloading]       = useState(false)
+  const [isDownloadingPpt, setIsDownloadingPpt] = useState(false)
+
+  async function handleDownloadReport() {
+    setIsDownloading(true)
+    try {
+      const res = await fetch(`/api/reports/word/interadmin/${p.id}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error((err as { error?: string }).error ?? "Error al generar el informe")
+      }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement("a")
+      a.href     = url
+      a.download = `INFORME_CONTRATO_${p.id_contrato.replace(/[/\\?%*:|"<>]/g, "-")}.docx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error al descargar el informe.")
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  async function handleDownloadPresentation() {
+    setIsDownloadingPpt(true)
+    try {
+      const res = await fetch(`/api/reports/ppt/interadmin/${p.id}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error((err as { error?: string }).error ?? "Error al generar la presentación")
+      }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement("a")
+      a.href     = url
+      a.download = `PRESENTACION_CONTRATO_${p.id_contrato.replace(/[/\\?%*:|"<>]/g, "-")}.pptx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error al descargar la presentación.")
+    } finally {
+      setIsDownloadingPpt(false)
+    }
+  }
 
   const derivados      = useMemo(() => contratos.filter((c) => c.tipo_contrato === "DERIVADO"), [contratos])
   const enEjecucion    = useMemo(() => derivados.filter((c) => c.estado === "EN EJECUCIÓN").length, [derivados])
@@ -153,6 +205,28 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="12 8 12 12 14 14"/><circle cx="12" cy="12" r="10"/></svg>
               Historial
             </button>
+            {canDownloadReport && (
+              <button
+                onClick={handleDownloadReport}
+                disabled={isDownloading}
+                title="Descargar informe Word del contrato"
+                className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 border border-[#D9A520] bg-white text-[#D9A520] rounded-lg text-sm font-medium hover:bg-[#fffbea] transition-colors flex-1 sm:flex-none disabled:opacity-50"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                {isDownloading ? "Generando…" : "Informe Word"}
+              </button>
+            )}
+            {canDownloadReport && (
+              <button
+                onClick={handleDownloadPresentation}
+                disabled={isDownloadingPpt}
+                title="Descargar presentación PowerPoint del contrato"
+                className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 border border-[#002869] bg-white text-[#002869] rounded-lg text-sm font-medium hover:bg-[#f0f3ff] transition-colors flex-1 sm:flex-none disabled:opacity-50"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                {isDownloadingPpt ? "Generando…" : "Presentación"}
+              </button>
+            )}
             {canEdit && (
               <button
                 onClick={() => setShowEdit(true)}
@@ -227,7 +301,7 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
         <FuentesFinanciacionTab
           interadministrativoId={p.id}
           funding={funding}
-          canEdit={canEdit}
+          canEdit={canEditFinancial}
           canDelete={canDelete}
         />
       )}
@@ -322,7 +396,7 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
           interadministrativoId={p.id}
           financialReturns={financialReturns}
           funding={funding}
-          canEdit={canEdit}
+          canEdit={canEditFinancial}
           canDelete={canDelete}
         />
       )}

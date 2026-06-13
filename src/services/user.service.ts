@@ -18,69 +18,82 @@ export interface UserProfile {
 }
 
 export async function getCurrentUserProfile(): Promise<UserProfile | null> {
-  const supabase = await createSupabaseServerClient()
+  try {
+    const supabase = await createSupabaseServerClient()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return null
-
-  async function loadProfile(withActive: boolean): Promise<{
-    data: ProfileRow | null
-    error: { message: string; code?: string } | null
-  }> {
-    const { data, error } = await supabase
-      .from("user_profiles")
-      .select(withActive ? "id, full_name, role, active" : "id, full_name, role")
-      .eq("id", user!.id)
-      .maybeSingle()
-    return {
-      data: (data as ProfileRow | null) ?? null,
-      error: error ? { message: error.message, code: error.code } : null,
+    const { data, error: authError } = await supabase.auth.getUser()
+    if (authError) {
+      console.warn("[getCurrentUserProfile] auth:", authError.message)
     }
-  }
+    const user = data?.user ?? null
+    if (!user) return null
 
-  let { data, error } = await loadProfile(true)
+    const userId = user.id
 
-  if (error && (error.message.includes("active") || error.code === "42703")) {
-    const fallback = await loadProfile(false)
-    data = fallback.data ? { ...fallback.data, active: true } : null
-    error = fallback.error
-  }
+    async function loadProfile(withActive: boolean): Promise<{
+      data: ProfileRow | null
+      error: { message: string; code?: string } | null
+    }> {
+      const { data: profileData, error } = await supabase
+        .from("user_profiles")
+        .select(withActive ? "id, full_name, role, active" : "id, full_name, role")
+        .eq("id", userId)
+        .maybeSingle()
+      return {
+        data: (profileData as ProfileRow | null) ?? null,
+        error: error ? { message: error.message, code: error.code } : null,
+      }
+    }
 
-  if (!data) {
-    await supabase.rpc("ensure_user_profile")
-    const retry = await loadProfile(true)
-    if (retry.error && (retry.error.message.includes("active") || retry.error.code === "42703")) {
+    let { data: profileRow, error } = await loadProfile(true)
+
+    if (error && (error.message.includes("active") || error.code === "42703")) {
       const fallback = await loadProfile(false)
-      data = fallback.data ? { ...fallback.data, active: true } : null
+      profileRow = fallback.data ? { ...fallback.data, active: true } : null
       error = fallback.error
-    } else {
-      data = retry.data
-      error = retry.error
     }
-  }
 
-  if (error) {
-    console.warn("[getCurrentUserProfile]", error.message, "userId:", user.id)
-  }
+    if (!profileRow) {
+      try {
+        await supabase.rpc("ensure_user_profile")
+      } catch {
+        // RPC opcional
+      }
+      const retry = await loadProfile(true)
+      if (retry.error && (retry.error.message.includes("active") || retry.error.code === "42703")) {
+        const fallback = await loadProfile(false)
+        profileRow = fallback.data ? { ...fallback.data, active: true } : null
+        error = fallback.error
+      } else {
+        profileRow = retry.data
+        error = retry.error
+      }
+    }
 
-  if (!data) {
+    if (error) {
+      console.warn("[getCurrentUserProfile]", error.message, "userId:", user.id)
+    }
+
+    if (!profileRow) {
+      return {
+        id: user.id,
+        email: user.email ?? null,
+        full_name: user.user_metadata?.full_name ?? user.email ?? null,
+        role: "ESPECTADOR",
+        active: true,
+      }
+    }
+
     return {
-      id: user.id,
+      id: profileRow.id,
+      full_name: profileRow.full_name,
+      role: profileRow.role as UserRole,
+      active: "active" in profileRow ? Boolean(profileRow.active) : true,
       email: user.email ?? null,
-      full_name: user.user_metadata?.full_name ?? user.email ?? null,
-      role: "ESPECTADOR",
-      active: true,
     }
-  }
-
-  return {
-    id: data.id,
-    full_name: data.full_name,
-    role: data.role as UserRole,
-    active: "active" in data ? Boolean(data.active) : true,
-    email: user.email ?? null,
+  } catch (err) {
+    console.error("[getCurrentUserProfile]", err instanceof Error ? err.message : err)
+    return null
   }
 }
 
@@ -108,7 +121,10 @@ export async function getProjectAlerts(projectId?: string): Promise<ProjectAlert
     .select("id, project_code, name, active_alerts_count, lifecycle_status")
     .gt("active_alerts_count", 0)
 
-  if (projectsError) throw new Error(projectsError.message)
+  if (projectsError) {
+    console.warn("[getProjectAlerts]", projectsError.message)
+    return []
+  }
 
   return (projects ?? []).flatMap((p) => {
     const count = p.active_alerts_count ?? 0

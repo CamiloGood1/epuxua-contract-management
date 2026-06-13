@@ -137,9 +137,16 @@ export async function getInteradminDashboardKPIs(): Promise<InteradminDashboardK
       .eq("estado", "EN EJECUCIÓN"),
   ])
 
-  if (e1) throw new Error(e1.message)
-  if (e2) throw new Error(e2.message)
-  if (e3) throw new Error(e3.message)
+  if (e1) {
+    console.warn("[getInteradminDashboardKPIs]", e1.message)
+    return {
+      totalContracts: 0, activeContracts: 0, terminatedContracts: 0, liquidatedContracts: 0,
+      totalValue: 0, activeValue: 0, pendingValue: 0, totalCuotaAdmin: 0, activeCuotaAdmin: 0,
+      totalDerivedContracts: 0, activeDerivedContracts: 0,
+    }
+  }
+  if (e2) console.warn("[getInteradminDashboardKPIs] derivados:", e2.message)
+  if (e3) console.warn("[getInteradminDashboardKPIs] activos:", e3.message)
 
   const rows       = interadmin ?? []
   const activeRows = rows.filter((r) => r.estado === "EN EJECUCIÓN")
@@ -262,7 +269,13 @@ export async function getFuncionamientoDashboardKPIs(): Promise<FuncionamientoDa
     .eq("tipo_contrato", "FUNCIONAMIENTO")
     .limit(5000)
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.warn("[getFuncionamientoDashboardKPIs]", error.message)
+    return {
+      totalContracts: 0, activeContracts: 0, suspendedContracts: 0, finishedContracts: 0,
+      liquidatedContracts: 0, totalValue: 0, totalPaidValue: 0, avgValue: 0, soonExpiring: 0, expired: 0,
+    }
+  }
 
   const rows       = data ?? []
   const total      = rows.length

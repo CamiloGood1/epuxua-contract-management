@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/services/user.service"
-import { assertInteradminWriteAccess } from "@/services/interadmin-access"
-import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
+import { assertFinancialWriteAccess } from "@/services/interadmin-access"
+import { canEditFinancialTabs, canDeleteProject } from "@/modules/projects/lib/access"
 import type { Adicion } from "@/types/modificaciones"
 
 type Res = { error: string | null }
@@ -12,7 +12,7 @@ type Res = { error: string | null }
 const TOLERANCE = 0.01
 
 async function requireWrite(interadminId: number): Promise<Res | null> {
-  const access = await assertInteradminWriteAccess(interadminId)
+  const access = await assertFinancialWriteAccess(interadminId)
   if (access.error) return { error: access.error }
   return null
 }
@@ -107,7 +107,7 @@ export interface CreateFundingSourceInput {
 
 export async function createFundingSource(input: CreateFundingSourceInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar fuentes de financiación." }
+  if (!canEditFinancialTabs(profile?.role)) return { error: "Sin permisos para registrar fuentes de financiación." }
 
   const denied = await requireWrite(input.interadministrativo_id)
   if (denied) return denied
@@ -180,7 +180,7 @@ export async function updateFundingSource(
   updates: Partial<CreateFundingSourceInput>,
 ): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar fuentes de financiación." }
+  if (!canEditFinancialTabs(profile?.role)) return { error: "Sin permisos para editar fuentes de financiación." }
 
   const denied = await requireWrite(interadministrativoId)
   if (denied) return denied

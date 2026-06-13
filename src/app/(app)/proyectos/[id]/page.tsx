@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/services/user.service"
 import { canCurrentUserAccessInteradmin } from "@/services/interadmin-access"
-import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
+import { canEditProjects, canDeleteProject, canEditFinancialTabs, canDownloadReport } from "@/modules/projects/lib/access"
 import { InteradministrativoDetail } from "@/modules/projects/components/interadministrativo-detail"
 import type { Interadministrativo, Contrato } from "@/types/database"
 import type { ModificacionesData } from "@/types/modificaciones"
@@ -144,7 +144,9 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
         project={project as Interadministrativo}
         contratos={(contratos ?? []) as Contrato[]}
         canEdit={canEditProjects(profile?.role)}
+        canEditFinancial={canEditFinancialTabs(profile?.role)}
         canDelete={canDeleteProject(profile?.role)}
+        canDownloadReport={canDownloadReport(profile?.role)}
         modificaciones={modificaciones}
         hitos={(hitosRaw ?? []) as PaymentMilestone[]}
         facturas={(facturasRaw ?? []) as Factura[]}

@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import {
   canAccessInteradmin,
+  canEditFinancialTabs,
   canReadAllInteradmins,
   canViewAllInteradmins,
   canWriteInteradmin,
@@ -29,7 +30,10 @@ async function loadAccessContext(): Promise<AccessContext | null> {
     .eq("user_id", profile.id)
     .eq("active", true)
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    console.warn("[interadmin-access] assignments:", error.message)
+    return { role: profile.role, userId: profile.id, assignedIds: new Set<number>() }
+  }
 
   const assignedIds = new Set(
     ((data ?? []) as { interadministrativo_id: number }[]).map((r) => r.interadministrativo_id)
@@ -69,6 +73,25 @@ export async function assertInteradminWriteAccess(
 
 export async function getAccessContextForCurrentUser(): Promise<AccessContext | null> {
   return loadAccessContext()
+}
+
+/**
+ * Verifica acceso de escritura exclusivamente para pestañas financieras
+ * (Fuentes de Financiación y Rendimientos Financieros).
+ * Roles permitidos: ADMIN, GERENTE, SUBADMINISTRATIVA.
+ */
+export async function assertFinancialWriteAccess(
+  _interadminId: number
+): Promise<{ error: string | null }> {
+  const ctx = await loadAccessContext()
+  if (!ctx) return { error: "Sin permisos para editar datos financieros." }
+  if (!canEditFinancialTabs(ctx.role)) {
+    return {
+      error:
+        "Sin permisos para editar información financiera. Esta sección es exclusiva de ADMIN y SUBADMINISTRATIVA.",
+    }
+  }
+  return { error: null }
 }
 
 export function shouldFilterProjectsByAssignment(role: UserRole | null | undefined): boolean {

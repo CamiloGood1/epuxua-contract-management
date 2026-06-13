@@ -26,9 +26,13 @@ interface FormState {
   observations:               string
 }
 
+function todayISO() {
+  return new Date().toISOString().split("T")[0]
+}
+
 function toForm(p?: ProposalRequest): FormState {
   return {
-    reception_date:             p?.reception_date             ?? "",
+    reception_date:             p?.reception_date             ?? todayISO(),
     client_name:                p?.client_name                ?? "",
     proposal_object:            p?.proposal_object            ?? "",
     proposal_delivery_deadline: p?.proposal_delivery_deadline ?? "",

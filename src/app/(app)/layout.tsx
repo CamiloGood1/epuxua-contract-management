@@ -4,6 +4,14 @@ import { AppLayout } from "@/components/layout/AppLayout"
 import { getCurrentUserProfile } from "@/services/user.service"
 import type { UserRole } from "@/types/project"
 
+export const dynamic = "force-dynamic"
+
+function isNextNavigationError(err: unknown): boolean {
+  if (typeof err !== "object" || err === null || !("digest" in err)) return false
+  const digest = String((err as { digest?: string }).digest)
+  return digest.startsWith("NEXT_REDIRECT") || digest.startsWith("NEXT_NOT_FOUND")
+}
+
 export default async function AppGroupLayout({
   children,
 }: {
@@ -14,8 +22,9 @@ export default async function AppGroupLayout({
     const supabase = await createSupabaseServerClient()
     const { data, error } = await supabase.auth.getUser()
     if (error) console.warn("[layout] getUser:", error.message)
-    user = data.user
+    user = data?.user ?? null
   } catch (err) {
+    if (isNextNavigationError(err)) throw err
     console.warn("[layout] auth failed:", err instanceof Error ? err.message : err)
   }
 

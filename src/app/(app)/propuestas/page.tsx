@@ -5,6 +5,8 @@ import { ProposalsPageClient } from "@/modules/proposals/components/proposals-pa
 import { redirect } from "next/navigation"
 import type { ProposalRequest } from "@/types/proposals"
 
+export const dynamic = "force-dynamic"
+
 export default async function PropuestasPage() {
   const profile = await getCurrentUserProfile().catch(() => null)
 
@@ -12,18 +14,23 @@ export default async function PropuestasPage() {
     redirect("/")
   }
 
-  const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase
-    .from("proposal_requests" as never)
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(1000)
+  let proposals: ProposalRequest[] = []
+  try {
+    const supabase = await createSupabaseServerClient()
+    const { data, error } = await supabase
+      .from("proposal_requests" as never)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1000)
 
-  if (error) {
-    console.error("[propuestas] query:", error.message)
+    if (error) {
+      console.error("[propuestas] query:", error.message)
+    } else {
+      proposals = (data ?? []) as ProposalRequest[]
+    }
+  } catch (err) {
+    console.error("[propuestas]", err instanceof Error ? err.message : err)
   }
-
-  const proposals = (data ?? []) as ProposalRequest[]
 
   return (
     <ProposalsPageClient

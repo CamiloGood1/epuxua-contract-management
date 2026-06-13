@@ -226,4 +226,5 @@ export async function deleteProposal(id: number): Promise<{ error: string | null
   }
 }
 
-export { PROPOSAL_FIELD_LABELS }
+// NOTA: PROPOSAL_FIELD_LABELS vive en @/types/proposals (no "use server")
+// No re-exportar constantes desde archivos "use server" — causa crash en producción.

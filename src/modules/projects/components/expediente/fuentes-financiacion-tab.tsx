@@ -418,6 +418,13 @@ export function FuentesFinanciacionTab({ interadministrativoId, funding, canEdit
   return (
     <div className="space-y-6">
 
+      {!canEdit && (
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-[#f0f3ff] border border-[#0B3D91]/20 rounded-lg">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span className="text-xs font-semibold text-[#0B3D91]">Solo lectura — su rol no tiene permisos de edición en esta sección</span>
+        </div>
+      )}
+
       {hasInconsistencies && (
         <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
           <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />

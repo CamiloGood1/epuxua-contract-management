@@ -4,6 +4,12 @@ const READ_ONLY_ROLES: UserRole[] = ["DIRECTIVO", "CONSULTOR_PROYECTO", "ESPECTA
 const CREATE_ROLES:    UserRole[] = ["ADMIN", "GERENTE", "GERENTE_PROYECTO"]
 const DELETE_ROLES:    UserRole[] = ["ADMIN"]
 
+/** Roles con acceso completo de edición sobre Fuentes de Financiación y Rendimientos Financieros. */
+const FINANCIAL_WRITE_ROLES: UserRole[] = ["ADMIN", "GERENTE", "SUBADMINISTRATIVA"]
+
+/** Roles que pueden descargar el informe Word de un contrato interadministrativo. */
+const REPORT_DOWNLOAD_ROLES: UserRole[] = ["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO"]
+
 export function canEditProjects(role: UserRole | null | undefined): boolean {
   if (!role) return false
   return !READ_ONLY_ROLES.includes(role)
@@ -24,6 +30,16 @@ export function isReadOnlyRole(role: UserRole | null | undefined): boolean {
   return READ_ONLY_ROLES.includes(role)
 }
 
+export function canEditFinancialTabs(role: UserRole | null | undefined): boolean {
+  if (!role) return false
+  return FINANCIAL_WRITE_ROLES.includes(role)
+}
+
+export function canDownloadReport(role: UserRole | null | undefined): boolean {
+  if (!role) return false
+  return REPORT_DOWNLOAD_ROLES.includes(role)
+}
+
 export function roleLabel(role: UserRole | null | undefined): string {
   const labels: Record<UserRole, string> = {
     ADMIN:              "Administrador",
@@ -33,6 +49,7 @@ export function roleLabel(role: UserRole | null | undefined): string {
     CONSULTOR_PROYECTO: "Consultor de Proyecto",
     ESPECTADOR:         "Espectador",
     ESTRUCTURADOR:      "Estructurador",
+    SUBADMINISTRATIVA:  "Subadministrativa",
   }
   if (!role) return "Usuario"
   return labels[role] ?? role
@@ -53,7 +70,8 @@ export function canReadAllInteradmins(role: UserRole | null | undefined): boolea
   return (
     canViewAllInteradmins(role) ||
     role === "ESPECTADOR" ||
-    role === "DIRECTIVO"
+    role === "DIRECTIVO" ||
+    role === "SUBADMINISTRATIVA"
   )
 }
 
@@ -91,6 +109,8 @@ export const INVITABLE_ROLES: UserRole[] = [
   "DIRECTIVO",
   "CONSULTOR_PROYECTO",
   "ESPECTADOR",
+  "ESTRUCTURADOR",
+  "SUBADMINISTRATIVA",
 ]
 
 export const ASSIGNMENT_ROLES = ["GERENTE_PROYECTO", "CONSULTOR_PROYECTO"] as const

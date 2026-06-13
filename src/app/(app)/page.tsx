@@ -19,6 +19,8 @@ import { canCreateProject } from "@/modules/projects/lib/access"
 import { ProjectDashboardView } from "@/modules/projects/components/project-dashboard-view"
 import type { FuncionamientoContrato } from "@/services/funcionamiento.service"
 
+export const dynamic = "force-dynamic"
+
 const EMPTY_FUNC_KPIS: FuncionamientoDashboardKPIs = {
   totalContracts: 0, activeContracts: 0, suspendedContracts: 0,
   finishedContracts: 0, liquidatedContracts: 0, totalValue: 0,

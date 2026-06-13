@@ -27,6 +27,7 @@ export type UserRole =
   | "CONSULTOR_PROYECTO"
   | "ESPECTADOR"
   | "ESTRUCTURADOR"
+  | "SUBADMINISTRATIVA"
 
 // ── v_project_detail ──────────────────────────────────────────────────────────
 

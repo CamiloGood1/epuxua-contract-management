@@ -8,7 +8,7 @@ import { getInteradminCatalog, listUsers } from "@/services/users.service"
 export const dynamic = "force-dynamic"
 
 export default async function AdministracionUsuariosPage() {
-  const profile = await getCurrentUserProfile()
+  const profile = await getCurrentUserProfile().catch(() => null)
   if (!profile) {
     return (
       <PageShell title="Usuarios" subtitle="Inicie sesión para continuar.">
