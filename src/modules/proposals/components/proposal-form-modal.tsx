@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { X, AlertTriangle } from "lucide-react"
 import { createProposal, updateProposal } from "@/services/proposals.actions"
@@ -41,7 +41,47 @@ function toForm(p?: ProposalRequest): FormState {
   }
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+function validateRequired(f: FormState): string | null {
+  if (!f.reception_date.trim())             return "Indique la fecha de recepción."
+  if (!f.client_name.trim())                return "Indique el cliente."
+  if (!f.proposal_object.trim())            return "Indique el objeto."
+  if (!f.proposal_delivery_deadline.trim()) return "Indique el plazo de entrega."
+  if (!f.proposal_type)                     return "Seleccione la tipología."
+  if (!f.status)                            return "Seleccione el estado."
+  return null
+}
+
+function readFormFromDom(formEl: HTMLFormElement, fallback: FormState): FormState {
+  const fd = new FormData(formEl)
+  const str = (key: string) => String(fd.get(key) ?? "").trim()
+  return {
+    reception_date:             str("reception_date")             || fallback.reception_date,
+    client_name:                str("client_name")                || fallback.client_name,
+    proposal_object:            str("proposal_object")            || fallback.proposal_object,
+    proposal_delivery_deadline: str("proposal_delivery_deadline") || fallback.proposal_delivery_deadline,
+    proposal_type:              (str("proposal_type") || fallback.proposal_type) as ProposalType,
+    status:                     (str("status") || fallback.status) as ProposalStatus,
+    submission_date:            str("submission_date"),
+    request_link:               str("request_link"),
+    proposal_link:              str("proposal_link"),
+    observations:               str("observations"),
+  }
+}
+
+function toInput(f: FormState): CreateProposalInput {
+  return {
+    reception_date:             f.reception_date.trim(),
+    client_name:                f.client_name.trim(),
+    proposal_object:            f.proposal_object.trim(),
+    proposal_delivery_deadline: f.proposal_delivery_deadline.trim(),
+    proposal_type:              f.proposal_type,
+    status:                     f.status,
+    submission_date:            f.submission_date.trim()  || null,
+    request_link:               f.request_link.trim()     || null,
+    proposal_link:              f.proposal_link.trim()    || null,
+    observations:               f.observations.trim()     || null,
+  }
+}
 
 const inputCls = "w-full rounded-lg border border-[#EAEAEA] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20"
 const labelCls = "block text-[11px] font-bold uppercase tracking-wide text-[#747783] mb-1.5"
@@ -66,37 +106,30 @@ interface Props {
 export function ProposalFormModal({ proposal, onClose, onSaved }: Props) {
   const router = useRouter()
   const isEdit = !!proposal
-  const [form, setForm]     = useState<FormState>(() => toForm(proposal))
+  const [form, setForm] = useState<FormState>(() => toForm(proposal))
+  const formRef = useRef<FormState>(form)
   const [error, setError]   = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
   function setField<K extends keyof FormState>(k: K, v: string) {
-    setForm(prev => ({ ...prev, [k]: v }))
+    const next = { ...formRef.current, [k]: v }
+    formRef.current = next
+    setForm(next)
+    if (error) setError(null)
   }
 
-  const hasRequiredFields = useMemo(() =>
-    !!form.reception_date && !!form.client_name.trim() && !!form.proposal_object.trim() &&
-    !!form.proposal_delivery_deadline && !!form.proposal_type && !!form.status,
-    [form]
-  )
-
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
-    if (!hasRequiredFields) { setError("Complete todos los campos obligatorios."); return }
 
-    const input: CreateProposalInput = {
-      reception_date:             form.reception_date,
-      client_name:                form.client_name.trim(),
-      proposal_object:            form.proposal_object.trim(),
-      proposal_delivery_deadline: form.proposal_delivery_deadline,
-      proposal_type:              form.proposal_type,
-      status:                     form.status,
-      submission_date:            form.submission_date  || null,
-      request_link:               form.request_link.trim()  || null,
-      proposal_link:              form.proposal_link.trim() || null,
-      observations:               form.observations     || null,
-    }
+    const current = readFormFromDom(e.currentTarget, formRef.current)
+    formRef.current = current
+    setForm(current)
+
+    const validationError = validateRequired(current)
+    if (validationError) { setError(validationError); return }
+
+    const input = toInput(current)
 
     setIsSaving(true)
     try {
@@ -139,29 +172,29 @@ export function ProposalFormModal({ proposal, onClose, onSaved }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
 
             <Field label="Fecha de Recepción de la Solicitud" required>
-              <input type="date" value={form.reception_date} onChange={e => setField("reception_date", e.target.value)}
+              <input name="reception_date" type="date" value={form.reception_date} onChange={e => setField("reception_date", e.target.value)}
                 className={inputCls + " h-10"} />
             </Field>
 
             <Field label="Cliente" required>
-              <input type="text" value={form.client_name} onChange={e => setField("client_name", e.target.value)}
+              <input name="client_name" type="text" value={form.client_name} onChange={e => setField("client_name", e.target.value)}
                 className={inputCls + " h-10"} placeholder="Nombre de la entidad o cliente" />
             </Field>
 
             <div className="col-span-2">
               <Field label="Objeto" required>
-                <textarea rows={3} value={form.proposal_object} onChange={e => setField("proposal_object", e.target.value)}
+                <textarea name="proposal_object" rows={3} value={form.proposal_object} onChange={e => setField("proposal_object", e.target.value)}
                   className={inputCls + " py-2 resize-none"} placeholder="Descripción del objeto de la propuesta" />
               </Field>
             </div>
 
             <Field label="Plazo de Entrega de la Propuesta" required>
-              <input type="date" value={form.proposal_delivery_deadline} onChange={e => setField("proposal_delivery_deadline", e.target.value)}
+              <input name="proposal_delivery_deadline" type="date" value={form.proposal_delivery_deadline} onChange={e => setField("proposal_delivery_deadline", e.target.value)}
                 className={inputCls + " h-10"} />
             </Field>
 
             <Field label="Tipología" required>
-              <select value={form.proposal_type} onChange={e => setField("proposal_type", e.target.value as ProposalType)}
+              <select name="proposal_type" value={form.proposal_type} onChange={e => setField("proposal_type", e.target.value as ProposalType)}
                 className={inputCls + " h-10 appearance-none"}>
                 {PROPOSAL_TYPE_ORDER.map(t => (
                   <option key={t} value={t}>{PROPOSAL_TYPE_LABELS[t]}</option>
@@ -170,7 +203,7 @@ export function ProposalFormModal({ proposal, onClose, onSaved }: Props) {
             </Field>
 
             <Field label="Estado" required>
-              <select value={form.status} onChange={e => setField("status", e.target.value as ProposalStatus)}
+              <select name="status" value={form.status} onChange={e => setField("status", e.target.value as ProposalStatus)}
                 className={inputCls + " h-10 appearance-none"}>
                 {PROPOSAL_STATUS_ORDER.map(s => (
                   <option key={s} value={s}>{PROPOSAL_STATUS_CONFIG[s].label}</option>
@@ -184,25 +217,25 @@ export function ProposalFormModal({ proposal, onClose, onSaved }: Props) {
             </div>
 
             <Field label="Fecha de Remisión">
-              <input type="date" value={form.submission_date} onChange={e => setField("submission_date", e.target.value)}
+              <input name="submission_date" type="date" value={form.submission_date} onChange={e => setField("submission_date", e.target.value)}
                 className={inputCls + " h-10"} />
             </Field>
 
             <div className="col-span-1" /> {/* spacer */}
 
             <Field label="Enlace Solicitud de Propuesta">
-              <input type="text" value={form.request_link} onChange={e => setField("request_link", e.target.value)}
+              <input name="request_link" type="text" value={form.request_link} onChange={e => setField("request_link", e.target.value)}
                 className={inputCls + " h-10"} placeholder="https://…" inputMode="url" />
             </Field>
 
             <Field label="Enlace de la Propuesta">
-              <input type="text" value={form.proposal_link} onChange={e => setField("proposal_link", e.target.value)}
+              <input name="proposal_link" type="text" value={form.proposal_link} onChange={e => setField("proposal_link", e.target.value)}
                 className={inputCls + " h-10"} placeholder="https://…" inputMode="url" />
             </Field>
 
             <div className="col-span-2">
               <Field label="Observaciones">
-                <textarea rows={3} value={form.observations} onChange={e => setField("observations", e.target.value)}
+                <textarea name="observations" rows={3} value={form.observations} onChange={e => setField("observations", e.target.value)}
                   className={inputCls + " py-2 resize-none"} placeholder="Notas adicionales…" />
               </Field>
             </div>

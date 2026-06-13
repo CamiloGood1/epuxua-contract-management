@@ -9,8 +9,15 @@ export default async function AppGroupLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const supabase = await createSupabaseServerClient()
+    const { data, error } = await supabase.auth.getUser()
+    if (error) console.warn("[layout] getUser:", error.message)
+    user = data.user
+  } catch (err) {
+    console.warn("[layout] auth failed:", err instanceof Error ? err.message : err)
+  }
 
   if (!user) redirect("/login")
 

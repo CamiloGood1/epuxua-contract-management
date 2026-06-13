@@ -1,14 +1,14 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
-import { ensureUserProfile } from "@/lib/supabase/ensure-profile"
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return NextResponse.next({ request })
+
   let supabaseResponse = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  const supabase = createServerClient(url, key, {
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -26,23 +26,26 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session — must use getUser(), not getSession()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (user) {
-    await ensureUserProfile(supabase)
+  let user = null
+  try {
+    const { data, error } = await supabase.auth.getUser()
+    if (error) {
+      console.warn("[proxy] getUser:", error.message)
+    } else {
+      user = data.user
+    }
+  } catch (err) {
+    console.warn("[proxy] getUser failed:", err instanceof Error ? err.message : err)
   }
 
   const isLoginPage = request.nextUrl.pathname.startsWith("/login")
 
-  // Not logged in → redirect to login
   if (!user && !isLoginPage) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     return NextResponse.redirect(url)
   }
 
-  // Already logged in → redirect away from login
   if (user && isLoginPage) {
     const url = request.nextUrl.clone()
     url.pathname = "/"
