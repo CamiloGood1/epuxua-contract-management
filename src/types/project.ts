@@ -26,6 +26,7 @@ export type UserRole =
   | "DIRECTIVO"
   | "CONSULTOR_PROYECTO"
   | "ESPECTADOR"
+  | "ESTRUCTURADOR"
 
 // ── v_project_detail ──────────────────────────────────────────────────────────
 

@@ -32,6 +32,14 @@ const navSections: NavSection[] = [
     items: [{ href: "/", label: "Dashboard", icon: "dashboard" }],
   },
   {
+    label: "Propuestas",
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      { href: "/propuestas", label: "Propuestas", icon: "description" },
+    ],
+  },
+  {
     label: "Proyectos",
     collapsible: true,
     defaultOpen: true,

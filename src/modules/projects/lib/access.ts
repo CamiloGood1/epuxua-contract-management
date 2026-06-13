@@ -32,6 +32,7 @@ export function roleLabel(role: UserRole | null | undefined): string {
     DIRECTIVO:          "Directivo",
     CONSULTOR_PROYECTO: "Consultor de Proyecto",
     ESPECTADOR:         "Espectador",
+    ESTRUCTURADOR:      "Estructurador",
   }
   if (!role) return "Usuario"
   return labels[role] ?? role
