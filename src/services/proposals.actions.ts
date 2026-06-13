@@ -95,7 +95,14 @@ export async function createProposal(
       .maybeSingle()
 
     if (error) return { id: null, error: (error as { message: string }).message }
+
     const newId = (data as { id: number } | null)?.id ?? null
+    if (!newId) {
+      return {
+        id: null,
+        error: "La propuesta no se guardó. Verifique permisos de la tabla proposal_requests en Supabase.",
+      }
+    }
 
     if (newId) {
       void supabase

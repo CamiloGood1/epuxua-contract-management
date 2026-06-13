@@ -86,7 +86,14 @@ CREATE POLICY "proposal_audit_insert"
   ON proposal_audit_log FOR INSERT
   TO authenticated WITH CHECK (true);
 
--- ── 5. Datos de ejemplo (opcional, comentar si no se desean) ──────────────────
+-- ── 5. GRANTS (sin esto RLS no alcanza: authenticated no puede leer/escribir) ──
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.proposal_requests TO authenticated;
+GRANT SELECT, INSERT ON public.proposal_audit_log TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.proposal_requests_id_seq TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.proposal_audit_log_id_seq TO authenticated;
+
+-- ── 6. Datos de ejemplo (opcional, comentar si no se desean) ──────────────────
 
 -- INSERT INTO proposal_requests (reception_date, client_name, proposal_object, proposal_delivery_deadline, proposal_type, status, created_by)
 -- VALUES

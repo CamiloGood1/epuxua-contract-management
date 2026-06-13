@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useTransition, useMemo } from "react"
+import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { X, AlertTriangle } from "lucide-react"
 import { createProposal, updateProposal } from "@/services/proposals.actions"
 import type { CreateProposalInput } from "@/services/proposals.actions"
@@ -63,10 +64,11 @@ interface Props {
 }
 
 export function ProposalFormModal({ proposal, onClose, onSaved }: Props) {
+  const router = useRouter()
   const isEdit = !!proposal
   const [form, setForm]     = useState<FormState>(() => toForm(proposal))
   const [error, setError]   = useState<string | null>(null)
-  const [isPending, start]  = useTransition()
+  const [isSaving, setIsSaving] = useState(false)
 
   function setField<K extends keyof FormState>(k: K, v: string) {
     setForm(prev => ({ ...prev, [k]: v }))
@@ -78,7 +80,7 @@ export function ProposalFormModal({ proposal, onClose, onSaved }: Props) {
     [form]
   )
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     if (!hasRequiredFields) { setError("Complete todos los campos obligatorios."); return }
@@ -91,19 +93,25 @@ export function ProposalFormModal({ proposal, onClose, onSaved }: Props) {
       proposal_type:              form.proposal_type,
       status:                     form.status,
       submission_date:            form.submission_date  || null,
-      request_link:               form.request_link     || null,
-      proposal_link:              form.proposal_link    || null,
+      request_link:               form.request_link.trim()  || null,
+      proposal_link:              form.proposal_link.trim() || null,
       observations:               form.observations     || null,
     }
 
-    start(async () => {
+    setIsSaving(true)
+    try {
       const res = isEdit
         ? await updateProposal({ id: proposal!.id, ...input })
         : await createProposal(input)
       if (res.error) { setError(res.error); return }
       onSaved?.()
       onClose()
-    })
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar la propuesta.")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -125,36 +133,36 @@ export function ProposalFormModal({ proposal, onClose, onSaved }: Props) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-5">
 
           {/* Obligatorios */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
 
             <Field label="Fecha de Recepción de la Solicitud" required>
               <input type="date" value={form.reception_date} onChange={e => setField("reception_date", e.target.value)}
-                className={inputCls + " h-10"} required />
+                className={inputCls + " h-10"} />
             </Field>
 
             <Field label="Cliente" required>
               <input type="text" value={form.client_name} onChange={e => setField("client_name", e.target.value)}
-                className={inputCls + " h-10"} placeholder="Nombre de la entidad o cliente" required />
+                className={inputCls + " h-10"} placeholder="Nombre de la entidad o cliente" />
             </Field>
 
             <div className="col-span-2">
               <Field label="Objeto" required>
                 <textarea rows={3} value={form.proposal_object} onChange={e => setField("proposal_object", e.target.value)}
-                  className={inputCls + " py-2 resize-none"} placeholder="Descripción del objeto de la propuesta" required />
+                  className={inputCls + " py-2 resize-none"} placeholder="Descripción del objeto de la propuesta" />
               </Field>
             </div>
 
             <Field label="Plazo de Entrega de la Propuesta" required>
               <input type="date" value={form.proposal_delivery_deadline} onChange={e => setField("proposal_delivery_deadline", e.target.value)}
-                className={inputCls + " h-10"} required />
+                className={inputCls + " h-10"} />
             </Field>
 
             <Field label="Tipología" required>
               <select value={form.proposal_type} onChange={e => setField("proposal_type", e.target.value as ProposalType)}
-                className={inputCls + " h-10 appearance-none"} required>
+                className={inputCls + " h-10 appearance-none"}>
                 {PROPOSAL_TYPE_ORDER.map(t => (
                   <option key={t} value={t}>{PROPOSAL_TYPE_LABELS[t]}</option>
                 ))}
@@ -163,7 +171,7 @@ export function ProposalFormModal({ proposal, onClose, onSaved }: Props) {
 
             <Field label="Estado" required>
               <select value={form.status} onChange={e => setField("status", e.target.value as ProposalStatus)}
-                className={inputCls + " h-10 appearance-none"} required>
+                className={inputCls + " h-10 appearance-none"}>
                 {PROPOSAL_STATUS_ORDER.map(s => (
                   <option key={s} value={s}>{PROPOSAL_STATUS_CONFIG[s].label}</option>
                 ))}
@@ -183,13 +191,13 @@ export function ProposalFormModal({ proposal, onClose, onSaved }: Props) {
             <div className="col-span-1" /> {/* spacer */}
 
             <Field label="Enlace Solicitud de Propuesta">
-              <input type="url" value={form.request_link} onChange={e => setField("request_link", e.target.value)}
-                className={inputCls + " h-10"} placeholder="https://…" />
+              <input type="text" value={form.request_link} onChange={e => setField("request_link", e.target.value)}
+                className={inputCls + " h-10"} placeholder="https://…" inputMode="url" />
             </Field>
 
             <Field label="Enlace de la Propuesta">
-              <input type="url" value={form.proposal_link} onChange={e => setField("proposal_link", e.target.value)}
-                className={inputCls + " h-10"} placeholder="https://…" />
+              <input type="text" value={form.proposal_link} onChange={e => setField("proposal_link", e.target.value)}
+                className={inputCls + " h-10"} placeholder="https://…" inputMode="url" />
             </Field>
 
             <div className="col-span-2">
@@ -213,9 +221,9 @@ export function ProposalFormModal({ proposal, onClose, onSaved }: Props) {
               className="flex-1 h-10 rounded-lg border border-[#EAEAEA] text-sm text-[#434652] hover:bg-[#f9f9f9]">
               Cancelar
             </button>
-            <button type="submit" disabled={isPending || !hasRequiredFields}
+            <button type="submit" disabled={isSaving}
               className="flex-1 h-10 rounded-lg bg-[#0B3D91] text-white text-sm font-semibold hover:bg-[#002869] disabled:opacity-50 flex items-center justify-center gap-1.5">
-              {isPending ? "Guardando…" : isEdit ? "Guardar Cambios" : "Crear Propuesta"}
+              {isSaving ? "Guardando…" : isEdit ? "Guardar Cambios" : "Crear Propuesta"}
             </button>
           </div>
         </form>

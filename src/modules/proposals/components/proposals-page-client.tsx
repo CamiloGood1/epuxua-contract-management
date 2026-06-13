@@ -11,6 +11,7 @@ import {
 } from "@/types/proposals"
 import type { ProposalRequest, ProposalStatus } from "@/types/proposals"
 import type { UserRole } from "@/types/project"
+import { getProposals } from "@/services/proposals.actions"
 import { canCreateProposal, canEditProposal, canDeleteProposal } from "@/modules/proposals/lib/access"
 
 function fmtDate(d: string | null | undefined) {
@@ -77,10 +78,9 @@ export function ProposalsPageClient({ initialProposals, userRole }: Props) {
     }
   }, [proposals])
 
-  function handleSaved() {
-    // Reload is triggered by revalidatePath — page.tsx re-fetches on next navigation.
-    // For instant UX, refetch via the same server action approach would require a round-trip.
-    // Simple approach: page will refresh on next navigation. For now just close.
+  async function handleSaved() {
+    const updated = await getProposals()
+    setProposals(updated)
   }
 
   function openDetail(p: ProposalRequest) {
@@ -255,14 +255,14 @@ export function ProposalsPageClient({ initialProposals, userRole }: Props) {
       {showCreate && (
         <ProposalFormModal
           onClose={() => setShowCreate(false)}
-          onSaved={() => { setShowCreate(false); window.location.reload() }}
+          onSaved={handleSaved}
         />
       )}
       {editing && (
         <ProposalFormModal
           proposal={editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); window.location.reload() }}
+          onSaved={handleSaved}
         />
       )}
       {detail && !editing && (
