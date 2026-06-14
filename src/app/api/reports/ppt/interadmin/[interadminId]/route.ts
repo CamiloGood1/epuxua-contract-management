@@ -172,7 +172,7 @@ export async function GET(
     supabase.from("interadmin_suspensiones" as never).select("*").eq("interadministrativo_id", numericId).order("numero_suspension"),
     supabase.from("interadmin_reinicios"    as never).select("*").eq("interadministrativo_id", numericId).order("numero_reinicio"),
     supabase.from("interadmin_facturas"     as never).select("*").eq("interadministrativo_id", numericId).order("fecha_remision", { ascending: false }),
-    supabase.from("interadmin_tasks"        as never).select("*").eq("interadministrativo_id", numericId),
+    supabase.from("interadmin_tasks"        as never).select("*").eq("interadministrativo_id", numericId).is("deleted_at", null),
     supabase.from("interadmin_funding_groups"  as never).select("*").eq("interadministrativo_id", numericId).order("id"),
     supabase.from("interadmin_funding_sources" as never).select("*").eq("interadministrativo_id", numericId).order("source_name"),
     supabase.from("interadmin_financial_returns" as never).select("*").eq("interadministrativo_id", numericId).order("return_year", { ascending: false }).order("return_month", { ascending: false }),
@@ -482,11 +482,11 @@ export async function GET(
     // Tabla cronológica de adiciones
     if (adiciones.length > 0) {
       s.addText("Adiciones", { x: 0.35, y: 2.15, w: 4.6, h: 0.3, fontSize: 11, bold: true, color: BLUE })
-      addStyledTable(s, ["N°", "Fecha", "Valor Total", "Motivo"],
+      addStyledTable(s, ["N°", "Fecha", "Valor Total", "Número RP", "Motivo"],
         adiciones.slice(0, 5).map((a) => [
-          str(a.numero_adicion), dt(a.fecha_adicion), cop(a.valor_total), short(a.motivo, 22),
+          str(a.numero_adicion), dt(a.fecha_adicion), cop(a.valor_total), str(a.numero_rp), short(a.motivo, 18),
         ]),
-        0.35, 2.48, 4.6, [0.4, 1.2, 1.5, 1.5])
+        0.35, 2.48, 4.6, [0.4, 1.0, 1.3, 1.0, 0.9])
     }
     // Prórrogas
     if (prorrogas.length > 0) {

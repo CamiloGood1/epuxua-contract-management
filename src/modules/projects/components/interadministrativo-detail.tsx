@@ -122,8 +122,9 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
   const [selected, setSelected]   = useState<Contrato | null>(null)
   const [showEdit, setShowEdit]   = useState(false)
   const [showChanges, setShowChanges] = useState(false)
-  const [isDownloading, setIsDownloading]       = useState(false)
-  const [isDownloadingPpt, setIsDownloadingPpt] = useState(false)
+  const [isDownloading, setIsDownloading]         = useState(false)
+  const [isDownloadingPpt, setIsDownloadingPpt]   = useState(false)
+  const [isDownloadingXls, setIsDownloadingXls]   = useState(false)
 
   async function handleDownloadReport() {
     setIsDownloading(true)
@@ -170,6 +171,30 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
       alert(err instanceof Error ? err.message : "Error al descargar la presentación.")
     } finally {
       setIsDownloadingPpt(false)
+    }
+  }
+
+  async function handleDownloadExcel() {
+    setIsDownloadingXls(true)
+    try {
+      const res = await fetch(`/api/reports/excel/interadmin/${p.id}`)
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error((err as { error?: string }).error ?? "Error al generar el Excel")
+      }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement("a")
+      a.href     = url
+      a.download = `MAESTRO_CONTRATO_${p.id_contrato.replace(/[/\\?%*:|"<>]/g, "-")}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error al descargar el Excel.")
+    } finally {
+      setIsDownloadingXls(false)
     }
   }
 
@@ -225,6 +250,17 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
                 {isDownloadingPpt ? "Generando…" : "Presentación"}
+              </button>
+            )}
+            {canDownloadReport && (
+              <button
+                onClick={handleDownloadExcel}
+                disabled={isDownloadingXls}
+                title="Descargar Excel maestro del contrato"
+                className="flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 border border-[#16A34A] bg-white text-[#16A34A] rounded-lg text-sm font-medium hover:bg-[#f0fdf4] transition-colors flex-1 sm:flex-none disabled:opacity-50"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                {isDownloadingXls ? "Generando…" : "Excel Maestro"}
               </button>
             )}
             {canEdit && (
@@ -334,10 +370,14 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
                   </thead>
                   <tbody className="divide-y divide-[#EAEAEA]">
                     {derivados.map((c) => (
-                      <tr key={c.id} onClick={() => setSelected(c)}
+                      <tr key={c.id}
+                        onClick={() => router.push(`/proyectos/${p.id_contrato}/contratos/${c.id}`)}
                         className="hover:bg-[#f0f3ff] transition-colors cursor-pointer"
                       >
-                        <td className="px-6 py-3.5 text-sm font-bold text-[#0B3D91] font-mono whitespace-nowrap">{c.numero_contrato ?? "—"}</td>
+                        <td className="px-6 py-3.5 text-sm font-bold text-[#0B3D91] font-mono whitespace-nowrap">
+                          {c.numero_contrato ?? "—"}
+                          <span className="ml-2 text-[10px] font-normal text-[#0B3D91]/60">Ver →</span>
+                        </td>
                         <td className="px-6 py-3.5 text-sm text-[#434652] max-w-xs"><span className="line-clamp-2">{c.objeto_contrato ?? "—"}</span></td>
                         <td className="px-6 py-3.5 text-sm font-medium text-[#151c27] max-w-[140px]"><span className="truncate block">{c.contratista ?? "—"}</span></td>
                         <td className="px-6 py-3.5"><ContratoBadge estado={c.estado} /></td>

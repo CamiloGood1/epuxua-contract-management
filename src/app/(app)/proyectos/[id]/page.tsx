@@ -65,7 +65,7 @@ export default async function ProyectoDetallePage({ params }: PageProps) {
     supabase.from("interadmin_aclaratorios" as never).select("*").eq("interadministrativo_id", numericId).order("numero_aclaratorio",{ ascending: true }),
     supabase.from("interadmin_facturas"           as never).select("*").eq("interadministrativo_id", numericId).order("fecha_remision",      { ascending: false }),
     supabase.from("contract_payment_schedule" as never).select("*").eq("interadministrativo_id", numericId).order("milestone_number", { ascending: true  }),
-    supabase.from("interadmin_tasks"   as never).select("*").eq("interadministrativo_id", numericId).order("created_at", { ascending: true }),
+    supabase.from("interadmin_tasks"   as never).select("*").eq("interadministrativo_id", numericId).is("deleted_at", null).order("created_at", { ascending: true }),
     supabase.from("interadmin_avances" as never).select("*").eq("interadministrativo_id", numericId).order("fecha",      { ascending: false }),
   ])
 

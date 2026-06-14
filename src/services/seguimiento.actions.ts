@@ -157,17 +157,25 @@ export async function deleteTarea(
   id: number,
   interadministrativoId: number,
   snapshot: Record<string, unknown>,
+  deleteReason: string,
 ): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canDeleteProject(profile?.role)) return { error: "Solo los administradores pueden eliminar tareas." }
+  if (!deleteReason.trim()) return { error: "El motivo de eliminación es obligatorio." }
   const denied = await requireWrite(interadministrativoId)
   if (denied) return denied
 
   const supabase = await createSupabaseServerClient()
+  const deletedBy = profile?.full_name ?? profile?.email ?? "ADMIN"
+  const deletedAt = new Date().toISOString()
 
   const { error } = await supabase
     .from("interadmin_tasks" as never)
-    .delete()
+    .update({
+      deleted_at:    deletedAt,
+      deleted_by:    deletedBy,
+      delete_reason: deleteReason.trim(),
+    } as never)
     .eq("id", id)
 
   if (error) return { error: error.message }
@@ -176,6 +184,7 @@ export async function deleteTarea(
     interadmin_id: interadministrativoId,
     action:        "DELETE_TAREA",
     old_value:     JSON.stringify(snapshot),
+    new_value:     JSON.stringify({ status: "ELIMINADA", deleted_by: deletedBy, delete_reason: deleteReason.trim(), deleted_at: deletedAt }),
     user_id:       profile?.id    ?? null,
     user_email:    profile?.email ?? null,
   })

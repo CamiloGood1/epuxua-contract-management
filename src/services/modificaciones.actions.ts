@@ -91,6 +91,7 @@ export interface CreateAdicionInput {
   valor_total?: number | null
   valor_cuota_gerencia?: number | null
   valor_bienes_servicios?: number | null
+  numero_rp?: string | null
   motivo?: string | null
   link_documental?: string | null
 }
@@ -114,6 +115,7 @@ export async function createAdicion(input: CreateAdicionInput): Promise<Res> {
     valor_total:            input.valor_total            ?? null,
     valor_cuota_gerencia:   input.valor_cuota_gerencia   ?? null,
     valor_bienes_servicios: input.valor_bienes_servicios ?? null,
+    numero_rp:              input.numero_rp?.trim()      || null,
     motivo:                 input.motivo?.trim()         || null,
     link_documental:        input.link_documental?.trim()|| null,
     user_id:                profile?.id                  ?? null,

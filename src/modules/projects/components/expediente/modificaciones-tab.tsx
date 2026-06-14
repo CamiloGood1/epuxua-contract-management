@@ -90,7 +90,7 @@ function FormButtons({ onClose, isPending, label }: { onClose: () => void; isPen
 // ── Modales de creación ───────────────────────────────────────────────────────
 
 function AdicionModal({ interadministrativoId, nextNum, onClose }: { interadministrativoId: number; nextNum: number; onClose: () => void }) {
-  const [f, setF] = useState({ fecha: "", valorTotal: "", valorCuota: "", valorBienes: "", motivo: "", link: "" })
+  const [f, setF] = useState({ fecha: "", valorTotal: "", valorCuota: "", valorBienes: "", numeroRp: "", motivo: "", link: "" })
   const [err, setErr] = useState<string | null>(null)
   const [pending, start] = useTransition()
 
@@ -104,6 +104,7 @@ function AdicionModal({ interadministrativoId, nextNum, onClose }: { interadmini
         valor_total:            f.valorTotal ? parseFloat(f.valorTotal.replace(/\./g, "").replace(",", ".")) : null,
         valor_cuota_gerencia:   f.valorCuota ? parseFloat(f.valorCuota.replace(/\./g, "").replace(",", ".")) : null,
         valor_bienes_servicios: f.valorBienes ? parseFloat(f.valorBienes.replace(/\./g, "").replace(",", ".")) : null,
+        numero_rp:              f.numeroRp || null,
         motivo:                 f.motivo || null,
         link_documental:        f.link || null,
       })
@@ -126,9 +127,14 @@ function AdicionModal({ interadministrativoId, nextNum, onClose }: { interadmini
             <input type="text" className={inputCls} placeholder="0" value={f.valorCuota} onChange={(e) => setF({ ...f, valorCuota: e.target.value })} />
           </Field>
         </div>
-        <Field label="Bienes y Servicios (COP)">
-          <input type="text" className={inputCls} placeholder="0" value={f.valorBienes} onChange={(e) => setF({ ...f, valorBienes: e.target.value })} />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Bienes y Servicios (COP)">
+            <input type="text" className={inputCls} placeholder="0" value={f.valorBienes} onChange={(e) => setF({ ...f, valorBienes: e.target.value })} />
+          </Field>
+          <Field label="Número RP">
+            <input type="text" className={inputCls} placeholder="Ej: RP-2026-00458" value={f.numeroRp} onChange={(e) => setF({ ...f, numeroRp: e.target.value })} />
+          </Field>
+        </div>
         <Field label="Motivo de la Adición">
           <textarea rows={3} className={textareaCls} value={f.motivo} onChange={(e) => setF({ ...f, motivo: e.target.value })} />
         </Field>
@@ -390,6 +396,7 @@ function EventDetail({ event, canDelete, onDelete }: { event: TimelineEvent; can
               {d.valor_total            && <div><p className="text-[10px] text-[#747783] uppercase">Valor Total</p><p className="font-semibold">{formatCOP(d.valor_total)}</p></div>}
               {d.valor_cuota_gerencia   && <div><p className="text-[10px] text-[#747783] uppercase">Cuota Gerencia</p><p className="font-semibold">{formatCOP(d.valor_cuota_gerencia)}</p></div>}
               {d.valor_bienes_servicios && <div><p className="text-[10px] text-[#747783] uppercase">Bienes y Servicios</p><p className="font-semibold">{formatCOP(d.valor_bienes_servicios)}</p></div>}
+              {d.numero_rp && <div><p className="text-[10px] text-[#747783] uppercase">Número RP</p><p className="font-semibold font-mono">{d.numero_rp}</p></div>}
               {d.motivo && <div className="col-span-2"><p className="text-[10px] text-[#747783] uppercase">Motivo</p><p>{d.motivo}</p></div>}
               {d.link_documental && <div className="col-span-2"><a href={d.link_documental} target="_blank" rel="noreferrer" className="text-xs text-[#0B3D91] underline">Ver documento</a></div>}
             </div>

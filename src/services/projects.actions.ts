@@ -61,7 +61,6 @@ export interface NewInteradminProjectInput {
   observaciones?:           string
 }
 
-export type NewInteradministrativoInput = NewInteradminProjectInput
 
 function isValidUrl(url: string | undefined): boolean {
   if (!url) return true
@@ -175,7 +174,6 @@ export async function createInteradminProject(
   return { error: null, projectId: String(data.id) }
 }
 
-export const createInteradministrativo = createInteradminProject
 
 // ── Crear contrato derivado ────────────────────────────────────────────────────
 

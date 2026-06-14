@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ContractDetailDrawer } from "@/modules/contracts/components/contract-detail-drawer"
 import type { DerivedContractRow, DerivedContractsKPIs } from "@/services/derived-contracts.service"
 import { formatCOP } from "@/modules/contracts/lib/status"
@@ -117,6 +118,7 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
   const [page, setPage]               = useState(1)
   const [selected, setSelected]       = useState<DerivedContractRow | null>(null)
   const [numSearch, setNumSearch]     = useState("")
+  const router = useRouter()
 
   const convenios = useMemo(() => UNIQUE_INTERADMIN(contracts), [contracts])
   const clases    = useMemo(() => [...new Set(contracts.map((c) => c.clase_contrato).filter(Boolean))].sort() as string[], [contracts])
@@ -337,11 +339,20 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#EAEAEA]">
-                  {paginated.map((d) => (
+                  {paginated.map((d) => {
+                    // Ruta dedicada: /contratacion/derivados/[id numérico]
+                    const expedientePath = d.id != null
+                      ? `/contratacion/derivados/${d.id}`
+                      : null
+                    function openRow() {
+                      if (expedientePath) router.push(expedientePath)
+                      else setSelected(d)
+                    }
+                    return (
                     <tr
                       key={d.id}
                       className="hover:bg-[#f0f3ff] transition-colors group cursor-pointer"
-                      onClick={() => setSelected(d)}
+                      onClick={openRow}
                     >
                       <td className="px-6 py-4 text-sm font-bold text-[#0B3D91] font-mono">
                         {d.numero_contrato ?? "—"}
@@ -349,7 +360,7 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
                       <td className="px-6 py-4 text-sm text-[#434652]">
                         {d.id_interadministrativo ? (
                           <Link
-                            href={d.parent_id != null ? `/proyectos/${d.parent_id}` : "#"}
+                            href={d.id_interadministrativo ? `/proyectos/${d.id_interadministrativo}` : "#"}
                             onClick={(e) => e.stopPropagation()}
                             className="hover:underline hover:text-[#0B3D91] transition-colors"
                           >
@@ -385,7 +396,7 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
                       <td className="px-6 py-4 text-center">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setSelected(d) }}
+                          onClick={(e) => { e.stopPropagation(); openRow() }}
                           className="text-[#747783] hover:text-[#0B3D91] transition-colors"
                         >
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -395,7 +406,7 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>

@@ -11,9 +11,10 @@ interface Props {
   tasksKanban: React.ReactNode
   tareas: TareaKanban[]
   canEdit: boolean
+  canDelete?: boolean
 }
 
-export function KanbanTabs({ projectKanban, tareas, canEdit }: Props) {
+export function KanbanTabs({ projectKanban, tareas, canEdit, canDelete }: Props) {
   const [tab, setTab] = useState<Tab>("proyectos")
 
   const tabs: { id: Tab; label: string }[] = [
@@ -41,7 +42,7 @@ export function KanbanTabs({ projectKanban, tareas, canEdit }: Props) {
       </div>
 
       {tab === "proyectos" && projectKanban}
-      {tab === "tareas"    && <TasksKanban tareas={tareas} canEdit={canEdit} />}
+      {tab === "tareas"    && <TasksKanban tareas={tareas} canEdit={canEdit} canDelete={canDelete} />}
     </div>
   )
 }

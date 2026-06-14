@@ -398,9 +398,11 @@ export function SeguimientoTab({ interadministrativoId, tareas, avances, canEdit
   , [avances])
 
   async function handleDeleteTarea(t: Tarea) {
-    if (!confirm(`¿Eliminar la tarea "${t.nombre}"?`)) return
+    const reason = window.prompt(`¿Eliminar la tarea "${t.nombre}"?\n\nIndique el motivo (obligatorio):`)
+    if (reason === null) return // cancelled
+    if (!reason.trim()) { alert("El motivo es obligatorio."); return }
     startDelete(async () => {
-      const res = await deleteTarea(t.id, interadministrativoId, { nombre: t.nombre, status: t.status })
+      const res = await deleteTarea(t.id, interadministrativoId, { nombre: t.nombre, status: t.status }, reason)
       if (res.error) alert(res.error)
       else router.refresh()
     })

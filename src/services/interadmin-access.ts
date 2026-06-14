@@ -98,3 +98,44 @@ export function shouldFilterProjectsByAssignment(role: UserRole | null | undefin
   if (!role) return true
   return !canViewAllInteradmins(role) && !canReadAllInteradmins(role)
 }
+
+/**
+ * Verifica acceso de escritura sobre un contrato derivado.
+ * ADMIN y GERENTE: acceso total.
+ * GERENTE_PROYECTO: solo si el interadministrativo padre está en sus asignaciones.
+ */
+export async function assertContratoWriteAccess(
+  contratoId: number
+): Promise<{ error: string | null }> {
+  const ctx = await loadAccessContext()
+  if (!ctx) return { error: "Sin permisos para editar." }
+
+  if (ctx.role === "ADMIN" || ctx.role === "GERENTE") return { error: null }
+
+  if (ctx.role === "GERENTE_PROYECTO") {
+    const supabase = await createSupabaseServerClient()
+
+    const { data: contrato } = await supabase
+      .from("contratos")
+      .select("id_interadministrativo")
+      .eq("id", contratoId)
+      .maybeSingle()
+
+    if (!contrato?.id_interadministrativo) {
+      return { error: "Contrato no encontrado o sin contrato padre." }
+    }
+
+    const { data: parent } = await supabase
+      .from("interadministrativos")
+      .select("id")
+      .eq("id_contrato", contrato.id_interadministrativo)
+      .maybeSingle()
+
+    if (!parent) return { error: "Contrato interadministrativo padre no encontrado." }
+    if (ctx.assignedIds.has(parent.id)) return { error: null }
+
+    return { error: "No tiene acceso para editar este contrato derivado." }
+  }
+
+  return { error: "Su rol no tiene permisos de escritura en contratos derivados." }
+}

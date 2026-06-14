@@ -2,10 +2,11 @@
 
 import { useState, useMemo, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { AlertTriangle, Clock, ExternalLink, CheckCircle2, Play } from "lucide-react"
-import { startTarea, completeTarea } from "@/services/seguimiento.actions"
+import { AlertTriangle, Clock, ExternalLink, CheckCircle2, Play, Trash2 } from "lucide-react"
+import { startTarea, completeTarea, deleteTarea } from "@/services/seguimiento.actions"
+import { startContractTask, completeContractTask, deleteContractTask } from "@/services/contract-tasks.actions"
 import { getKanbanColumn, getDaysLabel, PRIORIDAD_CFG } from "@/types/seguimiento"
-import type { TareaKanban, KanbanColumn, TareaPrioridad } from "@/types/seguimiento"
+import type { TareaKanban, KanbanColumn, TareaPrioridad, TareaOrigen } from "@/types/seguimiento"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -23,7 +24,21 @@ function PrioridadBadge({ p }: { p: TareaPrioridad }) {
   )
 }
 
-// ── Complete modal (inline mini) ──────────────────────────────────────────────
+function OrigenChip({ origen }: { origen: TareaOrigen | undefined }) {
+  if (!origen) return null
+  const isDerivado = origen === "DERIVADO"
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border ${
+      isDerivado
+        ? "bg-violet-50 text-violet-700 border-violet-200"
+        : "bg-sky-50 text-sky-700 border-sky-200"
+    }`}>
+      {isDerivado ? "DERIVADO" : "INTERADMIN"}
+    </span>
+  )
+}
+
+// ── Complete modal ────────────────────────────────────────────────────────────
 
 function QuickCompleteModal({ tarea, onClose }: { tarea: TareaKanban; onClose: () => void }) {
   const router = useRouter()
@@ -33,12 +48,25 @@ function QuickCompleteModal({ tarea, onClose }: { tarea: TareaKanban; onClose: (
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setError(null)
+    if (!enlace.trim()) { setError("El enlace de evidencia es obligatorio."); return }
+    try { new URL(enlace) } catch { setError("El enlace no es una URL válida."); return }
+
     start(async () => {
-      const res = await completeTarea({
-        id: tarea.id,
-        interadministrativo_id: tarea.interadministrativo_id,
-        enlace_evidencia_cierre: enlace,
-      })
+      let res: { error: string | null }
+      if (tarea.origen === "DERIVADO") {
+        res = await completeContractTask({
+          id: tarea.id,
+          contrato_id: tarea.contrato_id!,
+          project_id: tarea.project_id!,
+          enlace_evidencia_cierre: enlace,
+        })
+      } else {
+        res = await completeTarea({
+          id: tarea.id,
+          interadministrativo_id: tarea.interadministrativo_id,
+          enlace_evidencia_cierre: enlace,
+        })
+      }
       if (res.error) { setError(res.error); return }
       onClose(); router.refresh()
     })
@@ -67,11 +95,74 @@ function QuickCompleteModal({ tarea, onClose }: { tarea: TareaKanban; onClose: (
   )
 }
 
+// ── Delete confirm modal ──────────────────────────────────────────────────────
+
+function DeleteConfirmModal({ tarea, onClose }: { tarea: TareaKanban; onClose: () => void }) {
+  const router = useRouter()
+  const [reason, setReason]    = useState("")
+  const [error, setError]      = useState<string | null>(null)
+  const [isPending, start]     = useTransition()
+
+  function handleDelete() {
+    setError(null)
+    if (!reason.trim()) { setError("El motivo de eliminación es obligatorio."); return }
+    start(async () => {
+      let res: { error: string | null }
+      if (tarea.origen === "DERIVADO") {
+        res = await deleteContractTask(tarea.id, tarea.contrato_id!, tarea.project_id!, reason)
+      } else {
+        res = await deleteTarea(tarea.id, tarea.interadministrativo_id, {
+          nombre: tarea.nombre,
+          prioridad: tarea.prioridad,
+          responsable: tarea.responsable,
+        }, reason)
+      }
+      if (res.error) { setError(res.error); return }
+      onClose(); router.refresh()
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <h3 className="text-sm font-bold text-red-700">Eliminar tarea</h3>
+        <p className="text-xs text-[#434652]">La tarea "<span className="font-semibold">{tarea.nombre}</span>" quedará marcada como eliminada y no aparecerá en ninguna vista.</p>
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-[#747783] mb-1">
+            Motivo de eliminación <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            rows={3}
+            placeholder="Explique el motivo de esta eliminación…"
+            className="w-full rounded-lg border border-[#EAEAEA] px-3 py-2 text-xs text-[#434652] focus:outline-none focus:ring-2 focus:ring-red-500/20 resize-none"
+          />
+        </div>
+        {error && <p className="text-xs text-red-600">{error}</p>}
+        <div className="flex gap-2">
+          <button type="button" onClick={onClose} className="flex-1 h-9 rounded-lg border border-[#EAEAEA] text-sm text-[#434652] hover:bg-[#f9f9f9]">Cancelar</button>
+          <button type="button" onClick={handleDelete} disabled={isPending}
+            className="flex-1 h-9 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-60">
+            {isPending ? "Eliminando…" : "Confirmar eliminación"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Task card ─────────────────────────────────────────────────────────────────
 
 function TaskCard({
-  tarea, canEdit, onComplete,
-}: { tarea: TareaKanban; canEdit: boolean; onComplete: () => void }) {
+  tarea, canEdit, canDelete, onComplete, onDelete,
+}: {
+  tarea: TareaKanban
+  canEdit: boolean
+  canDelete: boolean
+  onComplete: () => void
+  onDelete: () => void
+}) {
   const [starting, startT] = useTransition()
   const router = useRouter()
   const col  = getKanbanColumn(tarea)
@@ -79,7 +170,12 @@ function TaskCard({
 
   async function handleStart() {
     startT(async () => {
-      const res = await startTarea(tarea.id, tarea.interadministrativo_id)
+      let res: { error: string | null }
+      if (tarea.origen === "DERIVADO") {
+        res = await startContractTask(tarea.id, tarea.contrato_id!, tarea.project_id!)
+      } else {
+        res = await startTarea(tarea.id, tarea.interadministrativo_id)
+      }
       if (res.error) alert(res.error)
       else router.refresh()
     })
@@ -87,16 +183,30 @@ function TaskCard({
 
   return (
     <div className="bg-white rounded-xl border border-[#EAEAEA] p-3.5 space-y-2" style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-      {/* Header */}
+      {/* Header row */}
       <div className="flex items-start justify-between gap-1.5">
         <p className="text-xs font-semibold text-[#151c27] leading-snug flex-1 line-clamp-2">{tarea.nombre}</p>
-        <PrioridadBadge p={tarea.prioridad} />
+        <div className="flex items-center gap-1 shrink-0">
+          <PrioridadBadge p={tarea.prioridad} />
+          {canDelete && (
+            <button onClick={onDelete} title="Eliminar tarea"
+              className="p-0.5 rounded text-[#CCCCCC] hover:text-red-500 hover:bg-red-50 transition-colors">
+              <Trash2 size={11} />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Contrato */}
-      {tarea.id_contrato && (
-        <p className="text-[10px] text-[#0B3D91] font-mono font-semibold">{tarea.id_contrato}</p>
-      )}
+      {/* Origin + contract identifiers */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <OrigenChip origen={tarea.origen} />
+        {tarea.id_contrato && (
+          <span className="text-[10px] text-[#0B3D91] font-mono font-semibold">{tarea.id_contrato}</span>
+        )}
+        {tarea.numero_derivado && (
+          <span className="text-[10px] text-violet-600 font-mono">· {tarea.numero_derivado}</span>
+        )}
+      </div>
 
       {/* Responsable + fecha */}
       <div className="flex items-center justify-between text-[10px] text-[#747783]">
@@ -149,32 +259,48 @@ const COL_CFG: Record<KanbanColumn, { label: string; headerBg: string; headerTex
 
 const COL_ORDER: KanbanColumn[] = ["PENDIENTE", "EN_PROCESO", "PROXIMA_VENCER", "VENCIDA", "COMPLETADA"]
 
-function KanbanColumn({ col, tareas, canEdit }: { col: KanbanColumn; tareas: TareaKanban[]; canEdit: boolean }) {
+function KanbanCol({
+  col, tareas, canEdit, canDelete,
+}: {
+  col: KanbanColumn
+  tareas: TareaKanban[]
+  canEdit: boolean
+  canDelete: boolean
+}) {
   const cfg = COL_CFG[col]
   const [completeTarget, setCompleteTarget] = useState<TareaKanban | null>(null)
+  const [deleteTarget, setDeleteTarget]     = useState<TareaKanban | null>(null)
 
   return (
     <div className="flex flex-col min-w-[240px] w-full">
-      {/* Column header */}
       <div className={`flex items-center gap-2 px-3.5 py-2.5 rounded-t-xl border border-b-0 border-[#EAEAEA] ${cfg.headerBg}`}>
         <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
         <span className={`text-[11px] font-bold uppercase tracking-widest ${cfg.headerText} flex-1`}>{cfg.label}</span>
         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${cfg.headerBg} ${cfg.headerText} border border-current/20`}>{tareas.length}</span>
       </div>
 
-      {/* Cards */}
       <div className="flex-1 border border-[#EAEAEA] rounded-b-xl bg-[#fafafa] p-2 space-y-2 min-h-[200px]">
         {tareas.length === 0 ? (
           <div className="flex items-center justify-center py-8 text-[11px] text-[#EAEAEA] font-medium">Sin tareas</div>
         ) : (
           tareas.map(t => (
-            <TaskCard key={t.id} tarea={t} canEdit={canEdit} onComplete={() => setCompleteTarget(t)} />
+            <TaskCard
+              key={`${t.origen ?? "ia"}-${t.id}`}
+              tarea={t}
+              canEdit={canEdit}
+              canDelete={canDelete}
+              onComplete={() => setCompleteTarget(t)}
+              onDelete={() => setDeleteTarget(t)}
+            />
           ))
         )}
       </div>
 
       {completeTarget && (
         <QuickCompleteModal tarea={completeTarget} onClose={() => setCompleteTarget(null)} />
+      )}
+      {deleteTarget && (
+        <DeleteConfirmModal tarea={deleteTarget} onClose={() => setDeleteTarget(null)} />
       )}
     </div>
   )
@@ -226,11 +352,13 @@ function KpiBar({ tareas }: { tareas: TareaKanban[] }) {
 interface Props {
   tareas: TareaKanban[]
   canEdit: boolean
+  canDelete?: boolean
 }
 
-export function TasksKanban({ tareas, canEdit }: Props) {
-  const [filterContrato, setFilterContrato] = useState("")
+export function TasksKanban({ tareas, canEdit, canDelete = false }: Props) {
+  const [filterContrato, setFilterContrato]   = useState("")
   const [filterPrioridad, setFilterPrioridad] = useState("")
+  const [filterOrigen, setFilterOrigen]       = useState<"" | "INTERADMINISTRATIVO" | "DERIVADO">("")
 
   const contratos = useMemo(() => {
     const ids = [...new Set(tareas.map(t => t.id_contrato).filter(Boolean))] as string[]
@@ -239,11 +367,12 @@ export function TasksKanban({ tareas, canEdit }: Props) {
 
   const filtered = useMemo(() => {
     return tareas.filter(t => {
-      if (filterContrato && t.id_contrato !== filterContrato) return false
-      if (filterPrioridad && t.prioridad !== filterPrioridad) return false
+      if (filterContrato  && t.id_contrato !== filterContrato) return false
+      if (filterPrioridad && t.prioridad   !== filterPrioridad) return false
+      if (filterOrigen    && t.origen      !== filterOrigen)    return false
       return true
     })
-  }, [tareas, filterContrato, filterPrioridad])
+  }, [tareas, filterContrato, filterPrioridad, filterOrigen])
 
   const byCol = useMemo(() => {
     const map: Record<KanbanColumn, TareaKanban[]> = {
@@ -256,6 +385,7 @@ export function TasksKanban({ tareas, canEdit }: Props) {
     return map
   }, [filtered])
 
+  const hasFilter = filterContrato || filterPrioridad || filterOrigen
   const selectCls = "h-8 rounded-lg border border-[#EAEAEA] px-2 text-xs text-[#434652] focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20 bg-white"
 
   return (
@@ -264,6 +394,11 @@ export function TasksKanban({ tareas, canEdit }: Props) {
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2">
+        <select value={filterOrigen} onChange={e => setFilterOrigen(e.target.value as typeof filterOrigen)} className={selectCls}>
+          <option value="">Todos los tipos</option>
+          <option value="INTERADMINISTRATIVO">Interadministrativo</option>
+          <option value="DERIVADO">Derivado</option>
+        </select>
         <select value={filterContrato} onChange={e => setFilterContrato(e.target.value)} className={selectCls}>
           <option value="">Todos los contratos</option>
           {contratos.map(id => <option key={id} value={id}>{id}</option>)}
@@ -275,8 +410,8 @@ export function TasksKanban({ tareas, canEdit }: Props) {
           <option value="MEDIA">Media</option>
           <option value="BAJA">Baja</option>
         </select>
-        {(filterContrato || filterPrioridad) && (
-          <button onClick={() => { setFilterContrato(""); setFilterPrioridad("") }}
+        {hasFilter && (
+          <button onClick={() => { setFilterContrato(""); setFilterPrioridad(""); setFilterOrigen("") }}
             className="h-8 px-3 rounded-lg border border-[#EAEAEA] text-xs text-[#747783] hover:text-[#434652] hover:bg-[#f9f9f9]">
             Limpiar
           </button>
@@ -287,7 +422,7 @@ export function TasksKanban({ tareas, canEdit }: Props) {
       {/* Board */}
       <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-3 items-start">
         {COL_ORDER.map(col => (
-          <KanbanColumn key={col} col={col} tareas={byCol[col]} canEdit={canEdit} />
+          <KanbanCol key={col} col={col} tareas={byCol[col]} canEdit={canEdit} canDelete={canDelete} />
         ))}
       </div>
     </div>

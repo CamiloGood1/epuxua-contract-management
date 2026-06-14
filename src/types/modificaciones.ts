@@ -9,6 +9,7 @@ export interface Adicion {
   valor_total: number | null
   valor_cuota_gerencia: number | null
   valor_bienes_servicios: number | null
+  numero_rp: string | null
   motivo: string | null
   link_documental: string | null
   user_id: string | null

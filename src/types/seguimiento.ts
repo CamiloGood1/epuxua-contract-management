@@ -18,11 +18,24 @@ export interface Tarea {
   user_email: string | null
   created_at: string
   updated_at: string
+  // Soft delete
+  deleted_at?: string | null
+  deleted_by?: string | null
+  delete_reason?: string | null
 }
+
+export type TareaOrigen = "INTERADMINISTRATIVO" | "DERIVADO"
 
 export interface TareaKanban extends Tarea {
   id_contrato?: string
   objeto_contrato?: string
+  origen?: TareaOrigen
+  /** Numeric PK of contratos row — only present for DERIVADO tasks */
+  contrato_id?: number
+  /** id_interadministrativo string (e.g. "1331-2024") — only present for DERIVADO tasks */
+  project_id?: string
+  /** numero_contrato of the derivado — only present for DERIVADO tasks */
+  numero_derivado?: string
 }
 
 export interface Avance {

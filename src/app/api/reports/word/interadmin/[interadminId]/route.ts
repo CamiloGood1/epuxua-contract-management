@@ -183,7 +183,7 @@ export async function GET(
     supabase.from("interadmin_suspensiones" as never).select("*").eq("interadministrativo_id", numericId).order("numero_suspension"),
     supabase.from("interadmin_reinicios"    as never).select("*").eq("interadministrativo_id", numericId).order("numero_reinicio"),
     supabase.from("interadmin_facturas"     as never).select("*").eq("interadministrativo_id", numericId).order("fecha_remision", { ascending: false }),
-    supabase.from("interadmin_tasks"        as never).select("*").eq("interadministrativo_id", numericId),
+    supabase.from("interadmin_tasks"        as never).select("*").eq("interadministrativo_id", numericId).is("deleted_at", null),
     supabase.from("interadmin_funding_groups"  as never).select("*").eq("interadministrativo_id", numericId).order("id"),
     supabase.from("interadmin_funding_sources" as never).select("*").eq("interadministrativo_id", numericId).order("source_name"),
     supabase.from("interadmin_financial_returns" as never).select("*").eq("interadministrativo_id", numericId).order("return_year", { ascending: false }).order("return_month", { ascending: false }),
@@ -342,13 +342,14 @@ export async function GET(
 
           h2("3.1 Adiciones"),
           ...table(
-            ["N°", "Fecha", "Valor Total", "Cuota Gerencia", "Bienes y Servicios", "Motivo"],
+            ["N°", "Fecha", "Valor Total", "Cuota Gerencia", "Bienes y Servicios", "Número RP", "Motivo"],
             adiciones.map((a) => [
               str(a.numero_adicion),
               dt(a.fecha_adicion),
               cop(a.valor_total),
               cop(a.valor_cuota_gerencia),
               cop(a.valor_bienes_servicios),
+              str(a.numero_rp),
               str(a.motivo),
             ]),
             "Sin adiciones registradas.",
