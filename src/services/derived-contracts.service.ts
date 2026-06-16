@@ -6,6 +6,7 @@ export interface DerivedContractRow {
   origen_hoja:              string | null
   numero_contrato:          string | null
   numero_proceso:           string | null
+  numero_proceso_seleccion: string | null
   tipo_contrato:            "DERIVADO"
   id_interadministrativo:   string | null
   modalidad_seleccion:      string | null
@@ -32,6 +33,7 @@ export interface DerivedContractRow {
   fecha_cdp:                string | null
   crp:                      string | null
   fecha_crp:                string | null
+  enlace_carpeta:           string | null
   suspension:               string | null
   reinicio:                 string | null
   observaciones:            string | null

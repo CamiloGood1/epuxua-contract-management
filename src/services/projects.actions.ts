@@ -185,12 +185,21 @@ export interface NewDerivedContractInput {
   objeto_contrato?: string
   clase_contrato?: string
   supervisor?: string
+  persona_natural_juridica?: string // Tipo contratista
+  numero_proceso?: string                // legacy — se mantiene por compatibilidad
+  numero_proceso_seleccion?: string      // Número de Proceso de Selección
   fecha_suscripcion?: string
   fecha_inicio?: string
   fecha_terminacion?: string
+  plazo_ejecucion?: string
   valor_inicial?: number
   valor_final?: number
   estado?: string
+  crp?: string                      // RP (Registro Presupuestal)
+  fecha_crp?: string                // Fecha RP
+  enlace_carpeta?: string           // Enlace Carpeta Documental
+  link_ficha?: string               // Enlace Secop
+  link_documentacion?: string       // Enlace Documentación
   // Backward compat
   proyecto_ref?: string
   contract_number?: string
@@ -211,22 +220,34 @@ export async function createDerivedContract(
   if (!idInteradmin)   return { error: "id_interadministrativo es requerido" }
   if (!numeroContrato) return { error: "numero_contrato es requerido" }
 
+  const profile = await getCurrentUserProfile().catch(() => null)
+  if (!canCreateProject(profile?.role)) return { error: "Sin permiso para crear contratos" }
+
   const { data, error } = await supabase
     .from("contratos")
     .insert({
-      id_interadministrativo: idInteradmin,
-      numero_contrato:        numeroContrato,
-      origen_hoja:            origenHoja,
-      tipo_contrato:          "DERIVADO",
-      contratista:            input.contratista             || null,
-      objeto_contrato:        input.objeto_contrato         || null,
-      clase_contrato:         input.clase_contrato          || null,
-      supervisor:             input.supervisor              || null,
-      fecha_suscripcion:      input.fecha_suscripcion       || null,
-      fecha_inicio:           input.fecha_inicio            || null,
-      fecha_terminacion:      input.fecha_terminacion       || null,
-      valor_inicial:          input.valor_inicial           ?? null,
-      valor_final:            input.valor_final             ?? input.valor_inicial ?? null,
+      id_interadministrativo:   idInteradmin,
+      numero_contrato:          numeroContrato,
+      origen_hoja:              origenHoja,
+      tipo_contrato:            "DERIVADO",
+      contratista:              input.contratista             || null,
+      objeto_contrato:          input.objeto_contrato         || null,
+      clase_contrato:           input.clase_contrato          || null,
+      supervisor:               input.supervisor              || null,
+      persona_natural_juridica: input.persona_natural_juridica || null,
+      numero_proceso:           input.numero_proceso           || null,
+      numero_proceso_seleccion: input.numero_proceso_seleccion || input.numero_proceso || null,
+      fecha_suscripcion:        input.fecha_suscripcion        || null,
+      fecha_inicio:             input.fecha_inicio             || null,
+      fecha_terminacion:        input.fecha_terminacion        || null,
+      plazo_ejecucion:          input.plazo_ejecucion          || null,
+      valor_inicial:            input.valor_inicial            ?? null,
+      valor_final:              input.valor_final              ?? input.valor_inicial ?? null,
+      estado:                   input.estado                   || null,
+      crp:                      input.crp                      || null,
+      fecha_crp:                input.fecha_crp                || null,
+      enlace_carpeta:           input.enlace_carpeta           || null,
+      link_ficha:               input.link_ficha               || null,
     })
     .select("id")
     .single()
@@ -253,6 +274,8 @@ export interface NewFuncionamientoContractInput {
   area_responsable?: string
   supervisor?: string
   persona_natural_juridica?: string
+  numero_proceso?: string               // legacy — se mantiene por compatibilidad
+  numero_proceso_seleccion?: string     // Número de Proceso de Selección
   fecha_suscripcion?: string
   fecha_inicio?: string
   fecha_terminacion?: string
@@ -260,6 +283,12 @@ export interface NewFuncionamientoContractInput {
   valor_inicial?: number
   valor_final?: number
   estado?: string
+  cdp?: string               // CDP (número)
+  fecha_cdp?: string         // Fecha CDP
+  crp?: string               // CRP (número)
+  fecha_crp?: string         // Fecha CRP
+  enlace_carpeta?: string    // Enlace Carpeta Documental
+  link_ficha?: string        // Enlace carpeta documental
   recurso?: string
   rubro?: string
   observaciones?: string
@@ -280,30 +309,41 @@ export async function createFuncionamientoContract(
 
   if (!numeroContrato) return { error: "numero_contrato es requerido" }
 
+  const profile2 = await getCurrentUserProfile().catch(() => null)
+  if (!canCreateProject(profile2?.role)) return { error: "Sin permiso para crear contratos" }
+
   const { data, error } = await supabase
     .from("contratos")
     .insert({
-      numero_contrato:        numeroContrato,
-      origen_hoja:            origenHoja,
-      tipo_contrato:          "FUNCIONAMIENTO",
-      id_interadministrativo: null,
-      contratista:            input.contratista             || null,
-      objeto_contrato:        input.objeto_contrato         || null,
-      clase_contrato:         input.clase_contrato          || null,
-      modalidad_seleccion:    input.modalidad_seleccion     || null,
-      area_responsable:       input.area_responsable        || null,
-      supervisor:             input.supervisor              || null,
+      numero_contrato:          numeroContrato,
+      origen_hoja:              origenHoja,
+      tipo_contrato:            "FUNCIONAMIENTO",
+      id_interadministrativo:   null,
+      contratista:              input.contratista             || null,
+      objeto_contrato:          input.objeto_contrato         || null,
+      clase_contrato:           input.clase_contrato          || null,
+      modalidad_seleccion:      input.modalidad_seleccion     || null,
+      area_responsable:         input.area_responsable        || null,
+      supervisor:               input.supervisor              || null,
       persona_natural_juridica: input.persona_natural_juridica || null,
-      fecha_suscripcion:      input.fecha_suscripcion       || null,
-      fecha_inicio:           input.fecha_inicio            || null,
-      fecha_terminacion:      input.fecha_terminacion       || null,
-      plazo_ejecucion:        input.plazo_ejecucion         || null,
-      valor_inicial:          input.valor_inicial           ?? null,
-      valor_final:            input.valor_final             ?? input.valor_inicial ?? null,
-      estado:                 input.estado                  || null,
-      recurso:                input.recurso                 || null,
-      rubro:                  input.rubro                   || null,
-      observaciones:          input.observaciones           || null,
+      numero_proceso:           input.numero_proceso           || null,
+      numero_proceso_seleccion: input.numero_proceso_seleccion || input.numero_proceso || null,
+      fecha_suscripcion:        input.fecha_suscripcion        || null,
+      fecha_inicio:             input.fecha_inicio             || null,
+      fecha_terminacion:        input.fecha_terminacion        || null,
+      plazo_ejecucion:          input.plazo_ejecucion          || null,
+      valor_inicial:            input.valor_inicial            ?? null,
+      valor_final:              input.valor_final              ?? input.valor_inicial ?? null,
+      estado:                   input.estado                   || null,
+      cdp:                      input.cdp                      || null,
+      fecha_cdp:                input.fecha_cdp                || null,
+      crp:                      input.crp                      || null,
+      fecha_crp:                input.fecha_crp                || null,
+      enlace_carpeta:           input.enlace_carpeta           || null,
+      link_ficha:               input.link_ficha               || null,
+      recurso:                  input.recurso                  || null,
+      rubro:                    input.rubro                   || null,
+      observaciones:            input.observaciones           || null,
     })
     .select("id")
     .single()

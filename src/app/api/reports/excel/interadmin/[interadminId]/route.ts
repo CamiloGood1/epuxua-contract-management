@@ -199,24 +199,26 @@ export async function GET(
   // ── HOJA 3 — CONTRATOS DERIVADOS ─────────────────────────────────────────
   const H3 = ["Número Derivado", "Objeto", "Contratista", "Estado", "Clase Contrato",
     "Supervisor", "Fecha Inicio", "Fecha Terminación", "Valor Inicial", "Adición", "Valor Actual",
-    "Valor Pagado", "Saldo Pendiente"]
+    "Valor Pagado", "Saldo Pendiente", "Enlace Carpeta Documental"]
   const ws3 = makeSheet(H3, derivados.map(c => ({
-    "Número Derivado":  s(c.numero_contrato),
-    "Objeto":           s(c.objeto_contrato),
-    "Contratista":      s(c.contratista),
-    "Estado":           s(c.estado),
-    "Clase Contrato":   s(c.clase_contrato),
-    "Supervisor":       s(c.supervisor),
-    "Fecha Inicio":     d(c.fecha_inicio),
-    "Fecha Terminación":d(c.fecha_terminacion),
-    "Valor Inicial":    n(c.valor_inicial),
-    "Adición":          n(c.adicion),
-    "Valor Actual":     n(c.valor_final),
-    "Valor Pagado":     n(c.valor_pagado),
-    "Saldo Pendiente":  n(c.valor_pendiente),
+    "Número Derivado":           s(c.numero_contrato),
+    "Objeto":                    s(c.objeto_contrato),
+    "Contratista":               s(c.contratista),
+    "Estado":                    s(c.estado),
+    "Clase Contrato":            s(c.clase_contrato),
+    "Supervisor":                s(c.supervisor),
+    "Fecha Inicio":              d(c.fecha_inicio),
+    "Fecha Terminación":         d(c.fecha_terminacion),
+    "Valor Inicial":             n(c.valor_inicial),
+    "Adición":                   n(c.adicion),
+    "Valor Actual":              n(c.valor_final),
+    "Valor Pagado":              n(c.valor_pagado),
+    "Saldo Pendiente":           n(c.valor_pendiente),
+    "Enlace Carpeta Documental": s((c as unknown as Record<string, unknown>).enlace_carpeta as string),
   })))
   ws3["!cols"] = [{ wch: 18 }, { wch: 45 }, { wch: 25 }, { wch: 16 }, { wch: 18 },
-    { wch: 22 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 18 }]
+    { wch: 22 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 18 },
+    { wch: 40 }]
 
   // ── HOJA 4 — MODIFICACIONES CONTRACTUALES ────────────────────────────────
   const H4 = ["Tipo", "Número", "Fecha", "Valor Total", "Valor Bienes y Servicios",

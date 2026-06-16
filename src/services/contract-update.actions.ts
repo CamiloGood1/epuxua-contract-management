@@ -34,10 +34,12 @@ export interface UpdateContratoInput {
   persona_natural_juridica?: string | null
   recurso?:                  string | null
   rubro?:                    string | null
+  numero_proceso_seleccion?: string | null
   cdp?:                      string | null
   fecha_cdp?:                string | null
   crp?:                      string | null
   fecha_crp?:                string | null
+  enlace_carpeta?:           string | null
   numero_poliza?:            string | null
   fecha_aprobacion_poliza?:  string | null
   link_ficha?:               string | null

@@ -62,8 +62,10 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
     rubro:                    c.rubro ?? "",
     cdp:                      c.cdp ?? "",
     fecha_cdp:                c.fecha_cdp ?? "",
+    numero_proceso_seleccion: c.numero_proceso_seleccion ?? c.numero_proceso ?? "",
     crp:                      c.crp ?? "",
     fecha_crp:                c.fecha_crp ?? "",
+    enlace_carpeta:           c.enlace_carpeta ?? "",
     numero_poliza:            c.numero_poliza ?? "",
     fecha_aprobacion_poliza:  c.fecha_aprobacion_poliza ?? "",
     link_ficha:               c.link_ficha ?? "",
@@ -111,8 +113,10 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
         rubro:                    nullIfEmpty(form.rubro),
         cdp:                      nullIfEmpty(form.cdp),
         fecha_cdp:                nullIfEmpty(form.fecha_cdp),
+        numero_proceso_seleccion: nullIfEmpty(form.numero_proceso_seleccion),
         crp:                      nullIfEmpty(form.crp),
         fecha_crp:                nullIfEmpty(form.fecha_crp),
+        enlace_carpeta:           nullIfEmpty(form.enlace_carpeta),
         numero_poliza:            nullIfEmpty(form.numero_poliza),
         fecha_aprobacion_poliza:  nullIfEmpty(form.fecha_aprobacion_poliza),
         link_ficha:               nullIfEmpty(form.link_ficha),
@@ -262,6 +266,9 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
           </div>
           <Field label="Enlace SECOP II (ficha)">
             <input type="url" value={form.link_ficha} onChange={e => set("link_ficha", e.target.value)} className={inputCls} placeholder="https://…" />
+          </Field>
+          <Field label="Enlace Carpeta Documental">
+            <input type="url" value={form.enlace_carpeta} onChange={e => set("enlace_carpeta", e.target.value)} className={inputCls} placeholder="https://drive.google.com/…" />
           </Field>
 
           {/* Observaciones */}

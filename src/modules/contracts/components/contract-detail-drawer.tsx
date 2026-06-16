@@ -39,6 +39,7 @@ export interface ContractDetailData {
   fecha_cdp:                string | null
   crp:                      string | null
   fecha_crp:                string | null
+  enlace_carpeta:           string | null
   suspension:               string | null
   reinicio:                 string | null
   observaciones:            string | null
@@ -296,6 +297,16 @@ export function ContractDetailDrawer({ contract, onClose }: Props) {
                       <Field label="CRP" value={contract.crp} mono />
                       <Field label="Fecha CRP" value={contract.fecha_crp} />
                     </Row>
+                  </div>
+                </>
+              )}
+
+              {/* Enlace Carpeta Documental */}
+              {contract.enlace_carpeta && (
+                <>
+                  <Section title="Carpeta Documental" />
+                  <div className="pt-3">
+                    <Field label="Enlace" value={contract.enlace_carpeta} url={contract.enlace_carpeta} />
                   </div>
                 </>
               )}

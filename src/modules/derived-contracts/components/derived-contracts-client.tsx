@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { ContractDetailDrawer } from "@/modules/contracts/components/contract-detail-drawer"
 import type { DerivedContractRow, DerivedContractsKPIs } from "@/services/derived-contracts.service"
 import { formatCOP } from "@/modules/contracts/lib/status"
+import { NewContractModal, type SimpleInteradmin } from "./new-contract-modal"
 
 const PAGE_SIZE = 10
 
@@ -103,12 +104,15 @@ function Paginator({ page, total, onChange }: { page: number; total: number; onC
 interface Props {
   contracts: DerivedContractRow[]
   kpis: DerivedContractsKPIs
+  canCreate?: boolean
+  canCreateFuncionamiento?: boolean
+  interadmins?: SimpleInteradmin[]
 }
 
 const UNIQUE_INTERADMIN = (contracts: DerivedContractRow[]) =>
   [...new Set(contracts.map((c) => c.id_interadministrativo).filter(Boolean))].sort() as string[]
 
-export function DerivedContractsClient({ contracts, kpis }: Props) {
+export function DerivedContractsClient({ contracts, kpis, canCreate = false, canCreateFuncionamiento = false, interadmins = [] }: Props) {
   const [search, setSearch]           = useState("")
   const [convenioFilter, setConvenio] = useState("all")
   const [estadoFilter, setEstado]     = useState("all")
@@ -118,6 +122,8 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
   const [page, setPage]               = useState(1)
   const [selected, setSelected]       = useState<DerivedContractRow | null>(null)
   const [numSearch, setNumSearch]     = useState("")
+  const [showNewModal, setShowNew]    = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
   const router = useRouter()
 
   const convenios = useMemo(() => UNIQUE_INTERADMIN(contracts), [contracts])
@@ -149,6 +155,25 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
 
   function resetPage() { setPage(1) }
 
+  async function handleDownload() {
+    setIsDownloading(true)
+    try {
+      const res = await fetch("/api/reports/excel/derivados")
+      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`)
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement("a")
+      a.href     = url
+      a.download = `EPUXUA_Contratos_${new Date().toISOString().slice(0, 10)}.xlsx`
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert("Error al generar el Excel: " + String(err))
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
   // KPIs
   const vigentes    = contracts.filter((c) => c.estado === "EN EJECUCIÓN").length
   const proximos    = contracts.filter((c) => {
@@ -175,10 +200,25 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
             Administración centralizada de contratos derivados de convenios interadministrativos o contratos marco operativos para la ejecución del plan de acción.
           </p>
         </div>
-        <div>
-          <button className="inline-flex items-center px-5 py-2.5 bg-[#0B3D91] text-white rounded-lg text-[12px] font-semibold hover:bg-[#002869] transition-all shadow-sm">
+        <div className="flex gap-2">
+          {canCreate && (
+            <button
+              type="button"
+              onClick={() => setShowNew(true)}
+              className="inline-flex items-center px-5 py-2.5 bg-[#0B3D91] text-white rounded-lg text-[12px] font-semibold hover:bg-[#002869] transition-all shadow-sm"
+            >
+              <svg className="mr-2" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo Contrato
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className="inline-flex items-center px-5 py-2.5 border border-[#0B3D91] text-[#0B3D91] rounded-lg text-[12px] font-semibold hover:bg-[#f0f3ff] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <svg className="mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Descargar Excel
+            {isDownloading ? "Generando…" : "Descargar Excel"}
           </button>
         </div>
       </div>
@@ -416,6 +456,13 @@ export function DerivedContractsClient({ contracts, kpis }: Props) {
       </div>
 
       <ContractDetailDrawer contract={selected} onClose={() => setSelected(null)} />
+
+      <NewContractModal
+        open={showNewModal}
+        onClose={() => setShowNew(false)}
+        interadmins={interadmins}
+        canCreateFuncionamiento={canCreateFuncionamiento}
+      />
     </div>
   )
 }

@@ -72,6 +72,7 @@ export interface Contrato {
   origen_hoja: string | null
   numero_contrato: string | null         // ej: '001-2024' (era proyecto_ref)
   numero_proceso: string | null
+  numero_proceso_seleccion: string | null
   tipo_contrato: TipoContrato
   id_interadministrativo: string | null  // null para FUNCIONAMIENTO
   modalidad_seleccion: string | null
@@ -98,6 +99,7 @@ export interface Contrato {
   fecha_cdp: string | null
   crp: string | null
   fecha_crp: string | null
+  enlace_carpeta: string | null
   suspension: string | null
   reinicio: string | null
   observaciones: string | null

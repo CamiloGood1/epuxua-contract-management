@@ -1,13 +1,35 @@
-import { Download, GitBranch } from "lucide-react"
+import { GitBranch } from "lucide-react"
 import {
   getAllDerivedContracts,
   getDerivedContractsKPIs,
 } from "@/services/derived-contracts.service"
 import { DerivedContractsClient } from "@/modules/derived-contracts/components/derived-contracts-client"
+import { getCurrentUserProfile } from "@/services/user.service"
+import { canCreateProject } from "@/modules/projects/lib/access"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+
+const CAN_CREATE_FUNC_ROLES = new Set(["ADMIN", "GERENTE"])
 
 export default async function ContratacionDerivadosPage() {
-  const contracts = await getAllDerivedContracts().catch(() => [])
-  const kpis = await getDerivedContractsKPIs(contracts)
+  const [contracts, profile] = await Promise.all([
+    getAllDerivedContracts().catch(() => []),
+    getCurrentUserProfile().catch(() => null),
+  ])
+
+  const kpis    = await getDerivedContractsKPIs(contracts)
+  const canCreate = canCreateProject(profile?.role)
+  const canCreateFuncionamiento = CAN_CREATE_FUNC_ROLES.has(profile?.role ?? "")
+
+  // Only fetch interadmins if the user can create derivados
+  let interadmins: { id: number; id_contrato: string; objeto_contrato: string | null }[] = []
+  if (canCreate) {
+    const supabase = await createSupabaseServerClient()
+    const { data } = await supabase
+      .from("interadministrativos")
+      .select("id, id_contrato, objeto_contrato")
+      .order("id_contrato")
+    interadmins = (data ?? []) as typeof interadmins
+  }
 
   return (
     <div className="space-y-6 max-w-screen-2xl mx-auto pb-8">
@@ -26,17 +48,15 @@ export default async function ContratacionDerivadosPage() {
             </p>
           </div>
         </div>
-
-        <button
-          type="button"
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--corporate-blue)] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shadow-sm shrink-0"
-        >
-          <Download size={15} />
-          Descargar Excel
-        </button>
       </div>
 
-      <DerivedContractsClient contracts={contracts} kpis={kpis} />
+      <DerivedContractsClient
+        contracts={contracts}
+        kpis={kpis}
+        canCreate={canCreate}
+        canCreateFuncionamiento={canCreateFuncionamiento}
+        interadmins={interadmins}
+      />
     </div>
   )
 }

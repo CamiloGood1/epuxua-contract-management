@@ -222,6 +222,18 @@ function InfoTab({ c, parent }: { c: Contrato; parent: ParentInfo | null }) {
         </div>
       )}
 
+      {/* Enlace Carpeta Documental */}
+      {c.enlace_carpeta && (
+        <div className="bg-white rounded-xl border border-[#EAEAEA] px-5 py-4 flex items-center gap-3">
+          <ExternalLink size={16} className="text-[#747783] shrink-0" />
+          <div>
+            <p className="text-[10px] font-bold text-[#747783] uppercase mb-0.5">Carpeta Documental</p>
+            <a href={c.enlace_carpeta} target="_blank" rel="noopener noreferrer"
+              className="text-sm text-[#0B3D91] hover:underline break-all">{c.enlace_carpeta}</a>
+          </div>
+        </div>
+      )}
+
       {/* Observaciones */}
       {c.observaciones && (
         <div className="bg-white rounded-xl border border-[#EAEAEA] px-5 py-4">
