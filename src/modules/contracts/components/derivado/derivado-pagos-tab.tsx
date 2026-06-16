@@ -78,7 +78,7 @@ function PagoModal({ contratoId, projectId, valorContrato, valorPagadoAcumulado,
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Fecha de pago *</label>
               <input type="date" required value={form.fecha_pago}
@@ -92,7 +92,7 @@ function PagoModal({ contratoId, projectId, valorContrato, valorPagadoAcumulado,
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>N° Orden de pago</label>
               <input value={form.numero_orden_pago}
@@ -116,7 +116,7 @@ function PagoModal({ contratoId, projectId, valorContrato, valorPagadoAcumulado,
 
           {/* Valor neto calculado */}
           {valorPagado > 0 && (
-            <div className="bg-[#f9f9ff] rounded-xl px-4 py-3 flex gap-6 text-sm">
+            <div className="bg-[#f9f9ff] rounded-xl px-4 py-3 flex flex-wrap gap-4 sm:gap-6 text-sm">
               <div><p className="text-[10px] text-[#747783] uppercase">Valor bruto</p><p className="font-bold">{formatCOP(valorPagado)}</p></div>
               <div><p className="text-[10px] text-[#747783] uppercase">Descuentos</p><p className="font-bold text-red-500">-{formatCOP(descuentos)}</p></div>
               <div><p className="text-[10px] text-[#747783] uppercase">Valor neto a girar</p><p className="font-bold text-[#10B981]">{formatCOP(valorNeto)}</p></div>

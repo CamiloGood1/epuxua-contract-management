@@ -164,7 +164,7 @@ function AdicionModal({ contratoId, projectId, onClose }: { contratoId: number; 
         <div>
           <SectionLabel>Información General</SectionLabel>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Fecha de Suscripción *">
                 <input type="date" required value={form.fecha_adicion} onChange={e => set("fecha_adicion", e.target.value)} className={inputCls} />
               </Field>
@@ -182,7 +182,7 @@ function AdicionModal({ contratoId, projectId, onClose }: { contratoId: number; 
             <Field label="Valor Total Adición *">
               <input required value={form.valor_adicion} onChange={e => set("valor_adicion", e.target.value)} placeholder="Ej: 10000000" className={inputCls} />
             </Field>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Valor Bolsa Bienes y Servicios *">
                 <input required value={form.valor_bienes_servicios} onChange={e => set("valor_bienes_servicios", e.target.value)} placeholder="Ej: 8000000" className={inputCls} />
               </Field>
@@ -196,7 +196,7 @@ function AdicionModal({ contratoId, projectId, onClose }: { contratoId: number; 
         {/* Soporte Presupuestal */}
         <div>
           <SectionLabel>Soporte Presupuestal</SectionLabel>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Número CDP *">
               <input required value={form.numero_cdp} onChange={e => set("numero_cdp", e.target.value)} placeholder="Ej: CDP-2026-00125" className={inputCls} />
             </Field>
@@ -256,7 +256,7 @@ function ProrrogaModal({ contratoId, projectId, onClose }: { contratoId: number;
   return (
     <Modal title="Registrar Prórroga" onClose={onClose}>
       <form onSubmit={submit} className="p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Fecha suscripción *"><input type="date" required value={form.fecha_suscripcion} onChange={e => set("fecha_suscripcion", e.target.value)} className={inputCls} /></Field>
           <Field label="Nueva terminación *"><input type="date" required value={form.nueva_fecha_terminacion} onChange={e => set("nueva_fecha_terminacion", e.target.value)} className={inputCls} /></Field>
         </div>
@@ -294,11 +294,11 @@ function SuspensionModal({ contratoId, projectId, onClose }: { contratoId: numbe
   return (
     <Modal title="Registrar Suspensión" onClose={onClose}>
       <form onSubmit={submit} className="p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Inicio suspensión *"><input type="date" required value={form.inicio_suspension} onChange={e => set("inicio_suspension", e.target.value)} className={inputCls} /></Field>
           <Field label="Fin suspensión"><input type="date" value={form.fin_suspension} onChange={e => set("fin_suspension", e.target.value)} className={inputCls} /></Field>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Fecha suscripción"><input type="date" value={form.fecha_suscripcion} onChange={e => set("fecha_suscripcion", e.target.value)} className={inputCls} /></Field>
           <Field label="Plazo suspensión"><input value={form.plazo_suspension} onChange={e => set("plazo_suspension", e.target.value)} placeholder="Ej: 15 días" className={inputCls} /></Field>
         </div>
@@ -334,7 +334,7 @@ function ReinicioModal({ contratoId, projectId, onClose }: { contratoId: number;
   return (
     <Modal title="Registrar Reinicio" onClose={onClose}>
       <form onSubmit={submit} className="p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Fecha reinicio *"><input type="date" required value={form.fecha_reinicio} onChange={e => set("fecha_reinicio", e.target.value)} className={inputCls} /></Field>
           <Field label="Fecha suscripción"><input type="date" value={form.fecha_suscripcion} onChange={e => set("fecha_suscripcion", e.target.value)} className={inputCls} /></Field>
         </div>
@@ -417,7 +417,7 @@ export function DerivedModificacionesTab({
       {modal === "aclaratorio"&& <AclaratoriModal contratoId={contratoId} projectId={projectId} onClose={() => setModal(null)} />}
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-5">
         {[
           { label: "Adiciones",    count: data.adiciones.length,    tipo: "ADICIÓN" },
           { label: "Prórrogas",    count: data.prorrogas.length,    tipo: "PRÓRROGA" },

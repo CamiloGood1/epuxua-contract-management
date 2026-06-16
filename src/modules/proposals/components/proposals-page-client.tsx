@@ -88,10 +88,10 @@ export function ProposalsPageClient({ initialProposals, userRole }: Props) {
   }
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+    <div className="p-3 sm:p-6 max-w-[1600px] mx-auto space-y-6">
 
       {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-[28px] font-bold text-[#002869] leading-tight">Propuestas</h1>
           <p className="text-sm text-[#747783] mt-1">Gestión de solicitudes y propuestas precontractuales</p>

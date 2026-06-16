@@ -55,7 +55,7 @@ function Paginator({ page, total, onChange }: { page: number; total: number; onC
   }
 
   return (
-    <div className="px-6 py-4 border-t border-[#EAEAEA] flex items-center justify-between">
+    <div className="px-3 sm:px-6 py-4 border-t border-[#EAEAEA] flex flex-col sm:flex-row items-center justify-between gap-2">
       <p className="text-sm text-[#434652]">
         Mostrando {Math.min((page - 1) * PAGE_SIZE + 1, total)}–{Math.min(page * PAGE_SIZE, total)} de {total} resultados
       </p>
@@ -185,10 +185,10 @@ export function DerivedContractsClient({ contracts, kpis, canCreate = false, can
   const montoTotal  = contracts.reduce((s, c) => s + (c.valor_final ?? c.valor_inicial ?? 0), 0)
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto">
+    <div className="p-3 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
 
       {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-4 sm:mb-8 gap-4">
         <div>
           <nav className="flex items-center text-[#747783] text-[12px] font-medium mb-2 space-x-2">
             <Link href="/proyectos" className="hover:text-[#002869] transition-colors">Contratos</Link>
@@ -224,7 +224,7 @@ export function DerivedContractsClient({ contracts, kpis, canCreate = false, can
       </div>
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-8">
         {[
           {
             icon: "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-8 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z",
@@ -255,7 +255,7 @@ export function DerivedContractsClient({ contracts, kpis, canCreate = false, can
             value: String(liquidacion),
           },
         ].map((k) => (
-          <div key={k.label} className="bg-white border border-[#EAEAEA] rounded-xl p-6 flex flex-col items-center text-center shadow-sm" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+          <div key={k.label} className="bg-white border border-[#EAEAEA] rounded-xl p-4 sm:p-6 flex flex-col items-center text-center shadow-sm" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
             <div className={`w-12 h-12 ${k.iconBg} rounded-full flex items-center justify-center mb-4`}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={k.iconColor}>
                 <path d={k.icon} strokeLinecap="round" strokeLinejoin="round"/>
@@ -268,7 +268,7 @@ export function DerivedContractsClient({ contracts, kpis, canCreate = false, can
       </div>
 
       {/* ── Filter Panel ── */}
-      <div className="bg-white border border-[#EAEAEA] rounded-xl p-6 mb-8" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
+      <div className="bg-white border border-[#EAEAEA] rounded-xl p-4 sm:p-6 mb-8" style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.04)" }}>
         <div className="flex items-center mb-4 space-x-2">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B3D91" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
           <h3 className="text-[18px] font-semibold leading-[26px] text-[#151c27]">Panel de Filtros Avanzados</h3>

@@ -118,7 +118,7 @@ function Field({ label, value, mono, url }: {
 }
 
 function Row({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-x-6 gap-y-4">{children}</div>
+  return <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-4">{children}</div>
 }
 
 // ── Drawer principal ──────────────────────────────────────────────────────────
@@ -190,7 +190,7 @@ export function ContractDetailDrawer({ contract, onClose }: Props) {
 
               {/* Resumen financiero */}
               {(contract.valor_final != null || contract.valor_inicial != null) && (
-                <div className="grid grid-cols-3 gap-3 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-4">
                   <div className="epuxua-card p-4 text-center">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Valor final</p>
                     <p className="text-base font-bold text-foreground tabular-nums">

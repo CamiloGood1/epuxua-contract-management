@@ -178,7 +178,7 @@ export function FuncionamientoPageClient({ contracts }: Props) {
   const hasFilters = search !== "" || yearFilter !== "all" || estadoFilter !== "all"
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -198,7 +198,7 @@ export function FuncionamientoPageClient({ contracts }: Props) {
       </div>
 
       {/* KPIs por año */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
         {years.map((year) => {
           const cnt = contracts.filter((c) => yearOf(c) === year).length
           return (
