@@ -7,6 +7,7 @@ export interface FuncionamientoContrato {
   numero_contrato:          string | null
   numero_proceso:           string | null
   numero_proceso_seleccion: string | null
+  nit_identificacion:       string | null
   tipo_contrato:            "FUNCIONAMIENTO"
   id_interadministrativo:   null
   modalidad_seleccion:      string | null

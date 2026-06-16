@@ -187,7 +187,8 @@ export async function GET(req: NextRequest) {
       "Objeto":                    s(c.objeto_contrato),
       "Contratista":               s(c.contratista),
       "Tipo Contratista":          s(c.persona_natural_juridica),
-      "NIT / Identificación":      s(c.numero_proceso),
+      "NIT / Identificación":      s(c.nit_identificacion),
+      "N° Proceso de Selección":   s(c.numero_proceso_seleccion ?? c.numero_proceso),
       "Supervisor":                s(c.supervisor),
       "Fecha Suscripción":         d(c.fecha_suscripcion),
       "Fecha Inicio":              d(c.fecha_inicio),
@@ -249,6 +250,7 @@ export async function GET(req: NextRequest) {
     { wch: 30 },  // Contratista
     { wch: 14 },  // Tipo Contratista
     { wch: 18 },  // NIT
+    { wch: 22 },  // N° Proceso de Selección
     { wch: 25 },  // Supervisor
     { wch: 14 },  // F. Suscripción
     { wch: 14 },  // F. Inicio

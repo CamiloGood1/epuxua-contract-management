@@ -73,6 +73,7 @@ export interface Contrato {
   numero_contrato: string | null         // ej: '001-2024' (era proyecto_ref)
   numero_proceso: string | null
   numero_proceso_seleccion: string | null
+  nit_identificacion: string | null
   tipo_contrato: TipoContrato
   id_interadministrativo: string | null  // null para FUNCIONAMIENTO
   modalidad_seleccion: string | null

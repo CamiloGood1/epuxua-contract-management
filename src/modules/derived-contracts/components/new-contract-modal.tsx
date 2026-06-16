@@ -65,6 +65,7 @@ interface DeriForm {
   objeto_contrato: string
   contratista: string
   persona_natural_juridica: string
+  nit_identificacion: string
   numero_proceso_seleccion: string
   estado: string
   fecha_suscripcion: string
@@ -82,10 +83,10 @@ interface DeriForm {
 
 const EMPTY_DERI: DeriForm = {
   id_interadministrativo: "", numero_contrato: "", objeto_contrato: "",
-  contratista: "", persona_natural_juridica: "", numero_proceso_seleccion: "",
-  estado: "EN EJECUCIÓN", fecha_suscripcion: "", fecha_inicio: "",
-  fecha_terminacion: "", plazo_ejecucion: "", supervisor: "", link_ficha: "",
-  link_documentacion: "", valor_inicial: "", crp: "", fecha_crp: "",
+  contratista: "", persona_natural_juridica: "", nit_identificacion: "",
+  numero_proceso_seleccion: "", estado: "EN EJECUCIÓN", fecha_suscripcion: "",
+  fecha_inicio: "", fecha_terminacion: "", plazo_ejecucion: "", supervisor: "",
+  link_ficha: "", link_documentacion: "", valor_inicial: "", crp: "", fecha_crp: "",
   enlace_carpeta: "",
 }
 
@@ -94,6 +95,7 @@ const EMPTY_DERI: DeriForm = {
 interface FuncForm {
   numero_contrato: string
   contratista: string
+  nit_identificacion: string
   numero_proceso_seleccion: string
   modalidad_seleccion: string
   area_responsable: string
@@ -115,7 +117,8 @@ interface FuncForm {
 }
 
 const EMPTY_FUNC: FuncForm = {
-  numero_contrato: "", contratista: "", numero_proceso_seleccion: "", modalidad_seleccion: "",
+  numero_contrato: "", contratista: "", nit_identificacion: "",
+  numero_proceso_seleccion: "", modalidad_seleccion: "",
   area_responsable: "", estado: "EN EJECUCIÓN", fecha_suscripcion: "",
   fecha_inicio: "", fecha_terminacion: "", plazo_ejecucion: "", supervisor: "",
   objeto_contrato: "", valor_inicial: "", cdp: "", fecha_cdp: "", crp: "",
@@ -213,6 +216,7 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
         objeto_contrato:          deri.objeto_contrato.trim() || undefined,
         contratista:              deri.contratista.trim() || undefined,
         persona_natural_juridica: deri.persona_natural_juridica.trim() || undefined,
+        nit_identificacion:       deri.nit_identificacion.trim() || undefined,
         numero_proceso_seleccion: deri.numero_proceso_seleccion.trim() || undefined,
         estado:                   deri.estado || undefined,
         fecha_suscripcion:        deri.fecha_suscripcion || undefined,
@@ -230,6 +234,7 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
       result = await createFuncionamientoContract({
         numero_contrato:    func_.numero_contrato.trim(),
         contratista:        func_.contratista.trim() || undefined,
+        nit_identificacion: func_.nit_identificacion.trim() || undefined,
         numero_proceso_seleccion: func_.numero_proceso_seleccion.trim() || undefined,
         modalidad_seleccion: func_.modalidad_seleccion.trim() || undefined,
         area_responsable:   func_.area_responsable.trim() || undefined,
@@ -382,12 +387,17 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
                       <input className={inputCls} placeholder="Ej: SA-BUI-07-2024" value={deri.numero_proceso_seleccion} onChange={(e) => setD("numero_proceso_seleccion", e.target.value)} />
                     </div>
                     <div>
-                      <Label required>Estado</Label>
-                      <select className={selectCls} value={deri.estado} onChange={(e) => setD("estado", e.target.value)}>
-                        {ESTADOS.map((s) => <option key={s}>{s}</option>)}
-                      </select>
+                      <Label>NIT / Identificación</Label>
+                      <input className={inputCls} placeholder="Ej: 900123456-7" value={deri.nit_identificacion} onChange={(e) => setD("nit_identificacion", e.target.value)} />
                     </div>
                   </Row>
+
+                  <div>
+                    <Label required>Estado</Label>
+                    <select className={selectCls} value={deri.estado} onChange={(e) => setD("estado", e.target.value)}>
+                      {ESTADOS.map((s) => <option key={s}>{s}</option>)}
+                    </select>
+                  </div>
 
                   <Row>
                     <div>
@@ -462,10 +472,15 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
                       <input className={inputCls} placeholder="Nombre o razón social" value={func_.contratista} onChange={(e) => setF("contratista", e.target.value)} />
                     </div>
                     <div>
-                      <Label required>N° Proceso de Selección</Label>
-                      <input className={inputCls} placeholder="Ej: SA-BUI-07-2024" value={func_.numero_proceso_seleccion} onChange={(e) => setF("numero_proceso_seleccion", e.target.value)} />
+                      <Label>NIT / Identificación</Label>
+                      <input className={inputCls} placeholder="Ej: 900123456-7" value={func_.nit_identificacion} onChange={(e) => setF("nit_identificacion", e.target.value)} />
                     </div>
                   </Row>
+
+                  <div>
+                    <Label required>N° Proceso de Selección</Label>
+                    <input className={inputCls} placeholder="Ej: SA-BUI-07-2024" value={func_.numero_proceso_seleccion} onChange={(e) => setF("numero_proceso_seleccion", e.target.value)} />
+                  </div>
 
                   <Row>
                     <div>

@@ -12,6 +12,8 @@ export interface ContractDetailData {
   id: number
   numero_contrato:          string | null
   numero_proceso:           string | null
+  numero_proceso_seleccion: string | null
+  nit_identificacion:       string | null
   tipo_contrato:            string
   origen_hoja:              string | null
   id_interadministrativo:   string | null
@@ -226,8 +228,14 @@ export function ContractDetailDrawer({ contract, onClose }: Props) {
               <div className="pt-3 space-y-4">
                 <Row>
                   <Field label="N° Contrato" value={contract.numero_contrato} mono />
-                  <Field label="N° Proceso" value={contract.numero_proceso} mono />
+                  <Field label="N° Proceso de Selección" value={contract.numero_proceso_seleccion ?? contract.numero_proceso} mono />
                 </Row>
+                {contract.nit_identificacion && (
+                  <Row>
+                    <Field label="NIT / Identificación" value={contract.nit_identificacion} mono />
+                    <span />
+                  </Row>
+                )}
                 <Row>
                   <Field label="Modalidad de selección" value={contract.modalidad_seleccion} />
                   <Field label="Clase de contrato" value={contract.clase_contrato} />

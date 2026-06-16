@@ -63,6 +63,7 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
     cdp:                      c.cdp ?? "",
     fecha_cdp:                c.fecha_cdp ?? "",
     numero_proceso_seleccion: c.numero_proceso_seleccion ?? c.numero_proceso ?? "",
+    nit_identificacion:       c.nit_identificacion ?? "",
     crp:                      c.crp ?? "",
     fecha_crp:                c.fecha_crp ?? "",
     enlace_carpeta:           c.enlace_carpeta ?? "",
@@ -114,6 +115,7 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
         cdp:                      nullIfEmpty(form.cdp),
         fecha_cdp:                nullIfEmpty(form.fecha_cdp),
         numero_proceso_seleccion: nullIfEmpty(form.numero_proceso_seleccion),
+        nit_identificacion:       nullIfEmpty(form.nit_identificacion),
         crp:                      nullIfEmpty(form.crp),
         fecha_crp:                nullIfEmpty(form.fecha_crp),
         enlace_carpeta:           nullIfEmpty(form.enlace_carpeta),
@@ -182,6 +184,14 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
 
           {/* Identificación */}
           <Section title="Identificación" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="N° Proceso de Selección">
+              <input value={form.numero_proceso_seleccion} onChange={e => set("numero_proceso_seleccion", e.target.value)} className={inputCls} placeholder="Ej: SAMC-001-2026" />
+            </Field>
+            <Field label="NIT / Identificación">
+              <input value={form.nit_identificacion} onChange={e => set("nit_identificacion", e.target.value)} className={inputCls} placeholder="Ej: 900123456-7" />
+            </Field>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Modalidad de selección">
               <input value={form.modalidad_seleccion} onChange={e => set("modalidad_seleccion", e.target.value)} className={inputCls} />

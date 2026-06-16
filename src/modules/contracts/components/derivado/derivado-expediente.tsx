@@ -115,9 +115,10 @@ function InfoTab({ c, parent }: { c: Contrato; parent: ParentInfo | null }) {
           </h3>
           <div className="space-y-3">
             {[
-              ["N° Contrato",        c.numero_contrato],
-              ["N° Proceso",         c.numero_proceso],
-              ["Modalidad",          c.modalidad_seleccion],
+              ["N° Contrato",              c.numero_contrato],
+              ["N° Proceso de Selección",  c.numero_proceso_seleccion ?? c.numero_proceso],
+              ["NIT / Identificación",     c.nit_identificacion],
+              ["Modalidad",                c.modalidad_seleccion],
               ["Clase de contrato",  c.clase_contrato],
               ["Área responsable",   c.area_responsable],
               ["Supervisor",         c.supervisor],

@@ -35,6 +35,7 @@ export interface UpdateContratoInput {
   recurso?:                  string | null
   rubro?:                    string | null
   numero_proceso_seleccion?: string | null
+  nit_identificacion?:       string | null
   cdp?:                      string | null
   fecha_cdp?:                string | null
   crp?:                      string | null

@@ -188,6 +188,7 @@ export interface NewDerivedContractInput {
   persona_natural_juridica?: string // Tipo contratista
   numero_proceso?: string                // legacy — se mantiene por compatibilidad
   numero_proceso_seleccion?: string      // Número de Proceso de Selección
+  nit_identificacion?: string            // NIT / Identificación del contratista
   fecha_suscripcion?: string
   fecha_inicio?: string
   fecha_terminacion?: string
@@ -237,6 +238,7 @@ export async function createDerivedContract(
       persona_natural_juridica: input.persona_natural_juridica || null,
       numero_proceso:           input.numero_proceso           || null,
       numero_proceso_seleccion: input.numero_proceso_seleccion || input.numero_proceso || null,
+      nit_identificacion:       input.nit_identificacion       || null,
       fecha_suscripcion:        input.fecha_suscripcion        || null,
       fecha_inicio:             input.fecha_inicio             || null,
       fecha_terminacion:        input.fecha_terminacion        || null,
@@ -276,6 +278,7 @@ export interface NewFuncionamientoContractInput {
   persona_natural_juridica?: string
   numero_proceso?: string               // legacy — se mantiene por compatibilidad
   numero_proceso_seleccion?: string     // Número de Proceso de Selección
+  nit_identificacion?: string           // NIT / Identificación del contratista
   fecha_suscripcion?: string
   fecha_inicio?: string
   fecha_terminacion?: string
@@ -328,6 +331,7 @@ export async function createFuncionamientoContract(
       persona_natural_juridica: input.persona_natural_juridica || null,
       numero_proceso:           input.numero_proceso           || null,
       numero_proceso_seleccion: input.numero_proceso_seleccion || input.numero_proceso || null,
+      nit_identificacion:       input.nit_identificacion       || null,
       fecha_suscripcion:        input.fecha_suscripcion        || null,
       fecha_inicio:             input.fecha_inicio             || null,
       fecha_terminacion:        input.fecha_terminacion        || null,
