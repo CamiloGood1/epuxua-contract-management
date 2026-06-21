@@ -30,8 +30,9 @@ const REPORT_ROLES = new Set(["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO
 
 function cop(v: number | null | undefined): string {
   if (v == null) return "—"
+  const d = v % 1 !== 0 ? 2 : 0
   return new Intl.NumberFormat("es-CO", {
-    style: "currency", currency: "COP", maximumFractionDigits: 0,
+    style: "currency", currency: "COP", minimumFractionDigits: d, maximumFractionDigits: d,
   }).format(v)
 }
 

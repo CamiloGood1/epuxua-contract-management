@@ -4,7 +4,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 function formatCOP(value: number | null | undefined): string {
   if (!value && value !== 0) return "—"
-  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(value)
+  const d = value % 1 !== 0 ? 2 : 0
+  return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: d, maximumFractionDigits: d }).format(value)
 }
 
 function pct(v: number | null | undefined): string {

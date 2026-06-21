@@ -131,7 +131,8 @@ export function resolveStatus(raw: string | null | undefined): StatusConfig {
 export function formatCOP(value: number | null | undefined): string {
   if (value == null) return "—"
   const n = Number(value)
-  return `$${n.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  const hasDecimals = n % 1 !== 0
+  return `$${n.toLocaleString("es-CO", { minimumFractionDigits: hasDecimals ? 2 : 0, maximumFractionDigits: hasDecimals ? 2 : 0 })}`
 }
 
 export function formatDate(dateStr: string | null | undefined): string {
