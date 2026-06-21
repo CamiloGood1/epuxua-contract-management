@@ -77,8 +77,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-// ── Section header ────────────────────────────────────────────────────────────
-
 function SectionTitle({ title }: { title: string }) {
   return (
     <div className="col-span-2 pt-2 border-t border-[#EAEAEA] mt-2">
@@ -225,14 +223,17 @@ export function EditBasicModal({ project: p, onClose }: Props) {
     }
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-4">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA]">
+      <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8 flex flex-col max-h-[calc(100dvh-4rem)]">
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA] shrink-0 rounded-t-2xl">
             <h2 className="text-base font-bold text-[#002869]">Confirmar Cambios</h2>
             <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#f0f3ff]"><X size={16} /></button>
           </div>
 
-          <div className="p-6 space-y-4">
+          {/* Body */}
+          <div className="overflow-y-auto flex-1 p-6 space-y-4">
             <div className="flex items-start gap-3 p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
               <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
               <p className="text-sm font-semibold text-amber-800">
@@ -262,17 +263,18 @@ export function EditBasicModal({ project: p, onClose }: Props) {
             </div>
 
             {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+          </div>
 
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setStep("editing")} className="flex-1 h-10 rounded-lg border border-[#EAEAEA] text-sm text-[#434652] hover:bg-[#f9f9f9]">
-                Volver a Editar
-              </button>
-              <button type="button" onClick={handleSubmit} disabled={isPending}
-                className="flex-1 h-10 rounded-lg bg-[#0B3D91] text-white text-sm font-semibold hover:bg-[#002869] disabled:opacity-60 flex items-center justify-center gap-1.5">
-                <CheckCircle2 size={14} />
-                {isPending ? "Guardando…" : "Guardar Cambios"}
-              </button>
-            </div>
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-[#EAEAEA] shrink-0 flex gap-2">
+            <button type="button" onClick={() => setStep("editing")} className="flex-1 h-10 rounded-lg border border-[#EAEAEA] text-sm text-[#434652] hover:bg-[#f9f9f9]">
+              Volver a Editar
+            </button>
+            <button type="button" onClick={handleSubmit} disabled={isPending}
+              className="flex-1 h-10 rounded-lg bg-[#0B3D91] text-white text-sm font-semibold hover:bg-[#002869] disabled:opacity-60 flex items-center justify-center gap-1.5">
+              <CheckCircle2 size={14} />
+              {isPending ? "Guardando…" : "Guardar Cambios"}
+            </button>
           </div>
         </div>
       </div>
@@ -282,11 +284,11 @@ export function EditBasicModal({ project: p, onClose }: Props) {
   // ── Step: Editing ──────────────────────────────────────────────────────────
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8 flex flex-col max-h-[calc(100dvh-4rem)]">
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA] sticky top-0 bg-white z-10 rounded-t-2xl">
+        {/* Header — shrink-0: nunca se comprime ni se superpone al body */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA] shrink-0 rounded-t-2xl">
           <div>
             <h2 className="text-base font-bold text-[#002869]">Editar Contrato</h2>
             <p className="text-xs text-[#747783] mt-0.5">{p.id_contrato} — todos los cambios quedan auditados</p>
@@ -294,181 +296,186 @@ export function EditBasicModal({ project: p, onClose }: Props) {
           <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#f0f3ff]"><X size={16} /></button>
         </div>
 
-        <form onSubmit={handleReview} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
+        <form id="interadmin-edit-form" onSubmit={handleReview} className="flex flex-col flex-1 min-h-0">
 
-            {/* ── Identificación ── */}
-            <SectionTitle title="Identificación" />
+          {/* Body con scroll interno */}
+          <div className="overflow-y-auto flex-1 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4">
 
-            <Field label="N° Contrato *">
-              <input type="text" value={form.id_contrato} onChange={e => setField("id_contrato", e.target.value)}
-                className={inputCls + " h-10"} required />
-            </Field>
+              {/* ── Identificación ── */}
+              <SectionTitle title="Identificación" />
 
-            <Field label="Clase de Contrato">
-              <input type="text" value={form.clase_contrato} onChange={e => setField("clase_contrato", e.target.value)}
-                className={inputCls + " h-10"} placeholder="Ej. INTERADMINISTRATIVO" />
-            </Field>
-
-            <div className="col-span-2">
-              <Field label="Objeto del Contrato">
-                <textarea rows={3} value={form.objeto_contrato} onChange={e => setField("objeto_contrato", e.target.value)}
-                  className={inputCls + " py-2 resize-none"} placeholder="Descripción del objeto contractual" />
+              <Field label="N° Contrato *">
+                <input type="text" value={form.id_contrato} onChange={e => setField("id_contrato", e.target.value)}
+                  className={inputCls + " h-10"} required />
               </Field>
-            </div>
 
-            {/* ── Clasificación ── */}
-            <SectionTitle title="Clasificación y Actores" />
+              <Field label="Clase de Contrato">
+                <input type="text" value={form.clase_contrato} onChange={e => setField("clase_contrato", e.target.value)}
+                  className={inputCls + " h-10"} placeholder="Ej. INTERADMINISTRATIVO" />
+              </Field>
 
-            <Field label="Categoría">
-              <input type="text" value={form.categoria} onChange={e => setField("categoria", e.target.value)}
-                className={inputCls + " h-10"} />
-            </Field>
+              <div className="col-span-2">
+                <Field label="Objeto del Contrato">
+                  <textarea rows={3} value={form.objeto_contrato} onChange={e => setField("objeto_contrato", e.target.value)}
+                    className={inputCls + " py-2 resize-none"} placeholder="Descripción del objeto contractual" />
+                </Field>
+              </div>
 
-            <Field label="Secretaría">
-              <input type="text" value={form.secretaria} onChange={e => setField("secretaria", e.target.value)}
-                className={inputCls + " h-10"} />
-            </Field>
+              {/* ── Clasificación ── */}
+              <SectionTitle title="Clasificación y Actores" />
 
-            <Field label="Área Responsable">
-              <input type="text" value={form.area_responsable} onChange={e => setField("area_responsable", e.target.value)}
-                className={inputCls + " h-10"} />
-            </Field>
+              <Field label="Categoría">
+                <input type="text" value={form.categoria} onChange={e => setField("categoria", e.target.value)}
+                  className={inputCls + " h-10"} />
+              </Field>
 
-            <Field label="Supervisor">
-              <input type="text" value={form.supervision} onChange={e => setField("supervision", e.target.value)}
-                className={inputCls + " h-10"} placeholder="Nombre del supervisor" />
-            </Field>
+              <Field label="Secretaría">
+                <input type="text" value={form.secretaria} onChange={e => setField("secretaria", e.target.value)}
+                  className={inputCls + " h-10"} />
+              </Field>
 
-            <Field label="Modalidad de Selección">
-              <input type="text" value={form.modalidad_seleccion} onChange={e => setField("modalidad_seleccion", e.target.value)}
-                className={inputCls + " h-10"} />
-            </Field>
+              <Field label="Área Responsable">
+                <input type="text" value={form.area_responsable} onChange={e => setField("area_responsable", e.target.value)}
+                  className={inputCls + " h-10"} />
+              </Field>
 
-            {/* ── Estado ── */}
-            <SectionTitle title="Estado del Contrato" />
+              <Field label="Supervisor">
+                <input type="text" value={form.supervision} onChange={e => setField("supervision", e.target.value)}
+                  className={inputCls + " h-10"} placeholder="Nombre del supervisor" />
+              </Field>
 
-            <Field label="Estado *">
-              <select value={form.estado} onChange={e => setField("estado", e.target.value as EstadoInteradministrativo)}
-                className={inputCls + " h-10 appearance-none"}>
-                {ESTADO_ORDER.map(s => (
-                  <option key={s} value={s}>{ESTADO_CONFIG[s].label}</option>
-                ))}
-              </select>
-            </Field>
+              <Field label="Modalidad de Selección">
+                <input type="text" value={form.modalidad_seleccion} onChange={e => setField("modalidad_seleccion", e.target.value)}
+                  className={inputCls + " h-10"} />
+              </Field>
 
-            <Field label="Avance Físico (%)">
-              <div className="space-y-1.5">
+              {/* ── Estado ── */}
+              <SectionTitle title="Estado del Contrato" />
+
+              <Field label="Estado *">
+                <select value={form.estado} onChange={e => setField("estado", e.target.value as EstadoInteradministrativo)}
+                  className={inputCls + " h-10 appearance-none"}>
+                  {ESTADO_ORDER.map(s => (
+                    <option key={s} value={s}>{ESTADO_CONFIG[s].label}</option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Avance Físico (%)">
+                <div className="space-y-1.5">
+                  <div className="relative">
+                    <input type="number" min={0} max={100} step={0.1} value={form.avance_fisico_pct}
+                      onChange={e => setField("avance_fisico_pct", e.target.value)}
+                      className={inputCls + " h-10 pr-8"} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#747783]">%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-[#EAEAEA] overflow-hidden">
+                    <div className="h-full bg-[#0B3D91] rounded-full transition-all" style={{ width: `${avFis}%` }} />
+                  </div>
+                </div>
+              </Field>
+
+              {/* ── Fechas ── */}
+              <SectionTitle title="Fechas y Plazos" />
+
+              <Field label="Fecha de Suscripción">
+                <input type="date" value={form.fecha_suscripcion} onChange={e => setField("fecha_suscripcion", e.target.value)}
+                  className={inputCls + " h-10"} />
+              </Field>
+
+              <Field label="Fecha de Inicio">
+                <input type="date" value={form.fecha_inicio_ejecucion} onChange={e => setField("fecha_inicio_ejecucion", e.target.value)}
+                  className={inputCls + " h-10"} />
+              </Field>
+
+              <Field label="Fecha de Terminación Inicial">
+                <input type="date" value={form.fecha_terminacion} onChange={e => setField("fecha_terminacion", e.target.value)}
+                  className={inputCls + " h-10"} />
+              </Field>
+
+              <Field label="Plazo de Ejecución">
+                <input type="text" value={form.plazo_ejecucion_inicial} onChange={e => setField("plazo_ejecucion_inicial", e.target.value)}
+                  className={inputCls + " h-10"} placeholder="Ej. 12 meses" />
+              </Field>
+
+              {/* ── Financiero ── */}
+              <SectionTitle title="Información Financiera" />
+
+              <Field label="Valor Inicial (Bienes y Servicios)">
+                <input type="number" min={0} step="any" value={form.valor_inicial} onChange={e => setField("valor_inicial", e.target.value)}
+                  className={inputCls + " h-10"} placeholder="0" />
+              </Field>
+
+              <Field label="Valor Cuota de Gerencia">
+                <input type="number" min={0} step="any" value={form.cuota_admin_inicial} onChange={e => setField("cuota_admin_inicial", e.target.value)}
+                  className={inputCls + " h-10"} placeholder="0" />
+              </Field>
+
+              <Field label="Valor Total del Contrato">
+                <input type="number" min={0} step="any" value={form.total_contrato} onChange={e => setField("total_contrato", e.target.value)}
+                  className={inputCls + " h-10"} placeholder="0" />
+              </Field>
+
+              <Field label="% Cuota de Gerencia">
                 <div className="relative">
-                  <input type="number" min={0} max={100} step={0.1} value={form.avance_fisico_pct}
-                    onChange={e => setField("avance_fisico_pct", e.target.value)}
-                    className={inputCls + " h-10 pr-8"} />
+                  <input type="number" min={0} max={100} step={0.01} value={form.pct_cuota_gerencia}
+                    onChange={e => setField("pct_cuota_gerencia", e.target.value)}
+                    className={inputCls + " h-10 pr-8"} placeholder="0" />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#747783]">%</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-[#EAEAEA] overflow-hidden">
-                  <div className="h-full bg-[#0B3D91] rounded-full transition-all" style={{ width: `${avFis}%` }} />
+              </Field>
+
+              {finError && (
+                <div className="col-span-2 flex items-center gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertTriangle size={14} className="text-red-500 shrink-0" />
+                  <p className="text-xs text-red-700 font-semibold">{finError}</p>
                 </div>
+              )}
+
+              {/* ── Links ── */}
+              <SectionTitle title="Documentación y Referencias" />
+
+              <Field label="Enlace SECOP II">
+                <input type="url" value={form.link_secop} onChange={e => setField("link_secop", e.target.value)}
+                  className={inputCls + " h-10"} placeholder="https://www.secop.gov.co/…" />
+              </Field>
+
+              <Field label="Enlace Documentación">
+                <input type="url" value={form.link_documentacion} onChange={e => setField("link_documentacion", e.target.value)}
+                  className={inputCls + " h-10"} placeholder="https://drive.google.com/…" />
+              </Field>
+
+              {/* ── Observaciones ── */}
+              <SectionTitle title="Observaciones" />
+
+              <div className="col-span-2">
+                <Field label="Observaciones Generales">
+                  <textarea rows={3} value={form.observaciones} onChange={e => setField("observaciones", e.target.value)}
+                    className={inputCls + " py-2 resize-none"} placeholder="Notas, alertas o comentarios del contrato…" />
+                </Field>
               </div>
-            </Field>
 
-            {/* ── Fechas ── */}
-            <SectionTitle title="Fechas y Plazos" />
+            </div>
 
-            <Field label="Fecha de Suscripción">
-              <input type="date" value={form.fecha_suscripcion} onChange={e => setField("fecha_suscripcion", e.target.value)}
-                className={inputCls + " h-10"} />
-            </Field>
-
-            <Field label="Fecha de Inicio">
-              <input type="date" value={form.fecha_inicio_ejecucion} onChange={e => setField("fecha_inicio_ejecucion", e.target.value)}
-                className={inputCls + " h-10"} />
-            </Field>
-
-            <Field label="Fecha de Terminación Inicial">
-              <input type="date" value={form.fecha_terminacion} onChange={e => setField("fecha_terminacion", e.target.value)}
-                className={inputCls + " h-10"} />
-            </Field>
-
-            <Field label="Plazo de Ejecución">
-              <input type="text" value={form.plazo_ejecucion_inicial} onChange={e => setField("plazo_ejecucion_inicial", e.target.value)}
-                className={inputCls + " h-10"} placeholder="Ej. 12 meses" />
-            </Field>
-
-            {/* ── Financiero ── */}
-            <SectionTitle title="Información Financiera" />
-
-            <Field label="Valor Inicial (Bienes y Servicios)">
-              <input type="number" min={0} step="any" value={form.valor_inicial} onChange={e => setField("valor_inicial", e.target.value)}
-                className={inputCls + " h-10"} placeholder="0" />
-            </Field>
-
-            <Field label="Valor Cuota de Gerencia">
-              <input type="number" min={0} step="any" value={form.cuota_admin_inicial} onChange={e => setField("cuota_admin_inicial", e.target.value)}
-                className={inputCls + " h-10"} placeholder="0" />
-            </Field>
-
-            <Field label="Valor Total del Contrato">
-              <input type="number" min={0} step="any" value={form.total_contrato} onChange={e => setField("total_contrato", e.target.value)}
-                className={inputCls + " h-10"} placeholder="0" />
-            </Field>
-
-            <Field label="% Cuota de Gerencia">
-              <div className="relative">
-                <input type="number" min={0} max={100} step={0.01} value={form.pct_cuota_gerencia}
-                  onChange={e => setField("pct_cuota_gerencia", e.target.value)}
-                  className={inputCls + " h-10 pr-8"} placeholder="0" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#747783]">%</span>
-              </div>
-            </Field>
-
-            {finError && (
-              <div className="col-span-2 flex items-center gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg">
-                <AlertTriangle size={14} className="text-red-500 shrink-0" />
-                <p className="text-xs text-red-700 font-semibold">{finError}</p>
+            {/* Diff badge */}
+            {diff.length > 0 && (
+              <div className="mt-5 flex items-center gap-2 px-3 py-2 bg-[#f0f3ff] border border-[#0B3D91]/20 rounded-lg">
+                <div className="w-2 h-2 rounded-full bg-[#0B3D91]" />
+                <p className="text-xs font-semibold text-[#0B3D91]">
+                  {diff.length} cambio{diff.length > 1 ? "s" : ""} detectado{diff.length > 1 ? "s" : ""}:&nbsp;
+                  {diff.map(f => FIELD_LABELS[f] ?? f).join(", ")}
+                </p>
               </div>
             )}
 
-            {/* ── Links ── */}
-            <SectionTitle title="Documentación y Referencias" />
-
-            <Field label="Enlace SECOP II">
-              <input type="url" value={form.link_secop} onChange={e => setField("link_secop", e.target.value)}
-                className={inputCls + " h-10"} placeholder="https://www.secop.gov.co/…" />
-            </Field>
-
-            <Field label="Enlace Documentación">
-              <input type="url" value={form.link_documentacion} onChange={e => setField("link_documentacion", e.target.value)}
-                className={inputCls + " h-10"} placeholder="https://drive.google.com/…" />
-            </Field>
-
-            {/* ── Observaciones ── */}
-            <SectionTitle title="Observaciones" />
-
-            <div className="col-span-2">
-              <Field label="Observaciones Generales">
-                <textarea rows={3} value={form.observaciones} onChange={e => setField("observaciones", e.target.value)}
-                  className={inputCls + " py-2 resize-none"} placeholder="Notas, alertas o comentarios del contrato…" />
-              </Field>
-            </div>
-
+            {error && (
+              <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+            )}
           </div>
 
-          {/* Diff badge */}
-          {diff.length > 0 && (
-            <div className="mt-5 flex items-center gap-2 px-3 py-2 bg-[#f0f3ff] border border-[#0B3D91]/20 rounded-lg">
-              <div className="w-2 h-2 rounded-full bg-[#0B3D91]" />
-              <p className="text-xs font-semibold text-[#0B3D91]">
-                {diff.length} cambio{diff.length > 1 ? "s" : ""} detectado{diff.length > 1 ? "s" : ""}:&nbsp;
-                {diff.map(f => FIELD_LABELS[f] ?? f).join(", ")}
-              </p>
-            </div>
-          )}
-
-          {error && (
-            <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
-          )}
-
-          <div className="flex gap-2 mt-5">
+          {/* Footer — shrink-0: siempre visible, nunca se superpone */}
+          <div className="px-6 py-4 border-t border-[#EAEAEA] shrink-0 flex gap-2">
             <button type="button" onClick={onClose}
               className="flex-1 h-10 rounded-lg border border-[#EAEAEA] text-sm text-[#434652] hover:bg-[#f9f9f9]">
               Cancelar
