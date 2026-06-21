@@ -272,7 +272,7 @@ function MilestoneModal({ interadministrativoId, milestone, existingNumbers, onC
               <input
                 type="number"
                 min={0}
-                step={1}
+                step="any"
                 value={form.scheduled_value}
                 onChange={(e) => set("scheduled_value", e.target.value)}
                 className={inputCls + " h-10"}

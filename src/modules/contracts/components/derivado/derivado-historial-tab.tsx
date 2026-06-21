@@ -13,7 +13,7 @@ function fmtVal(field: string, val: string | null): string {
   if (!val) return "—"
   if (MONEY_FIELDS.has(field)) {
     const n = parseFloat(val)
-    if (!isNaN(n)) return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n)
+    if (!isNaN(n)) { const d = n % 1 !== 0 ? 2 : 0; return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: d, maximumFractionDigits: d }).format(n) }
   }
   return val
 }

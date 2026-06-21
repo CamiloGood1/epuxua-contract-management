@@ -34,7 +34,9 @@ export function ChangeLogModal({ interadministrativoId, contractId, onClose }: P
     if (!val) return "—"
     if (["valor_inicial","cuota_admin_inicial","total_contrato"].includes(field)) {
       const n = parseFloat(val)
-      return isNaN(n) ? val : new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(n)
+      if (isNaN(n)) return val
+      const d = n % 1 !== 0 ? 2 : 0
+      return new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: d, maximumFractionDigits: d }).format(n)
     }
     if (["pct_cuota_gerencia","avance_fisico_pct"].includes(field)) return `${val}%`
     return val

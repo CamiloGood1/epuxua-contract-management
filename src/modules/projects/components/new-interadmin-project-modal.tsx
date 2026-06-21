@@ -133,9 +133,10 @@ function CopInput({
   const [raw, setRaw]         = useState("")
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const clean = e.target.value.replace(/[^0-9]/g, "")
+    const clean = e.target.value.replace(/[^0-9.]/g, "").replace(/(\..*)\./g, "$1")
     setRaw(clean)
-    onChange(clean ? parseInt(clean, 10) : undefined)
+    const n = parseFloat(clean)
+    onChange(clean && !isNaN(n) ? n : undefined)
   }
 
   const display = focused ? raw : fmtCOP(value)
@@ -145,7 +146,7 @@ function CopInput({
       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#747783]">$</span>
       <input
         type="text"
-        inputMode="numeric"
+        inputMode="decimal"
         placeholder={placeholder ?? "0"}
         className={`${BASE_INPUT} pl-6`}
         value={display}
@@ -229,7 +230,7 @@ export function NewInteradminProjectModal({ open, onClose, isAdmin = false }: Pr
       if (k === "pct_cuota_gerencia" || k === "valor_inicial") {
         const pct    = Number(k === "pct_cuota_gerencia" ? v : prev.pct_cuota_gerencia ?? 0)
         const bienes = Number(k === "valor_inicial"      ? v : prev.valor_inicial      ?? 0)
-        if (pct > 0 && bienes > 0) next.cuota_admin_inicial = Math.round(bienes * pct / 100)
+        if (pct > 0 && bienes > 0) next.cuota_admin_inicial = Math.round(bienes * pct / 100 * 100) / 100
       }
 
       // Auto-calcular total = bienes + cuota

@@ -398,17 +398,17 @@ export function EditBasicModal({ project: p, onClose }: Props) {
             <SectionTitle title="Información Financiera" />
 
             <Field label="Valor Inicial (Bienes y Servicios)">
-              <input type="number" min={0} value={form.valor_inicial} onChange={e => setField("valor_inicial", e.target.value)}
+              <input type="number" min={0} step="any" value={form.valor_inicial} onChange={e => setField("valor_inicial", e.target.value)}
                 className={inputCls + " h-10"} placeholder="0" />
             </Field>
 
             <Field label="Valor Cuota de Gerencia">
-              <input type="number" min={0} value={form.cuota_admin_inicial} onChange={e => setField("cuota_admin_inicial", e.target.value)}
+              <input type="number" min={0} step="any" value={form.cuota_admin_inicial} onChange={e => setField("cuota_admin_inicial", e.target.value)}
                 className={inputCls + " h-10"} placeholder="0" />
             </Field>
 
             <Field label="Valor Total del Contrato">
-              <input type="number" min={0} value={form.total_contrato} onChange={e => setField("total_contrato", e.target.value)}
+              <input type="number" min={0} step="any" value={form.total_contrato} onChange={e => setField("total_contrato", e.target.value)}
                 className={inputCls + " h-10"} placeholder="0" />
             </Field>
 

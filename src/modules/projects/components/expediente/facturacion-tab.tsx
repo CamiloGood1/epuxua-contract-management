@@ -205,7 +205,7 @@ function FacturaModal({ interadministrativoId, factura, onClose }: ModalProps) {
               <input
                 type="number"
                 min={0}
-                step={1}
+                step="any"
                 value={form.valor_cobrado}
                 onChange={(e) => set("valor_cobrado", e.target.value)}
                 className={inputCls}
@@ -217,7 +217,7 @@ function FacturaModal({ interadministrativoId, factura, onClose }: ModalProps) {
               <input
                 type="number"
                 min={0}
-                step={1}
+                step="any"
                 value={form.descuentos}
                 onChange={(e) => set("descuentos", e.target.value)}
                 className={inputCls}
@@ -229,7 +229,7 @@ function FacturaModal({ interadministrativoId, factura, onClose }: ModalProps) {
               <input
                 type="number"
                 min={0}
-                step={1}
+                step="any"
                 value={form.valor_ingresado}
                 onChange={(e) => set("valor_ingresado", e.target.value)}
                 className={inputCls}
