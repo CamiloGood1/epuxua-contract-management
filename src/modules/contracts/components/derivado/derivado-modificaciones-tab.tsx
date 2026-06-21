@@ -45,12 +45,12 @@ function TypeChip({ tipo }: { tipo: string }) {
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA] sticky top-0 bg-white">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#EAEAEA] shrink-0">
           <h2 className="text-base font-bold text-[#002869]">{title}</h2>
           <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#f0f3ff]"><X size={16} /></button>
         </div>
-        {children}
+        <div className="overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   )
@@ -118,7 +118,7 @@ function AdicionModal({ contratoId, projectId, onClose }: { contratoId: number; 
   const router = useRouter()
   const [form, setForm] = useState({
     fecha_adicion: "", motivo: "",
-    valor_adicion: "", valor_bienes_servicios: "", valor_cuota_gerencia: "",
+    valor_adicion: "", valor_bienes_servicios: "",
     numero_cdp: "", fecha_cdp: "", numero_rp: "", fecha_rp: "",
     link_documental: "", observaciones: "",
   })
@@ -132,17 +132,14 @@ function AdicionModal({ contratoId, projectId, onClose }: { contratoId: number; 
     e.preventDefault(); setError(null)
     const valTotal  = parseVal(form.valor_adicion)
     const valBienes = parseVal(form.valor_bienes_servicios)
-    const valCuota  = parseVal(form.valor_cuota_gerencia)
     if (isNaN(valTotal) || valTotal <= 0)   { setError("Ingrese un valor total válido."); return }
     if (isNaN(valBienes) || valBienes < 0)  { setError("Ingrese un valor bienes y servicios válido."); return }
-    if (isNaN(valCuota)  || valCuota  < 0)  { setError("Ingrese un valor cuota de gerencia válido."); return }
     start(async () => {
       const res = await createContractAdicion({
         contrato_id: contratoId, project_id: projectId,
         fecha_adicion:          form.fecha_adicion,
         valor_adicion:          valTotal,
         valor_bienes_servicios: valBienes,
-        valor_cuota_gerencia:   valCuota,
         motivo:                 form.motivo,
         numero_cdp:             form.numero_cdp,
         fecha_cdp:              form.fecha_cdp,
@@ -182,12 +179,9 @@ function AdicionModal({ contratoId, projectId, onClose }: { contratoId: number; 
             <Field label="Valor Total Adición *">
               <input required value={form.valor_adicion} onChange={e => set("valor_adicion", e.target.value)} placeholder="Ej: 10000000" className={inputCls} />
             </Field>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <Field label="Valor Bolsa Bienes y Servicios *">
                 <input required value={form.valor_bienes_servicios} onChange={e => set("valor_bienes_servicios", e.target.value)} placeholder="Ej: 8000000" className={inputCls} />
-              </Field>
-              <Field label="Valor Cuota de Gerencia *">
-                <input required value={form.valor_cuota_gerencia} onChange={e => set("valor_cuota_gerencia", e.target.value)} placeholder="Ej: 2000000" className={inputCls} />
               </Field>
             </div>
           </div>
@@ -544,22 +538,14 @@ export function DerivedModificacionesTab({
                       )}
 
                       {/* Distribución económica */}
-                      {(a.valor_bienes_servicios != null || a.valor_cuota_gerencia != null) && (
+                      {a.valor_bienes_servicios != null && (
                         <div>
                           <p className="text-[9px] font-bold uppercase tracking-widest text-[#0B3D91] mb-1.5">Distribución Económica</p>
-                          <div className="grid grid-cols-2 gap-3">
-                            {a.valor_bienes_servicios != null && (
-                              <div className="bg-white rounded-lg px-3 py-2 border border-[#EAEAEA]">
-                                <p className="text-[9px] text-[#747783] uppercase tracking-wide">Bienes y Servicios</p>
-                                <p className="text-xs font-semibold text-[#151C27]">{formatCOP(a.valor_bienes_servicios)}</p>
-                              </div>
-                            )}
-                            {a.valor_cuota_gerencia != null && (
-                              <div className="bg-white rounded-lg px-3 py-2 border border-[#EAEAEA]">
-                                <p className="text-[9px] text-[#747783] uppercase tracking-wide">Cuota de Gerencia</p>
-                                <p className="text-xs font-semibold text-[#151C27]">{formatCOP(a.valor_cuota_gerencia)}</p>
-                              </div>
-                            )}
+                          <div className="grid grid-cols-1 gap-3">
+                            <div className="bg-white rounded-lg px-3 py-2 border border-[#EAEAEA]">
+                              <p className="text-[9px] text-[#747783] uppercase tracking-wide">Bienes y Servicios</p>
+                              <p className="text-xs font-semibold text-[#151C27]">{formatCOP(a.valor_bienes_servicios)}</p>
+                            </div>
                           </div>
                         </div>
                       )}

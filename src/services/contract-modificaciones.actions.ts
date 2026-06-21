@@ -33,7 +33,6 @@ export interface CreateContractAdicionInput {
   fecha_adicion: string
   valor_adicion: number
   valor_bienes_servicios: number
-  valor_cuota_gerencia: number
   motivo: string
   numero_cdp: string
   fecha_cdp: string
@@ -51,7 +50,6 @@ export async function createContractAdicion(input: CreateContractAdicionInput): 
   if (!input.fecha_adicion)                           return { error: "La fecha de suscripción es obligatoria." }
   if (input.valor_adicion <= 0)                       return { error: "El valor total de la adición debe ser mayor a cero." }
   if (input.valor_bienes_servicios < 0)               return { error: "El valor bienes y servicios no puede ser negativo." }
-  if (input.valor_cuota_gerencia < 0)                 return { error: "El valor cuota de gerencia no puede ser negativo." }
   if (!input.motivo.trim())                           return { error: "El motivo de la adición es obligatorio." }
   if (!input.numero_cdp.trim())                       return { error: "El número CDP es obligatorio." }
   if (!input.fecha_cdp)                               return { error: "La fecha CDP es obligatoria." }
@@ -76,7 +74,7 @@ export async function createContractAdicion(input: CreateContractAdicionInput): 
     fecha_adicion:          input.fecha_adicion,
     valor_adicion:          input.valor_adicion,
     valor_bienes_servicios: input.valor_bienes_servicios,
-    valor_cuota_gerencia:   input.valor_cuota_gerencia,
+    valor_cuota_gerencia:   null,
     motivo:                 input.motivo.trim(),
     numero_cdp:             input.numero_cdp.trim(),
     fecha_cdp:              input.fecha_cdp,

@@ -61,22 +61,56 @@ function KpiCard({ label, value, sub, color = "text-[#002869]" }: {
 
 // ── Información General ───────────────────────────────────────────────────────
 
-function InfoTab({ c, parent }: { c: Contrato; parent: ParentInfo | null }) {
-  const diasRestantes = (() => {
-    if (!c.fecha_terminacion) return null
-    const d = Math.ceil((new Date(c.fecha_terminacion).getTime() - Date.now()) / 86400000)
-    return d
-  })()
+function InfoTab({ c, parent, modificaciones }: {
+  c: Contrato
+  parent: ParentInfo | null
+  modificaciones: ContractModificacionesData
+}) {
+  // ── Valores consolidados por modificaciones ───────────────────────────────
+  const totalAdiciones = modificaciones.adiciones.reduce((s, a) => s + a.valor_adicion, 0)
+  const valorActual = (c.valor_inicial ?? 0) + totalAdiciones
+  const tieneAdiciones = modificaciones.adiciones.length > 0
 
-  const pctPagado = c.valor_final && c.valor_final > 0 && c.valor_pagado != null
-    ? Math.min(100, Math.round((c.valor_pagado / c.valor_final) * 100))
+  // Fecha vigente: última prórroga registrada o fecha_terminacion original
+  const ultimaProrroga = modificaciones.prorrogas.length > 0
+    ? [...modificaciones.prorrogas].sort((a, b) => b.numero_prorroga - a.numero_prorroga)[0]
+    : null
+  const fechaVigente = ultimaProrroga?.nueva_fecha_terminacion ?? c.fecha_terminacion
+
+  // Días restantes basados en la fecha vigente (no la original)
+  const diasRestantesVigentes = fechaVigente
+    ? Math.ceil((new Date(fechaVigente).getTime() - Date.now()) / 86400000)
+    : null
+
+  // Días suspendidos acumulados
+  const diasSuspendidos = modificaciones.suspensiones.reduce((s, sus) => {
+    if (!sus.fin_suspension) return s
+    const diff = Math.round(
+      (new Date(sus.fin_suspension).getTime() - new Date(sus.inicio_suspension).getTime()) / 86400000
+    )
+    return s + Math.max(0, diff)
+  }, 0)
+
+  // Último aclaratorio
+  const ultimoAclaratorio = modificaciones.aclaratorios.length > 0
+    ? [...modificaciones.aclaratorios].sort((a, b) => b.numero_aclaratorio - a.numero_aclaratorio)[0]
+    : null
+
+  const hayModificaciones = modificaciones.adiciones.length > 0 ||
+    modificaciones.prorrogas.length > 0 ||
+    modificaciones.suspensiones.length > 0 ||
+    modificaciones.aclaratorios.length > 0
+
+  const valorParaPct = tieneAdiciones ? valorActual : (c.valor_final ?? c.valor_inicial)
+  const pctPagado = valorParaPct && valorParaPct > 0 && c.valor_pagado != null
+    ? Math.min(100, Math.round((c.valor_pagado / valorParaPct) * 100))
     : null
 
   return (
     <div className="space-y-5">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <KpiCard label="Valor Contrato"   value={formatCOP(c.valor_final ?? c.valor_inicial)} />
+        <KpiCard label="Valor Contrato"   value={formatCOP(tieneAdiciones ? valorActual : (c.valor_final ?? c.valor_inicial))} />
         <KpiCard label="Valor Pagado"     value={c.valor_pagado != null ? formatCOP(c.valor_pagado) : "—"} color="text-[#10B981]" />
         <KpiCard label="Saldo Pendiente"  value={c.valor_pendiente != null ? formatCOP(c.valor_pendiente) : "—"} color={c.valor_pendiente && c.valor_pendiente > 0 ? "text-[#D97706]" : "text-[#10B981]"} />
         <KpiCard
@@ -86,9 +120,9 @@ function InfoTab({ c, parent }: { c: Contrato; parent: ParentInfo | null }) {
         />
         <KpiCard
           label="Días Restantes"
-          value={diasRestantes != null ? (diasRestantes < 0 ? "Vencido" : `${diasRestantes}d`) : "—"}
-          color={diasRestantes != null && diasRestantes < 0 ? "text-red-600" : diasRestantes != null && diasRestantes <= 30 ? "text-[#D97706]" : "text-[#002869]"}
-          sub={diasRestantes != null && diasRestantes < 0 ? `${Math.abs(diasRestantes)}d vencido` : undefined}
+          value={diasRestantesVigentes != null ? (diasRestantesVigentes < 0 ? "Vencido" : `${diasRestantesVigentes}d`) : "—"}
+          color={diasRestantesVigentes != null && diasRestantesVigentes < 0 ? "text-red-600" : diasRestantesVigentes != null && diasRestantesVigentes <= 30 ? "text-[#D97706]" : "text-[#002869]"}
+          sub={diasRestantesVigentes != null && diasRestantesVigentes < 0 ? `${Math.abs(diasRestantesVigentes)}d vencido` : undefined}
         />
         <KpiCard label="Estado" value={c.estado ?? "—"} />
       </div>
@@ -148,6 +182,7 @@ function InfoTab({ c, parent }: { c: Contrato; parent: ParentInfo | null }) {
               ["Inicio",         c.fecha_inicio],
               ["Plazo ejecución",c.plazo_ejecucion],
               ["Terminación",    c.fecha_terminacion],
+              ["Fecha Final Vigente", ultimaProrroga ? ultimaProrroga.nueva_fecha_terminacion : null],
               ["CDP",            c.fecha_cdp],
               ["CRP",            c.fecha_crp],
               ["Aprobación póliza", c.fecha_aprobacion_poliza],
@@ -157,6 +192,12 @@ function InfoTab({ c, parent }: { c: Contrato; parent: ParentInfo | null }) {
                 <span className="text-sm text-[#151C27]">{formatDateShort(value)}</span>
               </div>
             ) : null)}
+            {modificaciones.prorrogas.length > 0 && (
+              <div className="flex gap-3">
+                <span className="text-[11px] font-semibold text-[#747783] w-36 shrink-0">Prórrogas</span>
+                <span className="text-sm text-[#151C27]">{modificaciones.prorrogas.length} registrada{modificaciones.prorrogas.length > 1 ? "s" : ""}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -168,8 +209,9 @@ function InfoTab({ c, parent }: { c: Contrato; parent: ParentInfo | null }) {
           <div className="space-y-3">
             {[
               ["Valor inicial",    formatCOP(c.valor_inicial)],
-              ["Adiciones",        c.adicion ? formatCOP(c.adicion) : null],
-              ["Valor final",      formatCOP(c.valor_final ?? c.valor_inicial)],
+              ["Total Adiciones",  tieneAdiciones ? `${formatCOP(totalAdiciones)} (${modificaciones.adiciones.length})` : c.adicion ? formatCOP(c.adicion) : null],
+              ["Valor Actual",     tieneAdiciones ? formatCOP(valorActual) : null],
+              ["Valor final",      !tieneAdiciones ? formatCOP(c.valor_final ?? c.valor_inicial) : null],
               ["Vigencia futura",  c.vigencia_futura ? formatCOP(c.vigencia_futura) : null],
               ["Valor pagado",     c.valor_pagado != null ? formatCOP(c.valor_pagado) : null],
               ["Valor pendiente",  c.valor_pendiente != null ? formatCOP(c.valor_pendiente) : null],
@@ -181,6 +223,102 @@ function InfoTab({ c, parent }: { c: Contrato; parent: ParentInfo | null }) {
             ) : null)}
           </div>
         </div>
+
+        {/* Modificaciones consolidadas */}
+        {hayModificaciones && (
+          <div className="lg:col-span-2 bg-white rounded-xl border border-[#0B3D91]/20 p-5 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-[#0B3D91] flex items-center gap-2">
+              <GitMerge size={13} /> Estado Actualizado por Modificaciones
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+              {/* Financiero */}
+              {tieneAdiciones && (
+                <div className="sm:col-span-2 bg-[#f0f3ff] rounded-xl p-4 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#0B3D91] mb-2">Valor Actualizado</p>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#747783]">Valor Inicial</span>
+                      <span className="font-semibold tabular-nums">{formatCOP(c.valor_inicial)}</span>
+                    </div>
+                    {modificaciones.adiciones.map((a) => (
+                      <div key={a.id} className="flex justify-between text-xs">
+                        <span className="text-[#747783]">Adición N°{a.numero_adicion} ({formatDateShort(a.fecha_adicion)})</span>
+                        <span className="font-semibold text-emerald-600 tabular-nums">+{formatCOP(a.valor_adicion)}</span>
+                      </div>
+                    ))}
+                    <div className="border-t border-[#0B3D91]/20 pt-1.5 flex justify-between text-sm">
+                      <span className="font-bold text-[#002869]">Valor Actual</span>
+                      <span className="font-bold text-[#002869] tabular-nums">{formatCOP(valorActual)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Plazo */}
+              {ultimaProrroga && (
+                <div className="bg-amber-50 rounded-xl p-4 space-y-2 border border-amber-100">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 mb-2">Plazo Vigente</p>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#747783]">Terminación inicial</span>
+                      <span className="font-semibold">{formatDateShort(c.fecha_terminacion)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#747783]">Prórrogas</span>
+                      <span className="font-semibold">{modificaciones.prorrogas.length}</span>
+                    </div>
+                    <div className="border-t border-amber-200 pt-1.5 flex justify-between text-sm">
+                      <span className="font-bold text-amber-800">Fecha Final Vigente</span>
+                      <span className="font-bold text-amber-800">{formatDateShort(ultimaProrroga.nueva_fecha_terminacion)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Suspensiones */}
+              {modificaciones.suspensiones.length > 0 && (
+                <div className="bg-yellow-50 rounded-xl p-4 space-y-2 border border-yellow-100">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-700 mb-2">Suspensiones</p>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#747783]">Total</span>
+                      <span className="font-semibold">{modificaciones.suspensiones.length}</span>
+                    </div>
+                    {diasSuspendidos > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-[#747783]">Días suspendidos</span>
+                        <span className="font-semibold">{diasSuspendidos}d</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Aclaratorios */}
+              {ultimoAclaratorio && (
+                <div className="bg-violet-50 rounded-xl p-4 space-y-2 border border-violet-100">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-violet-700 mb-2">Aclaratorios</p>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#747783]">Total</span>
+                      <span className="font-semibold">{modificaciones.aclaratorios.length}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#747783]">Último</span>
+                      <span className="font-semibold">N°{ultimoAclaratorio.numero_aclaratorio}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#747783]">Fecha</span>
+                      <span className="font-semibold">{formatDateShort(ultimoAclaratorio.fecha_suscripcion)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
 
         {/* Contrato padre */}
         {parent && (
@@ -394,7 +532,7 @@ export function DerivedContractExpediente({
 
       <div className="pb-10">
         {tab === "info" && (
-          <InfoTab c={c} parent={parent} />
+          <InfoTab c={c} parent={parent} modificaciones={modificaciones} />
         )}
         {tab === "seguimiento" && (
           <DerivedSeguimientoTab
