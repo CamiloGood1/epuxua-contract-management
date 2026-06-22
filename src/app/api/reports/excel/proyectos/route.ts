@@ -7,6 +7,7 @@ import type { Adicion, Prorroga, Suspension, Reinicio, Aclaratorio } from "@/typ
 import type { Factura } from "@/types/facturas"
 import type { FinancialReturn } from "@/types/financial-returns"
 import type { Tarea } from "@/types/seguimiento"
+import { calcInteradminFinancials } from "@/modules/projects/lib/interadmin-financials"
 
 const REPORT_ROLES = new Set(["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO"])
 
@@ -205,6 +206,13 @@ export async function GET(req: NextRequest) {
 
     // ── Modificaciones ─────────────────────────────────────────────────────
     const valorAds = ads.reduce((sum, a) => sum + Number(a.valor_total ?? 0), 0)
+    const fin = calcInteradminFinancials({
+      valor_inicial: p.valor_inicial,
+      cuota_admin_inicial: p.cuota_admin_inicial,
+      total_contrato: p.total_contrato,
+      adicion_legacy: p.adicion,
+      adiciones: ads,
+    })
 
     // ── Facturación y recaudo ──────────────────────────────────────────────
     const factsBS     = fcts.filter((f) => f.destino === "BIENES_SERVICIOS")
@@ -278,10 +286,10 @@ export async function GET(req: NextRequest) {
       "Valor Inicial Contrato":         n(p.valor_inicial),
       "Valor Inicial Bienes y Servicios": n(p.bolsa_gerencia_inicial),
       "Valor Inicial Cuota Gerencia":   n(p.cuota_admin_inicial),
-      "Valor Total Adiciones":          valorAds || n(p.adicion),
-      "Valor Actual Contrato":          n(p.total_contrato),
-      "Valor Actual Bienes y Servicios": n(p.total_bolsa_mandato),
-      "Valor Actual Cuota Gerencia":    n(p.total_cuota_admin),
+      "Valor Total Adiciones":          n(fin.totalAdiciones),
+      "Valor Actual Contrato":          n(fin.valorTotalActual),
+      "Valor Actual Bienes y Servicios": n(fin.bienesServiciosVigente),
+      "Valor Actual Cuota Gerencia":    n(fin.cuotaGerenciaVigente),
 
       // ── CONTRATOS DERIVADOS
       "Cantidad Derivados":             n(devs.length),

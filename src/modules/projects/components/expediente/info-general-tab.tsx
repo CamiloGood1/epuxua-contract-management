@@ -5,6 +5,11 @@ import { ChevronDown, ChevronUp, ExternalLink, AlertTriangle, Clock, CheckCircle
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { formatDateShort } from "@/lib/date-format"
 import { calcFacturacionKPIs } from "@/types/facturas"
+import {
+  calcInteradminFinancials,
+  formatFacturadoKpiSub,
+  calcAvanceFinancieroRecaudo,
+} from "@/modules/projects/lib/interadmin-financials"
 import { getKanbanColumn } from "@/types/seguimiento"
 import type { Interadministrativo, Contrato } from "@/types/database"
 import type { ModificacionesData } from "@/types/modificaciones"
@@ -228,32 +233,37 @@ export function InfoGeneralTab({
 
   // ── Financial ──────────────────────────────────────────────────────────────
 
-  const totalAdicionado = useMemo(
-    () => modificaciones.adiciones.reduce((s, a) => s + (a.valor_total ?? 0), 0) || (p.adicion ?? 0),
-    [modificaciones.adiciones, p.adicion],
+  const financials = useMemo(
+    () => calcInteradminFinancials({
+      valor_inicial: p.valor_inicial,
+      cuota_admin_inicial: p.cuota_admin_inicial,
+      total_contrato: p.total_contrato,
+      adicion_legacy: p.adicion,
+      adiciones: modificaciones.adiciones,
+    }),
+    [p.valor_inicial, p.cuota_admin_inicial, p.total_contrato, p.adicion, modificaciones.adiciones],
   )
 
-  const valorActual = useMemo(
-    () => p.total_contrato ?? ((p.valor_inicial ?? 0) + totalAdicionado),
-    [p.total_contrato, p.valor_inicial, totalAdicionado],
-  )
-
-  const valorBienes = useMemo(
-    () => Math.max(0, valorActual - (p.total_cuota_admin ?? 0)),
-    [valorActual, p.total_cuota_admin],
-  )
+  const totalAdicionado = financials.totalAdiciones
+  const valorActual = financials.valorTotalActual
+  const valorBienes = financials.bienesServiciosVigente
+  const cuotaVigente = financials.cuotaGerenciaVigente
 
   const facturacionKPIs = useMemo(() => calcFacturacionKPIs(facturas), [facturas])
+
+  const facturadoSub = useMemo(
+    () => formatFacturadoKpiSub(facturacionKPIs, financials),
+    [facturacionKPIs, financials],
+  )
 
   const fundingKPIs = useMemo(() => calcFundingKPIs(funding), [funding])
   const fundingInconsistent = useMemo(() => hasFundingInconsistencies(funding), [funding])
   const returnsKPIs = useMemo(() => calcFinancialReturnsKPIs(financialReturns), [financialReturns])
 
-  const avanceFinanciero = useMemo(() => {
-    const cuota = p.total_cuota_admin ?? 0
-    if (cuota <= 0) return 0
-    return Math.min(100, Math.round((facturacionKPIs.ingresadoTotal / cuota) * 100))
-  }, [facturacionKPIs.ingresadoTotal, p.total_cuota_admin])
+  const avanceFinanciero = useMemo(
+    () => calcAvanceFinancieroRecaudo(facturacionKPIs.ingresadoTotal, valorActual),
+    [facturacionKPIs.ingresadoTotal, valorActual],
+  )
 
   // ── Dates & Days ───────────────────────────────────────────────────────────
 
@@ -401,11 +411,10 @@ export function InfoGeneralTab({
     if (modResumen.diasSuspendidos > 0)
       sentences.push(`El contrato estuvo suspendido un total de ${modResumen.diasSuspendidos} días.`)
 
-    const pctFac = p.total_cuota_admin && p.total_cuota_admin > 0
-      ? Math.round((facturacionKPIs.facturadoTotal / p.total_cuota_admin) * 100)
-      : null
-    if (pctFac != null && facturas.length > 0)
+    if (facturas.length > 0 && valorActual > 0) {
+      const pctFac = Math.round((facturacionKPIs.facturadoTotal / valorActual) * 100)
       sentences.push(`Se ha facturado el ${pctFac}% del valor contractual y se ha recaudado el ${avanceFinanciero}%.`)
+    }
 
     const criticals = alerts.filter(a => a.level === "critical")
     const warnings  = alerts.filter(a => a.level === "warning")
@@ -421,7 +430,7 @@ export function InfoGeneralTab({
         : `Restan ${daysRemaining} días para la terminación vigente (${fmtDate(fechaTerminActual)}).`)
 
     return sentences.join(" ")
-  }, [p, totalAdicionado, modResumen, facturacionKPIs, avanceFinanciero, facturas, alerts, daysRemaining, fechaTerminActual])
+  }, [p, totalAdicionado, modResumen, facturacionKPIs, avanceFinanciero, facturas, alerts, daysRemaining, fechaTerminActual, valorActual])
 
   // ── Day indicator ──────────────────────────────────────────────────────────
 
@@ -523,15 +532,15 @@ export function InfoGeneralTab({
       <div>
         <SectionHeader title="Resumen Financiero" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard label="Valor Original"      value={fmtCOP(p.valor_inicial)} />
+          <KpiCard label="Valor Original"      value={fmtCOP(financials.valorOriginal)} />
           <KpiCard label="Total Adicionado"     value={totalAdicionado > 0 ? `+${fmtCOP(totalAdicionado)}` : "—"}  accent="text-emerald-600" />
           <KpiCard label="Valor Total Actual"   value={fmtCOP(valorActual)}    accent="text-[#0B3D91]" bg="bg-[#f0f3ff]" />
           <KpiCard label="Bienes y Servicios"   value={fmtCOP(valorBienes)} />
-          <KpiCard label="Cuota de Gerencia"    value={fmtCOP(p.total_cuota_admin)} />
+          <KpiCard label="Cuota de Gerencia"    value={fmtCOP(cuotaVigente)} />
           <KpiCard
             label="Valor Facturado"
             value={facturacionKPIs.facturadoTotal > 0 ? fmtCOP(facturacionKPIs.facturadoTotal) : "—"}
-            sub={p.total_cuota_admin ? `${Math.round(facturacionKPIs.facturadoTotal / p.total_cuota_admin * 100)}% de cuota` : undefined}
+            sub={facturadoSub}
           />
           <KpiCard
             label="Valor Recaudado"
@@ -791,10 +800,10 @@ export function InfoGeneralTab({
                 { l: "Fecha terminación inicial",v: fmtDate(p.fecha_terminacion) },
                 { l: "% Cuota de gerencia",      v: p.pct_cuota_gerencia != null ? `${p.pct_cuota_gerencia}%` : null },
                 { l: "Valor inicial",            v: fmtCOP(p.valor_inicial),           mono: true },
-                { l: "Adición",                  v: p.adicion ? fmtCOP(p.adicion) : null, mono: true },
-                { l: "Total contrato",           v: fmtCOP(p.total_contrato),          mono: true },
+                { l: "Adición",                  v: totalAdicionado > 0 ? fmtCOP(totalAdicionado) : null, mono: true },
+                { l: "Total contrato",           v: fmtCOP(valorActual),               mono: true },
                 { l: "Cuota admin inicial",      v: fmtCOP(p.cuota_admin_inicial),     mono: true },
-                { l: "Total cuota admin",        v: fmtCOP(p.total_cuota_admin),       mono: true },
+                { l: "Total cuota admin",        v: fmtCOP(cuotaVigente),              mono: true },
                 { l: "Pendiente por cobrar",     v: fmtCOP(p.valor_pendiente_cobrar), mono: true },
                 { l: "Vigencias futuras",        v: fmtCOP(p.vigencias_futuras),       mono: true },
               ].map(f => (

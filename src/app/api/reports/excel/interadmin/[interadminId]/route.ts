@@ -8,7 +8,10 @@ import type { Factura } from "@/types/facturas"
 import type { FundingGroup, FundingSource } from "@/types/funding"
 import type { FinancialReturn, FinancialReturnDistribution } from "@/types/financial-returns"
 import type { Tarea } from "@/types/seguimiento"
-import type { ContractPago } from "@/types/contract-derivado"
+import type { ContractPago, ContractAdicion } from "@/types/contract-derivado"
+import { calcDerivedContractFinancials } from "@/modules/contracts/lib/derived-contract-financials"
+import { calcInteradminFinancials } from "@/modules/projects/lib/interadmin-financials"
+import { calcFacturacionKPIs } from "@/types/facturas"
 
 const REPORT_ROLES = new Set(["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO"])
 
@@ -121,21 +124,50 @@ export async function GET(
 
   const derivados    = contratos.filter(c => c.tipo_contrato === "DERIVADO")
 
-  // ── Pagos a derivados ─────────────────────────────────────────────────────
+  // ── Pagos y adiciones a derivados ─────────────────────────────────────────
   const derivadoIds = derivados.map(d => d.id)
   let pagos: ContractPago[] = []
+  let derivadoAdiciones: ContractAdicion[] = []
   if (derivadoIds.length > 0) {
-    const { data: pagosRaw } = await supabase
-      .from("contract_pagos" as never)
-      .select("*")
-      .in("contrato_id", derivadoIds)
-      .order("fecha_pago", { ascending: false })
+    const [{ data: pagosRaw }, { data: adicionesDerivRaw }] = await Promise.all([
+      supabase
+        .from("contract_pagos" as never)
+        .select("*")
+        .in("contrato_id", derivadoIds)
+        .order("fecha_pago", { ascending: false }),
+      supabase
+        .from("contract_adiciones" as never)
+        .select("*")
+        .in("contrato_id", derivadoIds),
+    ])
     pagos = (pagosRaw ?? []) as ContractPago[]
+    derivadoAdiciones = (adicionesDerivRaw ?? []) as ContractAdicion[]
+  }
+
+  const derivadoAdicionesMap = new Map<number, ContractAdicion[]>()
+  for (const a of derivadoAdiciones) {
+    const list = derivadoAdicionesMap.get(a.contrato_id) ?? []
+    list.push(a)
+    derivadoAdicionesMap.set(a.contrato_id, list)
+  }
+  const derivadoPagosMap = new Map<number, ContractPago[]>()
+  for (const p of pagos) {
+    const list = derivadoPagosMap.get(p.contrato_id) ?? []
+    list.push(p)
+    derivadoPagosMap.set(p.contrato_id, list)
   }
 
   // ── KPIs ──────────────────────────────────────────────────────────────────
-  const facturadoTotal    = facturas.reduce((s, f) => s + Number(f.valor_cobrado ?? 0), 0)
-  const recaudadoTotal    = facturas.reduce((s, f) => s + Number(f.valor_ingresado ?? 0), 0)
+  const fin = calcInteradminFinancials({
+    valor_inicial: p.valor_inicial,
+    cuota_admin_inicial: p.cuota_admin_inicial,
+    total_contrato: p.total_contrato,
+    adicion_legacy: p.adicion,
+    adiciones,
+  })
+  const factKpis = calcFacturacionKPIs(facturas)
+  const facturadoTotal    = factKpis.facturadoTotal
+  const recaudadoTotal    = factKpis.ingresadoTotal
   const rendimientosTotal = returns_.reduce((s, r) => s + Number(r.gross_return_value ?? 0), 0)
   const totalFuentes      = fSources.reduce((s, fs) => s + Number((fs as unknown as Record<string, unknown>).valor_bolsa ?? 0), 0)
 
@@ -181,13 +213,15 @@ export async function GET(
     ["Valor Inicial (Bienes y Servicios)", n(p.valor_inicial)],
     ["Cuota Gerencia Inicial",             n(p.cuota_admin_inicial)],
     ["Bolsa Gerencia Inicial",             n(p.bolsa_gerencia_inicial)],
-    ["Adiciones Bienes y Servicios",       n(p.adicion)],
-    ["Adiciones Cuota Administración",     n(p.adicion_cuota_admin)],
+    ["Adiciones Bienes y Servicios",       n(adiciones.reduce((s, a) => s + Number(a.valor_bienes_servicios ?? 0), 0))],
+    ["Adiciones Cuota Administración",     n(adiciones.reduce((s, a) => s + Number(a.valor_cuota_gerencia ?? 0), 0))],
     ["Adiciones Bolsa Mandato",            n(p.adicion_bolsa_mandato)],
-    ["Total Contrato (Bienes + Cuota)",    n(p.total_contrato)],
-    ["Total Cuota Administración",         n(p.total_cuota_admin)],
+    ["Total Contrato (Bienes + Cuota)",    n(fin.valorTotalActual)],
+    ["Total Cuota Administración",         n(fin.cuotaGerenciaVigente)],
     ["Total Bolsa Mandato",                n(p.total_bolsa_mandato)],
     ["% Cuota de Gerencia",                n(p.pct_cuota_gerencia)],
+    ["Facturado Bienes y Servicios",       n(factKpis.facturadoBienes)],
+    ["Facturado Cuota Gerencia",           n(factKpis.facturadoCuota)],
     ["Facturado Total",                    facturadoTotal],
     ["Recaudado Total",                    recaudadoTotal],
     ["Pendiente Recaudo",                  Math.max(0, facturadoTotal - recaudadoTotal)],
@@ -200,7 +234,13 @@ export async function GET(
   const H3 = ["Número Derivado", "Objeto", "Contratista", "Estado", "Clase Contrato",
     "Supervisor", "Fecha Inicio", "Fecha Terminación", "Valor Inicial", "Adición", "Valor Actual",
     "Valor Pagado", "Saldo Pendiente", "Enlace Carpeta Documental"]
-  const ws3 = makeSheet(H3, derivados.map(c => ({
+  const ws3 = makeSheet(H3, derivados.map(c => {
+    const fin = calcDerivedContractFinancials({
+      valorInicial: c.valor_inicial,
+      adiciones: derivadoAdicionesMap.get(c.id) ?? [],
+      pagos: derivadoPagosMap.get(c.id) ?? [],
+    })
+    return {
     "Número Derivado":           s(c.numero_contrato),
     "Objeto":                    s(c.objeto_contrato),
     "Contratista":               s(c.contratista),
@@ -210,12 +250,12 @@ export async function GET(
     "Fecha Inicio":              d(c.fecha_inicio),
     "Fecha Terminación":         d(c.fecha_terminacion),
     "Valor Inicial":             n(c.valor_inicial),
-    "Adición":                   n(c.adicion),
-    "Valor Actual":              n(c.valor_final),
-    "Valor Pagado":              n(c.valor_pagado),
-    "Saldo Pendiente":           n(c.valor_pendiente),
+    "Adición":                   fin.totalAdiciones,
+    "Valor Actual":              fin.valorActual,
+    "Valor Pagado":              fin.valorPagado,
+    "Saldo Pendiente":           fin.saldoPendiente,
     "Enlace Carpeta Documental": s((c as unknown as Record<string, unknown>).enlace_carpeta as string),
-  })))
+  }}))
   ws3["!cols"] = [{ wch: 18 }, { wch: 45 }, { wch: 25 }, { wch: 16 }, { wch: 18 },
     { wch: 22 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 18 },
     { wch: 40 }]

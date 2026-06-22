@@ -144,7 +144,7 @@ export function DerivedContractsClient({ contracts, kpis, canCreate = false, can
       if (convenioFilter !== "all" && c.id_interadministrativo !== convenioFilter) return false
       if (estadoFilter   !== "all" && c.estado               !== estadoFilter)   return false
       if (claseFilter    !== "all" && c.clase_contrato        !== claseFilter)    return false
-      const val = c.valor_final ?? c.valor_inicial ?? 0
+      const val = c.financials.valorActual
       if (min !== null && val < min) return false
       if (max !== null && val > max) return false
       return true
@@ -182,7 +182,7 @@ export function DerivedContractsClient({ contracts, kpis, canCreate = false, can
     return diff >= 0 && diff <= 30
   }).length
   const liquidacion = contracts.filter((c) => c.estado === "CIERRE CONTRACTUAL" || c.estado === "LIQUIDADO").length
-  const montoTotal  = contracts.reduce((s, c) => s + (c.valor_final ?? c.valor_inicial ?? 0), 0)
+  const montoTotal  = contracts.reduce((s, c) => s + c.financials.valorActual, 0)
 
   return (
     <div className="p-3 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
@@ -426,9 +426,7 @@ export function DerivedContractsClient({ contracts, kpis, canCreate = false, can
                         ) : <span className="text-xs text-[#747783]">—</span>}
                       </td>
                       <td className="px-6 py-4 text-sm text-right font-bold text-[#D9A520]">
-                        {d.valor_final != null
-                          ? formatCOP(d.valor_final)
-                          : d.valor_inicial != null ? formatCOP(d.valor_inicial) : "—"}
+                        {formatCOP(d.financials.valorActual)}
                       </td>
                       <td className="px-6 py-4">
                         <EstadoBadge estado={d.estado} />

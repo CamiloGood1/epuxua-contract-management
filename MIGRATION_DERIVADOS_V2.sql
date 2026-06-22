@@ -7,17 +7,24 @@
 
 -- ── 1. contract_adiciones ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS contract_adiciones (
-  id                BIGSERIAL PRIMARY KEY,
-  contrato_id       BIGINT NOT NULL REFERENCES contratos(id) ON DELETE CASCADE,
-  numero_adicion    INT NOT NULL,
-  fecha_adicion     DATE NOT NULL,
-  valor_adicion     NUMERIC(20,2) NOT NULL DEFAULT 0,
-  motivo            TEXT,
-  link_documental   TEXT,
-  user_id           UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  user_email        TEXT,
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  id                      BIGSERIAL PRIMARY KEY,
+  contrato_id             BIGINT NOT NULL REFERENCES contratos(id) ON DELETE CASCADE,
+  numero_adicion          INT NOT NULL,
+  fecha_adicion           DATE NOT NULL,
+  valor_adicion           NUMERIC(20,2) NOT NULL DEFAULT 0,
+  valor_bienes_servicios  NUMERIC(20,2),
+  valor_cuota_gerencia    NUMERIC(20,2),
+  motivo                  TEXT,
+  numero_cdp              TEXT,
+  fecha_cdp               DATE,
+  numero_rp               TEXT,
+  fecha_rp                DATE,
+  link_documental         TEXT,
+  observaciones           TEXT,
+  user_id                 UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  user_email              TEXT,
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (contrato_id, numero_adicion)
 );
 
@@ -216,7 +223,16 @@ ALTER TABLE contract_pagos         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contract_tasks         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contract_derivado_change_log    ENABLE ROW LEVEL SECURITY;
 
--- SELECT: cualquier usuario autenticado
+-- SELECT: cualquier usuario autenticado (idempotente)
+DROP POLICY IF EXISTS "select_contract_adiciones"            ON contract_adiciones;
+DROP POLICY IF EXISTS "select_contract_prorrogas"            ON contract_prorrogas;
+DROP POLICY IF EXISTS "select_contract_suspensiones"         ON contract_suspensiones;
+DROP POLICY IF EXISTS "select_contract_reinicios"            ON contract_reinicios;
+DROP POLICY IF EXISTS "select_contract_aclaratorios"         ON contract_aclaratorios;
+DROP POLICY IF EXISTS "select_contract_pagos"                ON contract_pagos;
+DROP POLICY IF EXISTS "select_contract_tasks"                ON contract_tasks;
+DROP POLICY IF EXISTS "select_contract_derivado_change_log"  ON contract_derivado_change_log;
+
 CREATE POLICY "select_contract_adiciones"     ON contract_adiciones     FOR SELECT TO authenticated USING (true);
 CREATE POLICY "select_contract_prorrogas"     ON contract_prorrogas     FOR SELECT TO authenticated USING (true);
 CREATE POLICY "select_contract_suspensiones"  ON contract_suspensiones  FOR SELECT TO authenticated USING (true);
@@ -229,6 +245,15 @@ CREATE POLICY "select_contract_derivado_change_log"    ON contract_derivado_chan
 -- INSERT/UPDATE/DELETE: roles con escritura (ADMIN, GERENTE, GERENTE_PROYECTO)
 -- La lógica de asignación se valida en el servidor; aquí abrimos a autenticados
 -- para que el service role y las server actions funcionen.
+DROP POLICY IF EXISTS "write_contract_adiciones"            ON contract_adiciones;
+DROP POLICY IF EXISTS "write_contract_prorrogas"            ON contract_prorrogas;
+DROP POLICY IF EXISTS "write_contract_suspensiones"         ON contract_suspensiones;
+DROP POLICY IF EXISTS "write_contract_reinicios"            ON contract_reinicios;
+DROP POLICY IF EXISTS "write_contract_aclaratorios"         ON contract_aclaratorios;
+DROP POLICY IF EXISTS "write_contract_pagos"                ON contract_pagos;
+DROP POLICY IF EXISTS "write_contract_tasks"                ON contract_tasks;
+DROP POLICY IF EXISTS "write_contract_derivado_change_log"  ON contract_derivado_change_log;
+
 CREATE POLICY "write_contract_adiciones"     ON contract_adiciones     FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "write_contract_prorrogas"     ON contract_prorrogas     FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "write_contract_suspensiones"  ON contract_suspensiones  FOR ALL TO authenticated USING (true) WITH CHECK (true);

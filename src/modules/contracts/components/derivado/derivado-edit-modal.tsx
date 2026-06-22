@@ -56,8 +56,6 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
     valor_inicial:            c.valor_inicial != null ? String(c.valor_inicial) : "",
     adicion:                  c.adicion != null ? String(c.adicion) : "",
     valor_final:              c.valor_final != null ? String(c.valor_final) : "",
-    valor_pagado:             c.valor_pagado != null ? String(c.valor_pagado) : "",
-    valor_pendiente:          c.valor_pendiente != null ? String(c.valor_pendiente) : "",
     modalidad_seleccion:      c.modalidad_seleccion ?? "",
     clase_contrato:           c.clase_contrato ?? "",
     area_responsable:         c.area_responsable ?? "",
@@ -108,8 +106,6 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
         valor_inicial:            parseNum(form.valor_inicial),
         adicion:                  parseNum(form.adicion),
         valor_final:              parseNum(form.valor_final),
-        valor_pagado:             parseNum(form.valor_pagado),
-        valor_pendiente:          parseNum(form.valor_pendiente),
         modalidad_seleccion:      nullIfEmpty(form.modalidad_seleccion),
         clase_contrato:           nullIfEmpty(form.clase_contrato),
         area_responsable:         nullIfEmpty(form.area_responsable),
@@ -264,10 +260,10 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Valor pagado">
-                <input type="number" min={0} step="any" value={form.valor_pagado} onChange={e => set("valor_pagado", e.target.value)} className={inputCls} placeholder="0" />
+                <input disabled value="Calculado desde Pagos al Contratista" className={`${inputCls} bg-[#f9f9ff] text-[#747783] cursor-not-allowed`} />
               </Field>
               <Field label="Valor pendiente">
-                <input type="number" min={0} step="any" value={form.valor_pendiente} onChange={e => set("valor_pendiente", e.target.value)} className={inputCls} placeholder="0" />
+                <input disabled value="Calculado automáticamente" className={`${inputCls} bg-[#f9f9ff] text-[#747783] cursor-not-allowed`} />
               </Field>
             </div>
 

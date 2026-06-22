@@ -1,4 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import {
+  calcDerivedContractFinancials,
+  groupByContratoId,
+  type DerivedContractFinancials,
+} from "@/modules/contracts/lib/derived-contract-financials"
+import type { ContractAdicion, ContractPago } from "@/types/contract-derivado"
 import type { EstadoInteradministrativo, EstadoContrato } from "@/types/database"
 
 export interface DerivedContractRow {
@@ -52,6 +58,8 @@ export interface DerivedContractRow {
   parent_estado:            EstadoInteradministrativo | null
   parent_total:             number | null
   parent_pendiente:         number | null
+  /** Calculado dinámicamente: contrato + adiciones + pagos al contratista */
+  financials:               DerivedContractFinancials
 }
 
 export interface DerivedContractsKPIs {
@@ -64,6 +72,54 @@ export interface DerivedContractsKPIs {
   expiringContracts:   number
   inLiquidation:       number
   parentContractsCount: number
+}
+
+async function loadFinancialAggregates(contractIds: number[]): Promise<{
+  adicionesByContrato: Map<number, ContractAdicion[]>
+  pagosByContrato: Map<number, ContractPago[]>
+}> {
+  const adicionesByContrato = new Map<number, ContractAdicion[]>()
+  const pagosByContrato = new Map<number, ContractPago[]>()
+
+  if (contractIds.length === 0) {
+    return { adicionesByContrato, pagosByContrato }
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const [{ data: adicionesRaw }, { data: pagosRaw }] = await Promise.all([
+    supabase
+      .from("contract_adiciones" as never)
+      .select("contrato_id, valor_adicion")
+      .in("contrato_id", contractIds),
+    supabase
+      .from("contract_pagos" as never)
+      .select("contrato_id, valor_pagado, fecha_pago")
+      .in("contrato_id", contractIds),
+  ])
+
+  for (const [id, list] of groupByContratoId((adicionesRaw ?? []) as ContractAdicion[])) {
+    adicionesByContrato.set(id, list)
+  }
+  for (const [id, list] of groupByContratoId((pagosRaw ?? []) as ContractPago[])) {
+    pagosByContrato.set(id, list)
+  }
+
+  return { adicionesByContrato, pagosByContrato }
+}
+
+export function attachDerivedFinancials<T extends { id: number; valor_inicial?: number | null }>(
+  row: T,
+  adiciones: ContractAdicion[],
+  pagos: ContractPago[],
+): T & { financials: DerivedContractFinancials } {
+  return {
+    ...row,
+    financials: calcDerivedContractFinancials({
+      valorInicial: row.valor_inicial,
+      adiciones,
+      pagos,
+    }),
+  }
 }
 
 export async function getAllDerivedContracts(): Promise<DerivedContractRow[]> {
@@ -90,7 +146,7 @@ export async function getAllDerivedContracts(): Promise<DerivedContractRow[]> {
 
   if (error) throw new Error(error.message)
 
-  return (data ?? []).map((row: Record<string, unknown>) => {
+  const rows = (data ?? []).map((row: Record<string, unknown>) => {
     const parent = (row.interadministrativos ?? null) as Record<string, unknown> | null
     const { interadministrativos: _dropped, ...rest } = row
     return {
@@ -103,8 +159,19 @@ export async function getAllDerivedContracts(): Promise<DerivedContractRow[]> {
       parent_estado:          (parent?.estado               as EstadoInteradministrativo | null) ?? null,
       parent_total:           (parent?.total_contrato       as number | null) ?? null,
       parent_pendiente:       (parent?.valor_pendiente_cobrar as number | null) ?? null,
-    } as DerivedContractRow
+    } as Omit<DerivedContractRow, "financials">
   })
+
+  const contractIds = rows.map((r) => r.id)
+  const { adicionesByContrato, pagosByContrato } = await loadFinancialAggregates(contractIds)
+
+  return rows.map((row) =>
+    attachDerivedFinancials(
+      row,
+      adicionesByContrato.get(row.id) ?? [],
+      pagosByContrato.get(row.id) ?? [],
+    ),
+  )
 }
 
 export async function getDerivedContractsKPIs(
@@ -113,7 +180,7 @@ export async function getDerivedContractsKPIs(
   const activeParents = contracts.filter((c) => c.parent_estado === "EN EJECUCIÓN").length
   const uniqueParents = new Set(contracts.map((c) => c.id_interadministrativo).filter(Boolean)).size
   const liquidated    = contracts.filter((c) => c.parent_estado === "LIQUIDADO").length
-  const totalValue    = contracts.reduce((s, c) => s + (c.valor_final ?? c.valor_inicial ?? 0), 0)
+  const totalValue    = contracts.reduce((s, c) => s + c.financials.valorActual, 0)
 
   return {
     totalContracts:        contracts.length,

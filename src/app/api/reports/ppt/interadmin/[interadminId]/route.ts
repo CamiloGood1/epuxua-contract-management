@@ -8,6 +8,7 @@ import type { Factura } from "@/types/facturas"
 import type { FundingGroup, FundingSource } from "@/types/funding"
 import type { FinancialReturn } from "@/types/financial-returns"
 import type { Tarea } from "@/types/seguimiento"
+import { calcInteradminFinancials } from "@/modules/projects/lib/interadmin-financials"
 
 // ── Permisos ──────────────────────────────────────────────────────────────────
 const REPORT_ROLES = new Set(["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO"])
@@ -192,6 +193,14 @@ export async function GET(
 
   const derivados = contratos.filter((c) => c.tipo_contrato === "DERIVADO")
 
+  const fin = calcInteradminFinancials({
+    valor_inicial: p.valor_inicial,
+    cuota_admin_inicial: p.cuota_admin_inicial,
+    total_contrato: p.total_contrato,
+    adicion_legacy: p.adicion,
+    adiciones,
+  })
+
   // ── KPIs ──────────────────────────────────────────────────────────────────
   const facturadoTotal = facturas.reduce((s, f) => s + Number(f.valor_cobrado ?? 0), 0)
   const ingresadoTotal = facturas.reduce((s, f) => s + Number(f.valor_ingresado ?? 0), 0)
@@ -275,9 +284,9 @@ export async function GET(
 
     const kpiData = [
       { label: "Estado",             value: p.estado,               accent: BLUE  },
-      { label: "Valor Total",        value: cop(p.total_contrato),   accent: BLUE  },
-      { label: "Bienes y Servicios", value: cop(p.bolsa_gerencia_inicial), accent: "345BAB" },
-      { label: "Cuota Gerencia",     value: cop(p.total_cuota_admin), accent: GOLD  },
+      { label: "Valor Total",        value: cop(fin.valorTotalActual), accent: BLUE  },
+      { label: "Bienes y Servicios", value: cop(fin.bienesServiciosVigente), accent: "345BAB" },
+      { label: "Cuota Gerencia",     value: cop(fin.cuotaGerenciaVigente), accent: GOLD  },
       { label: "Avance Físico",      value: p.avance_fisico_pct != null ? `${p.avance_fisico_pct}%` : "—", accent: GREEN },
       { label: "Días Restantes",     value: diasRestantes,           accent: diasRestantes.includes("Venc") ? RED : AMBER },
     ]
@@ -350,19 +359,19 @@ export async function GET(
     s.background = { color: LIGHT_BG }
     slideHeader(prs, s, "Estado Financiero", 4)
 
-    const fin = [
-      { label: "Valor Inicial",        value: cop(p.valor_inicial),          accent: BLUE  },
-      { label: "Adiciones",            value: cop(p.adicion),                accent: "5B8DD9" },
-      { label: "Total Contrato",       value: cop(p.total_contrato),         accent: BLUE  },
-      { label: "Total Cuota Admin",    value: cop(p.total_cuota_admin),      accent: GOLD  },
-      { label: "Total Bolsa Mandato",  value: cop(p.total_bolsa_mandato),    accent: GOLD  },
-      { label: "Pend. de Cobrar",      value: cop(p.valor_pendiente_cobrar), accent: RED   },
-      { label: "Facturado",            value: cop(facturadoTotal),            accent: "5B8DD9" },
-      { label: "Recaudado",            value: cop(ingresadoTotal),            accent: GREEN },
-      { label: "Pendiente Recaudo",    value: cop(pendienteTotal),            accent: pendienteTotal > 0 ? RED : GREEN },
+    const finItems = [
+      { label: "Valor Inicial",        value: cop(fin.valorOriginal),          accent: BLUE  },
+      { label: "Adiciones",            value: cop(fin.totalAdiciones),         accent: "5B8DD9" },
+      { label: "Total Contrato",       value: cop(fin.valorTotalActual),       accent: BLUE  },
+      { label: "Total Cuota Admin",    value: cop(fin.cuotaGerenciaVigente),   accent: GOLD  },
+      { label: "Total Bolsa Mandato",  value: cop(p.total_bolsa_mandato),      accent: GOLD  },
+      { label: "Pend. de Cobrar",      value: cop(p.valor_pendiente_cobrar),   accent: RED   },
+      { label: "Facturado",            value: cop(facturadoTotal),             accent: "5B8DD9" },
+      { label: "Recaudado",            value: cop(ingresadoTotal),             accent: GREEN },
+      { label: "Pendiente Recaudo",    value: cop(pendienteTotal),             accent: pendienteTotal > 0 ? RED : GREEN },
     ]
 
-    fin.forEach(({ label, value, accent }, i) => {
+    finItems.forEach(({ label, value, accent }, i) => {
       const col = i % 3
       const row = Math.floor(i / 3)
       kpiCard(prs, s, label, value, 0.3 + col * 3.15, 1.05 + row * 1.3, 3.0, 1.2, accent)
@@ -647,7 +656,7 @@ export async function GET(
 
     const bullets = [
       `Contrato N° ${p.id_contrato} · ${p.estado}`,
-      `Valor total: ${cop(p.total_contrato ?? p.valor_inicial)}`,
+      `Valor total: ${cop(fin.valorTotalActual)}`,
       `Adiciones: ${adiciones.length}  ·  Prórrogas: ${prorrogas.length}  ·  Suspensiones: ${suspensiones.length}`,
       `Contratos derivados: ${derivados.length} (${derivados.filter((d) => d.estado === "EN EJECUCIÓN").length} activos)`,
       `Facturado: ${cop(facturadoTotal)}  ·  Recaudado: ${cop(ingresadoTotal)}  ·  Pendiente: ${cop(pendienteTotal)}`,

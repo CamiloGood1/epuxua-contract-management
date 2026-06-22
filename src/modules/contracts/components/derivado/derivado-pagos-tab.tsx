@@ -6,6 +6,8 @@ import { X, Plus, Trash2, ExternalLink, DollarSign } from "lucide-react"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { createContractPago, deleteContractPago } from "@/services/contract-pagos.actions"
 import type { ContractPago } from "@/types/contract-derivado"
+import type { DerivedContractFinancials } from "@/modules/contracts/lib/derived-contract-financials"
+import { formatPctEjecutado } from "@/modules/contracts/lib/derived-contract-financials"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -158,22 +160,20 @@ function PagoModal({ contratoId, projectId, valorContrato, valorPagadoAcumulado,
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export function DerivedPagosTab({
-  pagos, contratoId, projectId, valorContrato, canEdit,
+  pagos, contratoId, projectId, financials, canEdit,
 }: {
   pagos: ContractPago[]
   contratoId: number
   projectId: string
-  valorContrato: number
+  financials: DerivedContractFinancials
   canEdit: boolean
 }) {
   const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [isPending, start]        = useTransition()
 
-  const pagadoTotal = pagos.reduce((s, p) => s + Number(p.valor_pagado), 0)
-  const netoTotal   = pagos.reduce((s, p) => s + Number(p.valor_neto_girado ?? p.valor_pagado), 0)
-  const saldo       = Math.max(0, valorContrato - pagadoTotal)
-  const pct         = valorContrato > 0 ? Math.min(100, Math.round((pagadoTotal / valorContrato) * 100)) : 0
+  const { valorActual, valorPagado, saldoPendiente, pctEjecutado } = financials
+  const netoTotal = pagos.reduce((s, p) => s + Number(p.valor_neto_girado ?? p.valor_pagado), 0)
 
   function handleDelete(id: number) {
     if (!confirm("¿Eliminar este pago?")) return
@@ -185,7 +185,7 @@ export function DerivedPagosTab({
       {showModal && (
         <PagoModal
           contratoId={contratoId} projectId={projectId}
-          valorContrato={valorContrato} valorPagadoAcumulado={pagadoTotal}
+          valorContrato={valorActual} valorPagadoAcumulado={valorPagado}
           onClose={() => setShowModal(false)}
         />
       )}
@@ -193,10 +193,10 @@ export function DerivedPagosTab({
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { label: "Valor Contrato",   val: formatCOP(valorContrato), color: "text-[#002869]" },
-          { label: "Pagado Acumulado", val: formatCOP(pagadoTotal),   color: "text-[#10B981]" },
-          { label: "Saldo Pendiente",  val: formatCOP(saldo),         color: saldo > 0 ? "text-[#D97706]" : "text-[#10B981]" },
-          { label: "N° Pagos",         val: String(pagos.length),     color: "text-[#0B3D91]" },
+          { label: "Valor Contrato",   val: formatCOP(valorActual), color: "text-[#002869]" },
+          { label: "Pagado Acumulado", val: formatCOP(valorPagado),   color: "text-[#10B981]" },
+          { label: "Saldo Pendiente",  val: formatCOP(saldoPendiente), color: saldoPendiente > 0 ? "text-[#D97706]" : "text-[#10B981]" },
+          { label: "% Ejecutado",      val: formatPctEjecutado(pctEjecutado), color: "text-[#0B3D91]" },
         ].map(({ label, val, color }) => (
           <div key={label} className="bg-white rounded-xl border border-[#EAEAEA] p-4 text-center">
             <p className={`text-lg font-bold ${color} leading-tight`}>{val}</p>
@@ -209,11 +209,14 @@ export function DerivedPagosTab({
       <div className="bg-white rounded-xl border border-[#EAEAEA] p-4 mb-5">
         <div className="flex items-center justify-between mb-2 text-xs">
           <span className="font-semibold text-[#434652]">Avance financiero</span>
-          <span className="font-bold text-[#0B3D91]">{pct}%</span>
+          <span className="font-bold text-[#0B3D91]">{formatPctEjecutado(pctEjecutado)}</span>
         </div>
         <div className="w-full h-2.5 bg-[#EAEAEA] rounded-full overflow-hidden">
           <div className="h-full rounded-full transition-all"
-            style={{ width: `${pct}%`, backgroundColor: pct >= 80 ? "#10B981" : pct >= 50 ? "#D97706" : "#EF4444" }} />
+            style={{
+              width: `${pctEjecutado != null ? Math.min(100, pctEjecutado) : 0}%`,
+              backgroundColor: (pctEjecutado ?? 0) >= 80 ? "#10B981" : (pctEjecutado ?? 0) >= 50 ? "#D97706" : "#EF4444",
+            }} />
         </div>
       </div>
 
@@ -279,7 +282,7 @@ export function DerivedPagosTab({
             <tfoot className="bg-[#f0f3ff] border-t-2 border-[#0B3D91]/20">
               <tr>
                 <td colSpan={4} className="px-3 py-2.5 text-xs font-bold text-[#747783] uppercase">Totales</td>
-                <td className="px-3 py-2.5 font-bold text-[#10B981]">{formatCOP(pagadoTotal)}</td>
+                <td className="px-3 py-2.5 font-bold text-[#10B981]">{formatCOP(valorPagado)}</td>
                 <td className="px-3 py-2.5 font-bold text-red-500">{formatCOP(pagos.reduce((s, p) => s + Number(p.descuentos), 0))}</td>
                 <td className="px-3 py-2.5 font-bold text-[#002869]">{formatCOP(netoTotal)}</td>
                 <td colSpan={2} />

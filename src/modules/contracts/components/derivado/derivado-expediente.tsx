@@ -6,6 +6,11 @@ import { ArrowLeft, ExternalLink, Building2, CalendarDays, DollarSign, Clipboard
 import { DerivedEditModal } from "./derivado-edit-modal"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { formatDateShort } from "@/lib/date-format"
+import {
+  calcDerivedContractFinancials,
+  formatPctEjecutado,
+  type DerivedContractFinancials,
+} from "@/modules/contracts/lib/derived-contract-financials"
 import type { Contrato } from "@/types/database"
 import type { Interadministrativo } from "@/types/database"
 import type { ContractModificacionesData, ContractTask, ContractPago, ContractChangeLogEntry } from "@/types/contract-derivado"
@@ -21,17 +26,14 @@ type ParentInfo = Pick<Interadministrativo,
 >
 
 type ConsolidadoDerivado = {
-  totalAdiciones: number
-  valorActual: number
+  financials: DerivedContractFinancials
   tieneAdiciones: boolean
-  valorVigente: number | null
   ultimaProrroga: ContractModificacionesData["prorrogas"][number] | null
   fechaVigente: string | null
   diasRestantesVigentes: number | null
   diasSuspendidos: number
   ultimoAclaratorio: ContractModificacionesData["aclaratorios"][number] | null
   hayModificaciones: boolean
-  valorParaPct: number | null
 }
 
 // ── Estado badge ──────────────────────────────────────────────────────────────
@@ -81,26 +83,21 @@ function InfoTab({ c, parent, modificaciones, cons }: {
   modificaciones: ContractModificacionesData
   cons: ConsolidadoDerivado
 }) {
-  const {
-    totalAdiciones, valorActual, tieneAdiciones, valorVigente,
-    ultimaProrroga, fechaVigente, diasRestantesVigentes,
-    diasSuspendidos, ultimoAclaratorio, hayModificaciones, valorParaPct,
-  } = cons
-  const pctPagado = valorParaPct && valorParaPct > 0 && c.valor_pagado != null
-    ? Math.min(100, Math.round((c.valor_pagado / valorParaPct) * 100))
-    : null
+  const { financials, tieneAdiciones, ultimaProrroga, fechaVigente, diasRestantesVigentes,
+    diasSuspendidos, ultimoAclaratorio, hayModificaciones } = cons
+  const { valorActual, totalAdiciones, valorPagado, saldoPendiente, pctEjecutado } = financials
 
   return (
     <div className="space-y-5">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <KpiCard label="Valor Contrato"   value={formatCOP(valorVigente)} />
-        <KpiCard label="Valor Pagado"     value={c.valor_pagado != null ? formatCOP(c.valor_pagado) : "—"} color="text-[#10B981]" />
-        <KpiCard label="Saldo Pendiente"  value={c.valor_pendiente != null ? formatCOP(c.valor_pendiente) : "—"} color={c.valor_pendiente && c.valor_pendiente > 0 ? "text-[#D97706]" : "text-[#10B981]"} />
+        <KpiCard label="Valor Contrato"   value={formatCOP(valorActual)} />
+        <KpiCard label="Valor Pagado"     value={formatCOP(valorPagado)} color="text-[#10B981]" />
+        <KpiCard label="Saldo Pendiente"  value={formatCOP(saldoPendiente)} color={saldoPendiente > 0 ? "text-[#D97706]" : "text-[#10B981]"} />
         <KpiCard
           label="% Ejecutado"
-          value={pctPagado != null ? `${pctPagado}%` : "—"}
-          color={pctPagado != null && pctPagado >= 80 ? "text-[#10B981]" : "text-[#D97706]"}
+          value={formatPctEjecutado(pctEjecutado)}
+          color={pctEjecutado != null && pctEjecutado >= 80 ? "text-[#10B981]" : "text-[#D97706]"}
         />
         <KpiCard
           label="Días Restantes"
@@ -112,15 +109,15 @@ function InfoTab({ c, parent, modificaciones, cons }: {
       </div>
 
       {/* Barra avance */}
-      {pctPagado != null && (
+      {pctEjecutado != null && (
         <div className="bg-white rounded-xl border border-[#EAEAEA] px-5 py-4">
           <div className="flex justify-between text-xs mb-2">
             <span className="font-semibold text-[#434652]">Avance financiero</span>
-            <span className="font-bold text-[#0B3D91]">{pctPagado}%</span>
+            <span className="font-bold text-[#0B3D91]">{formatPctEjecutado(pctEjecutado)}</span>
           </div>
           <div className="w-full h-2.5 bg-[#EAEAEA] rounded-full overflow-hidden">
             <div className="h-full rounded-full transition-all"
-              style={{ width: `${pctPagado}%`, backgroundColor: pctPagado >= 80 ? "#10B981" : pctPagado >= 50 ? "#D97706" : "#EF4444" }} />
+              style={{ width: `${Math.min(100, pctEjecutado)}%`, backgroundColor: pctEjecutado >= 80 ? "#10B981" : pctEjecutado >= 50 ? "#D97706" : "#EF4444" }} />
           </div>
         </div>
       )}
@@ -192,13 +189,13 @@ function InfoTab({ c, parent, modificaciones, cons }: {
           </h3>
           <div className="space-y-3">
             {[
-              ["Valor inicial",    formatCOP(c.valor_inicial)],
-              ["Total Adiciones",  tieneAdiciones ? `${formatCOP(totalAdiciones)} (${modificaciones.adiciones.length})` : c.adicion ? formatCOP(c.adicion) : null],
-              ["Valor Actual",     tieneAdiciones ? formatCOP(valorActual) : null],
-              ["Valor final",      !tieneAdiciones ? formatCOP(c.valor_final ?? c.valor_inicial) : null],
+              ["Valor inicial",    formatCOP(financials.valorInicial)],
+              ["Total Adiciones",  tieneAdiciones ? `${formatCOP(totalAdiciones)} (${modificaciones.adiciones.length})` : null],
+              ["Valor Actual",     formatCOP(valorActual)],
               ["Vigencia futura",  c.vigencia_futura ? formatCOP(c.vigencia_futura) : null],
-              ["Valor pagado",     c.valor_pagado != null ? formatCOP(c.valor_pagado) : null],
-              ["Valor pendiente",  c.valor_pendiente != null ? formatCOP(c.valor_pendiente) : null],
+              ["Valor pagado",     formatCOP(valorPagado)],
+              ["Valor pendiente",  formatCOP(saldoPendiente)],
+              ["% Ejecutado",      formatPctEjecutado(pctEjecutado)],
             ].map(([label, value]) => value ? (
               <div key={label} className="flex gap-3">
                 <span className="text-[11px] font-semibold text-[#747783] w-36 shrink-0">{label}</span>
@@ -223,7 +220,7 @@ function InfoTab({ c, parent, modificaciones, cons }: {
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <span className="text-[#747783]">Valor Inicial</span>
-                      <span className="font-semibold tabular-nums">{formatCOP(c.valor_inicial)}</span>
+                      <span className="font-semibold tabular-nums">{formatCOP(financials.valorInicial)}</span>
                     </div>
                     {modificaciones.adiciones.map((a) => (
                       <div key={a.id} className="flex justify-between text-xs">
@@ -407,19 +404,20 @@ export function DerivedContractExpediente({
     modificaciones.suspensiones.length + modificaciones.reinicios.length + modificaciones.aclaratorios.length
   const taskPend  = tasks.filter(t => t.status !== "COMPLETADA").length
 
-  // ── Única fuente de verdad contractual (header + InfoTab comparten este objeto) ──
-  const _totalAdiciones = modificaciones.adiciones.reduce((s, a) => s + a.valor_adicion, 0)
-  const _valorActual    = (c.valor_inicial ?? 0) + _totalAdiciones
+  // ── Única fuente de verdad financiera (header + InfoTab + Pagos comparten esto) ──
+  const financials = calcDerivedContractFinancials({
+    valorInicial: c.valor_inicial,
+    adiciones: modificaciones.adiciones,
+    pagos,
+  })
   const _tieneAdiciones = modificaciones.adiciones.length > 0
   const _ultimaProrroga = modificaciones.prorrogas.length > 0
     ? [...modificaciones.prorrogas].sort((a, b) => b.numero_prorroga - a.numero_prorroga)[0]
     : null
   const _fechaVigente   = _ultimaProrroga?.nueva_fecha_terminacion ?? c.fecha_terminacion ?? null
   const cons: ConsolidadoDerivado = {
-    totalAdiciones:       _totalAdiciones,
-    valorActual:          _valorActual,
+    financials,
     tieneAdiciones:       _tieneAdiciones,
-    valorVigente:         _tieneAdiciones ? _valorActual : (c.valor_final ?? c.valor_inicial ?? null),
     ultimaProrroga:       _ultimaProrroga ?? null,
     fechaVigente:         _fechaVigente ?? null,
     diasRestantesVigentes: _fechaVigente
@@ -436,7 +434,6 @@ export function DerivedContractExpediente({
       : null,
     hayModificaciones: modificaciones.adiciones.length > 0 || modificaciones.prorrogas.length > 0 ||
       modificaciones.suspensiones.length > 0 || modificaciones.aclaratorios.length > 0,
-    valorParaPct: _tieneAdiciones ? _valorActual : (c.valor_final ?? c.valor_inicial ?? null),
   }
 
   const badges: Partial<Record<TabId, number>> = {
@@ -495,13 +492,25 @@ export function DerivedContractExpediente({
           </div>
         )}
 
-        {/* Mini KPIs header — consume cons (única fuente de verdad) */}
+        {/* Mini KPIs header — consume cons.financials (única fuente de verdad) */}
         <div className="flex flex-wrap gap-x-5 gap-y-2 pt-2 border-t border-[#EAEAEA]">
           <div className="text-sm flex items-baseline gap-1.5">
-            <span className="text-[#747783] text-xs">
-              {cons.tieneAdiciones ? "Valor vigente:" : "Valor final:"}
+            <span className="text-[#747783] text-xs">Valor contrato:</span>
+            <span className="font-bold text-[#002869]">{formatCOP(cons.financials.valorActual)}</span>
+          </div>
+          <div className="text-sm flex items-baseline gap-1.5">
+            <span className="text-[#747783] text-xs">Pagado:</span>
+            <span className="font-bold text-[#10B981]">{formatCOP(cons.financials.valorPagado)}</span>
+          </div>
+          <div className="text-sm flex items-baseline gap-1.5">
+            <span className="text-[#747783] text-xs">Saldo:</span>
+            <span className={`font-bold ${cons.financials.saldoPendiente > 0 ? "text-[#D97706]" : "text-[#10B981]"}`}>
+              {formatCOP(cons.financials.saldoPendiente)}
             </span>
-            <span className="font-bold text-[#002869]">{formatCOP(cons.valorVigente)}</span>
+          </div>
+          <div className="text-sm flex items-baseline gap-1.5">
+            <span className="text-[#747783] text-xs">% Ejecutado:</span>
+            <span className="font-bold text-[#0B3D91]">{formatPctEjecutado(cons.financials.pctEjecutado)}</span>
           </div>
           {cons.fechaVigente && (
             <div className="text-sm flex items-baseline gap-1.5">
@@ -593,7 +602,7 @@ export function DerivedContractExpediente({
         {tab === "pagos" && (
           <DerivedPagosTab
             pagos={pagos} contratoId={c.id} projectId={projectId}
-            valorContrato={c.valor_final ?? c.valor_inicial ?? 0}
+            financials={cons.financials}
             canEdit={canEdit}
           />
         )}

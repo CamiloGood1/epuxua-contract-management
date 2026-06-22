@@ -22,6 +22,7 @@ import type { Factura } from "@/types/facturas"
 import type { FundingGroup, FundingSource } from "@/types/funding"
 import type { FinancialReturn } from "@/types/financial-returns"
 import type { Tarea } from "@/types/seguimiento"
+import { calcInteradminFinancials } from "@/modules/projects/lib/interadmin-financials"
 
 // ── Roles con permiso de descarga ─────────────────────────────────────────────
 const REPORT_ROLES = new Set(["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO"])
@@ -202,6 +203,14 @@ export async function GET(
 
   const derivados = contratos.filter((c) => c.tipo_contrato === "DERIVADO")
 
+  const fin = calcInteradminFinancials({
+    valor_inicial: p.valor_inicial,
+    cuota_admin_inicial: p.cuota_admin_inicial,
+    total_contrato: p.total_contrato,
+    adicion_legacy: p.adicion,
+    adiciones,
+  })
+
   // ── KPIs facturación ──────────────────────────────────────────────────────
   const facturadoTotal   = facturas.reduce((s, f) => s + Number(f.valor_cobrado ?? 0), 0)
   const ingresadoTotal   = facturas.reduce((s, f) => s + Number(f.valor_ingresado ?? 0), 0)
@@ -322,11 +331,11 @@ export async function GET(
             ["Concepto", "Valor"],
             [
               ["Valor inicial del contrato",      cop(p.valor_inicial)],
-              ["Adiciones",                        cop(p.adicion)],
-              ["Total contrato",                   cop(p.total_contrato)],
+              ["Adiciones",                        cop(fin.totalAdiciones)],
+              ["Total contrato",                   cop(fin.valorTotalActual)],
               ["Cuota administración inicial",     cop(p.cuota_admin_inicial)],
               ["Adición cuota administración",     cop(p.adicion_cuota_admin)],
-              ["Total cuota administración",       cop(p.total_cuota_admin)],
+              ["Total cuota administración",       cop(fin.cuotaGerenciaVigente)],
               ["Bolsa gerencia inicial",           cop(p.bolsa_gerencia_inicial)],
               ["Adición bolsa mandato",            cop(p.adicion_bolsa_mandato)],
               ["Total bolsa mandato",              cop(p.total_bolsa_mandato)],

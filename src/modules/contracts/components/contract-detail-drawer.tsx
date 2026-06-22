@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { X, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatCOP } from "@/modules/contracts/lib/status"
+import { formatPctEjecutado } from "@/modules/contracts/lib/derived-contract-financials"
 import type { EstadoContrato } from "@/types/database"
 
 // ── Tipos mínimos necesarios (compatibles con DerivedContractRow y FuncionamientoContrato) ─
@@ -54,6 +55,8 @@ export interface ContractDetailData {
   parent_secretaria?: string | null
   parent_estado?:     string | null
   parent_total?:      number | null
+  /** Resumen financiero calculado (derivados) */
+  financials?: import("@/modules/contracts/lib/derived-contract-financials").DerivedContractFinancials
 }
 
 // ── Colores de estado ─────────────────────────────────────────────────────────
@@ -137,10 +140,15 @@ export function ContractDetailDrawer({ contract, onClose }: Props) {
     // the overlay click + button are sufficient
   }
 
-  const pendientePct =
-    contract?.valor_final && contract.valor_final > 0 && contract.valor_pagado != null
-      ? Math.round(((contract.valor_final - contract.valor_pagado) / contract.valor_final) * 100)
+  const fin = contract?.financials
+  const valorContrato = fin?.valorActual ?? contract?.valor_final ?? contract?.valor_inicial ?? null
+  const valorPagado   = fin?.valorPagado ?? contract?.valor_pagado ?? null
+  const saldoPendiente = fin?.saldoPendiente ?? contract?.valor_pendiente ?? null
+  const pctEjecutado  = fin?.pctEjecutado ?? (
+    valorContrato && valorContrato > 0 && valorPagado != null
+      ? Math.round((valorPagado / valorContrato) * 10000) / 100
       : null
+  )
 
   return (
     <AnimatePresence>
@@ -189,26 +197,28 @@ export function ContractDetailDrawer({ contract, onClose }: Props) {
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-1">
 
               {/* Resumen financiero */}
-              {(contract.valor_final != null || contract.valor_inicial != null) && (
+              {(valorContrato != null) && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 py-4">
                   <div className="epuxua-card p-4 text-center">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Valor final</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                      {fin ? "Valor actual" : "Valor final"}
+                    </p>
                     <p className="text-base font-bold text-foreground tabular-nums">
-                      {formatCOP(contract.valor_final ?? contract.valor_inicial ?? 0)}
+                      {formatCOP(valorContrato)}
                     </p>
                   </div>
                   <div className="epuxua-card p-4 text-center">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Pagado</p>
                     <p className="text-base font-bold text-emerald-600 tabular-nums">
-                      {contract.valor_pagado != null ? formatCOP(contract.valor_pagado) : "—"}
+                      {valorPagado != null ? formatCOP(valorPagado) : "—"}
                     </p>
                   </div>
                   <div className="epuxua-card p-4 text-center">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-                      Pendiente {pendientePct != null ? `(${pendientePct}%)` : ""}
+                      Pendiente {fin ? `(${formatPctEjecutado(fin.pctEjecutado)} ejec.)` : pctEjecutado != null ? `(${pctEjecutado}%)` : ""}
                     </p>
-                    <p className={cn("text-base font-bold tabular-nums", contract.valor_pendiente && contract.valor_pendiente > 0 ? "text-amber-600" : "text-foreground")}>
-                      {contract.valor_pendiente != null ? formatCOP(contract.valor_pendiente) : "—"}
+                    <p className={cn("text-base font-bold tabular-nums", saldoPendiente && saldoPendiente > 0 ? "text-amber-600" : "text-foreground")}>
+                      {saldoPendiente != null ? formatCOP(saldoPendiente) : "—"}
                     </p>
                   </div>
                 </div>
@@ -287,9 +297,12 @@ export function ContractDetailDrawer({ contract, onClose }: Props) {
                   <Field label="Vigencia futura" value={contract.vigencia_futura != null ? formatCOP(contract.vigencia_futura) : null} />
                 </Row>
                 <Row>
-                  <Field label="Valor pagado" value={contract.valor_pagado != null ? formatCOP(contract.valor_pagado) : null} />
-                  <Field label="Valor pendiente" value={contract.valor_pendiente != null ? formatCOP(contract.valor_pendiente) : null} />
+                  <Field label="Valor pagado" value={valorPagado != null ? formatCOP(valorPagado) : null} />
+                  <Field label="Valor pendiente" value={saldoPendiente != null ? formatCOP(saldoPendiente) : null} />
                 </Row>
+                {fin && (
+                  <Field label="% Ejecutado" value={formatPctEjecutado(fin.pctEjecutado)} />
+                )}
               </div>
 
               {/* CDP / CRP */}

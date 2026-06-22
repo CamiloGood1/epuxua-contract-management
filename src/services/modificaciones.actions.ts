@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/services/user.service"
 import { assertInteradminWriteAccess } from "@/services/interadmin-access"
+import { removeFundingGroupForAdicion } from "@/services/funding.actions"
 import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
 import type { EstadoInteradministrativo } from "@/types/database"
 
@@ -140,9 +141,45 @@ export async function deleteAdicion(id: number, interadministrativo_id: number):
   if (!canDeleteProject(profile?.role)) return { error: "Solo ADMIN puede eliminar adiciones." }
   const deniedDelAd = await requireWrite(interadministrativo_id)
   if (deniedDelAd) return deniedDelAd
+
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.from("interadmin_adiciones").delete().eq("id", id)
+
+  const { data: prev } = await supabase
+    .from("interadmin_adiciones")
+    .select("numero_adicion, valor_total, interadministrativo_id")
+    .eq("id", id)
+    .eq("interadministrativo_id", interadministrativo_id)
+    .maybeSingle()
+
+  if (!prev) return { error: "No se encontró la adición o no tiene permisos para eliminarla." }
+
+  const fundingRes = await removeFundingGroupForAdicion(interadministrativo_id, id)
+  if (fundingRes.error) return fundingRes
+
+  const { error, count } = await supabase
+    .from("interadmin_adiciones")
+    .delete({ count: "exact" })
+    .eq("id", id)
+    .eq("interadministrativo_id", interadministrativo_id)
+
   if (error) return { error: error.message }
+  if (!count) return { error: "No se pudo eliminar la adición. Verifique permisos o que el registro exista." }
+
+  const { data: interadmin } = await supabase
+    .from("interadministrativos")
+    .select("id_contrato")
+    .eq("id", interadministrativo_id)
+    .maybeSingle()
+
+  await audit(supabase, {
+    interadmin_id: interadministrativo_id,
+    id_contrato:   interadmin?.id_contrato ?? String(interadministrativo_id),
+    action:        "DELETE_ADICION",
+    old_value:     JSON.stringify({ id, numero: prev.numero_adicion, valor_total: prev.valor_total }),
+    user_id:       profile?.id    ?? null,
+    user_email:    profile?.email ?? null,
+  })
+
   revalidate(interadministrativo_id)
   return { error: null }
 }

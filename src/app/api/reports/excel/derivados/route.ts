@@ -35,17 +35,10 @@ function d(v: string | null | undefined): string {
   } catch { return v }
 }
 
-// ── Agrupación por contrato_id ────────────────────────────────────────────────
-
-function groupByContratoId<T extends { contrato_id: number }>(arr: T[]): Map<number, T[]> {
-  const m = new Map<number, T[]>()
-  for (const row of arr) {
-    const list = m.get(row.contrato_id) ?? []
-    list.push(row)
-    m.set(row.contrato_id, list)
-  }
-  return m
-}
+import {
+  calcDerivedContractFinancials,
+  groupByContratoId,
+} from "@/modules/contracts/lib/derived-contract-financials"
 
 // ── Route handler ─────────────────────────────────────────────────────────────
 
@@ -169,7 +162,12 @@ export async function GET(req: NextRequest) {
     const changeLogs   = changeLogMap.get(c.id)    ?? []
 
     const valorAdiciones  = adiciones.reduce((sum, a) => sum + n(a.valor_adicion), 0)
-    const totalPagado     = pagos.reduce((sum, p) => sum + n(p.valor_pagado), 0)
+    const fin = calcDerivedContractFinancials({
+      valorInicial: c.valor_inicial,
+      adiciones,
+      pagos,
+    })
+    const totalPagado     = fin.valorPagado
     const totalDescuentos = pagos.reduce((sum, p) => sum + n(p.descuentos), 0)
     // pagos ya ordenados por numero_pago — el último es el más reciente
     const lastPago  = pagos.length > 0 ? pagos[pagos.length - 1] : null
@@ -204,9 +202,10 @@ export async function GET(req: NextRequest) {
       "Gerente Proyecto":          s(parent?.supervision),
       // ── Información Financiera ──────────────────────────────────────
       "Valor Inicial":             n(c.valor_inicial),
-      "Valor Actual":              n(c.valor_final),
-      "Valor Pagado":              n(c.valor_pagado),
-      "Saldo Pendiente":           n(c.valor_pendiente),
+      "Valor Actual":              fin.valorActual,
+      "Valor Pagado":              fin.valorPagado,
+      "Saldo Pendiente":           fin.saldoPendiente,
+      "% Ejecutado":               fin.pctEjecutado ?? "",
       // ── Soporte Presupuestal ────────────────────────────────────────
       "Número RP":                 s(c.crp),
       "Fecha RP":                  d(c.fecha_crp),

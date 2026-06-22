@@ -40,6 +40,79 @@ async function getGroupTotal(supabase: Awaited<ReturnType<typeof createSupabaseS
 
 // ── Sincronizar grupos (bolsa original + adiciones) ───────────────────────────
 
+/** Elimina el grupo de financiación vinculado a una adición (fuentes en cascada). */
+export async function removeFundingGroupForAdicion(
+  interadministrativoId: number,
+  adicionId: number,
+): Promise<Res> {
+  const supabase = await createSupabaseServerClient()
+
+  const { data: group } = await supabase
+    .from("interadmin_funding_groups" as never)
+    .select("id, group_name")
+    .eq("interadministrativo_id", interadministrativoId)
+    .eq("related_modification_id", adicionId)
+    .maybeSingle()
+
+  if (!group) return { error: null }
+
+  const row = group as { id: number; group_name: string }
+
+  const { count: returnsCount } = await supabase
+    .from("interadmin_financial_returns" as never)
+    .select("id", { count: "exact", head: true })
+    .eq("funding_group_id", row.id)
+
+  if (returnsCount && returnsCount > 0) {
+    return {
+      error:
+        `No se puede eliminar la adición porque el grupo de financiación "${row.group_name}" ` +
+        "tiene rendimientos financieros registrados. Elimine primero esos rendimientos en Rendimientos Financieros.",
+    }
+  }
+
+  const { error } = await supabase
+    .from("interadmin_funding_groups" as never)
+    .delete()
+    .eq("id", row.id)
+    .eq("interadministrativo_id", interadministrativoId)
+
+  if (error) return { error: error.message }
+  return { error: null }
+}
+
+async function removeOrphanAdicionFundingGroups(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  interadministrativoId: number,
+  adicionIds: Set<number>,
+  groups: { id: number; group_type: string; related_modification_id: number | null }[],
+): Promise<Res> {
+  const orphans = groups.filter(
+    (g) =>
+      g.group_type === "ADICION" &&
+      (g.related_modification_id == null || !adicionIds.has(g.related_modification_id)),
+  )
+
+  for (const orphan of orphans) {
+    const { count: returnsCount } = await supabase
+      .from("interadmin_financial_returns" as never)
+      .select("id", { count: "exact", head: true })
+      .eq("funding_group_id", orphan.id)
+
+    if (returnsCount && returnsCount > 0) continue
+
+    const { error } = await supabase
+      .from("interadmin_funding_groups" as never)
+      .delete()
+      .eq("id", orphan.id)
+      .eq("interadministrativo_id", interadministrativoId)
+
+    if (error) return { error: error.message }
+  }
+
+  return { error: null }
+}
+
 export async function syncFundingGroups(
   interadministrativoId: number,
   valorInicial: number | null,
@@ -53,6 +126,16 @@ export async function syncFundingGroups(
     .eq("interadministrativo_id", interadministrativoId)
 
   const groups = (existing ?? []) as { id: number; group_type: string; related_modification_id: number | null }[]
+  const adicionIds = new Set(adiciones.map((a) => a.id))
+
+  const orphanRes = await removeOrphanAdicionFundingGroups(
+    supabase,
+    interadministrativoId,
+    adicionIds,
+    groups,
+  )
+  if (orphanRes.error) return orphanRes
+
   const hasOriginal = groups.some((g) => g.group_type === "ORIGINAL")
 
   if (!hasOriginal) {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { X, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import {
@@ -90,6 +91,7 @@ function FormButtons({ onClose, isPending, label }: { onClose: () => void; isPen
 // ── Modales de creación ───────────────────────────────────────────────────────
 
 function AdicionModal({ interadministrativoId, nextNum, onClose }: { interadministrativoId: number; nextNum: number; onClose: () => void }) {
+  const router = useRouter()
   const [f, setF] = useState({ fecha: "", valorTotal: "", valorCuota: "", valorBienes: "", numeroRp: "", motivo: "", link: "" })
   const [err, setErr] = useState<string | null>(null)
   const [pending, start] = useTransition()
@@ -110,6 +112,7 @@ function AdicionModal({ interadministrativoId, nextNum, onClose }: { interadmini
       })
       if (res.error) { setErr(res.error); return }
       onClose()
+      router.refresh()
     })
   }
 
@@ -149,6 +152,7 @@ function AdicionModal({ interadministrativoId, nextNum, onClose }: { interadmini
 }
 
 function ProrrogaModal({ interadministrativoId, nextNum, fechaTerminacionActual, onClose }: { interadministrativoId: number; nextNum: number; fechaTerminacionActual: string | null; onClose: () => void }) {
+  const router = useRouter()
   const [f, setF] = useState({ fechaSusc: "", nuevaFecha: "", plazo: "", justificacion: "" })
   const [err, setErr] = useState<string | null>(null)
   const [pending, start] = useTransition()
@@ -168,6 +172,7 @@ function ProrrogaModal({ interadministrativoId, nextNum, fechaTerminacionActual,
       })
       if (res.error) { setErr(res.error); return }
       onClose()
+      router.refresh()
     })
   }
 
@@ -199,6 +204,7 @@ function ProrrogaModal({ interadministrativoId, nextNum, fechaTerminacionActual,
 }
 
 function SuspensionModal({ interadministrativoId, nextNum, onClose }: { interadministrativoId: number; nextNum: number; onClose: () => void }) {
+  const router = useRouter()
   const [f, setF] = useState({ fechaSusc: "", inicio: "", fin: "", plazo: "", motivo: "" })
   const [err, setErr] = useState<string | null>(null)
   const [pending, start] = useTransition()
@@ -219,6 +225,7 @@ function SuspensionModal({ interadministrativoId, nextNum, onClose }: { interadm
       })
       if (res.error) { setErr(res.error); return }
       onClose()
+      router.refresh()
     })
   }
 
@@ -250,6 +257,7 @@ function SuspensionModal({ interadministrativoId, nextNum, onClose }: { interadm
 }
 
 function ReinicioModal({ interadministrativoId, nextNum, onClose }: { interadministrativoId: number; nextNum: number; onClose: () => void }) {
+  const router = useRouter()
   const [f, setF] = useState({ fechaReinicio: "", fechaSusc: "", motivo: "", obs: "" })
   const [err, setErr] = useState<string | null>(null)
   const [pending, start] = useTransition()
@@ -267,6 +275,7 @@ function ReinicioModal({ interadministrativoId, nextNum, onClose }: { interadmin
       })
       if (res.error) { setErr(res.error); return }
       onClose()
+      router.refresh()
     })
   }
 
@@ -293,6 +302,7 @@ function ReinicioModal({ interadministrativoId, nextNum, onClose }: { interadmin
 }
 
 function AclaratorioModal({ interadministrativoId, nextNum, onClose }: { interadministrativoId: number; nextNum: number; onClose: () => void }) {
+  const router = useRouter()
   const [f, setF] = useState({ fecha: "", motivo: "", descripcion: "" })
   const [err, setErr] = useState<string | null>(null)
   const [pending, start] = useTransition()
@@ -309,6 +319,7 @@ function AclaratorioModal({ interadministrativoId, nextNum, onClose }: { interad
       })
       if (res.error) { setErr(res.error); return }
       onClose()
+      router.refresh()
     })
   }
 
@@ -351,15 +362,23 @@ function buildTimeline(m: ModificacionesData): TimelineEvent[] {
   return events.sort((a, b) => a.fecha.localeCompare(b.fecha))
 }
 
-function EventDetail({ event, canDelete, onDelete }: { event: TimelineEvent; canDelete: boolean; onDelete?: () => void }) {
+function EventDetail({ event, canDelete, onDelete }: { event: TimelineEvent; canDelete: boolean; onDelete: () => Promise<{ error: string | null }> }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [delPending, startDel] = useTransition()
 
   function handleDelete() {
-    if (!confirm("¿Eliminar este registro? Esta acción no se puede deshacer.")) return
+    const msg = event.tipo === "ADICIÓN"
+      ? "¿Está seguro de eliminar esta adición?\nEsta acción actualizará automáticamente los valores financieros del contrato."
+      : "¿Está seguro de eliminar este registro?\nEsta acción no se puede deshacer."
+    if (!confirm(msg)) return
     startDel(async () => {
-      if (!onDelete) return
-      onDelete()
+      const res = await onDelete()
+      if (res.error) {
+        alert(res.error)
+        return
+      }
+      router.refresh()
     })
   }
 
@@ -471,12 +490,19 @@ export function ModificacionesTab({ interadministrativoId, fechaTerminacionOrigi
   }, 0)
   const ultimaProrroga = m.prorrogas.at(-1)
 
-  const handleDelete = (event: TimelineEvent) => async () => {
-    if (event.tipo === "ADICIÓN")     await deleteAdicion((event.data as Adicion).id, interadministrativoId)
-    if (event.tipo === "PRÓRROGA")    await deleteProrroga((event.data as Prorroga).id, interadministrativoId)
-    if (event.tipo === "SUSPENSIÓN")  await deleteSuspension((event.data as Suspension).id, interadministrativoId)
-    if (event.tipo === "REINICIO")    await deleteReinicio((event.data as Reinicio).id, interadministrativoId)
-    if (event.tipo === "ACLARATORIO") await deleteAclaratorio((event.data as Aclaratorio).id, interadministrativoId)
+  function deleteEvent(event: TimelineEvent): Promise<{ error: string | null }> {
+    switch (event.tipo) {
+      case "ADICIÓN":
+        return deleteAdicion((event.data as Adicion).id, interadministrativoId)
+      case "PRÓRROGA":
+        return deleteProrroga((event.data as Prorroga).id, interadministrativoId)
+      case "SUSPENSIÓN":
+        return deleteSuspension((event.data as Suspension).id, interadministrativoId)
+      case "REINICIO":
+        return deleteReinicio((event.data as Reinicio).id, interadministrativoId)
+      case "ACLARATORIO":
+        return deleteAclaratorio((event.data as Aclaratorio).id, interadministrativoId)
+    }
   }
 
   return (
@@ -538,7 +564,7 @@ export function ModificacionesTab({ interadministrativoId, fechaTerminacionOrigi
                 <EventDetail
                   event={event}
                   canDelete={canDelete}
-                  onDelete={handleDelete(event)}
+                  onDelete={() => deleteEvent(event)}
                 />
               </div>
             ))}
