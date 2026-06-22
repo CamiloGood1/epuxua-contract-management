@@ -20,6 +20,20 @@ type ParentInfo = Pick<Interadministrativo,
   "id_contrato" | "objeto_contrato" | "secretaria" | "estado" | "total_contrato"
 >
 
+type ConsolidadoDerivado = {
+  totalAdiciones: number
+  valorActual: number
+  tieneAdiciones: boolean
+  valorVigente: number | null
+  ultimaProrroga: ContractModificacionesData["prorrogas"][number] | null
+  fechaVigente: string | null
+  diasRestantesVigentes: number | null
+  diasSuspendidos: number
+  ultimoAclaratorio: ContractModificacionesData["aclaratorios"][number] | null
+  hayModificaciones: boolean
+  valorParaPct: number | null
+}
+
 // ── Estado badge ──────────────────────────────────────────────────────────────
 
 const ESTADO_CFG: Record<string, { cls: string; dot: string }> = {
@@ -61,47 +75,17 @@ function KpiCard({ label, value, sub, color = "text-[#002869]" }: {
 
 // ── Información General ───────────────────────────────────────────────────────
 
-function InfoTab({ c, parent, modificaciones }: {
+function InfoTab({ c, parent, modificaciones, cons }: {
   c: Contrato
   parent: ParentInfo | null
   modificaciones: ContractModificacionesData
+  cons: ConsolidadoDerivado
 }) {
-  // ── Valores consolidados por modificaciones ───────────────────────────────
-  const totalAdiciones = modificaciones.adiciones.reduce((s, a) => s + a.valor_adicion, 0)
-  const valorActual = (c.valor_inicial ?? 0) + totalAdiciones
-  const tieneAdiciones = modificaciones.adiciones.length > 0
-
-  // Fecha vigente: última prórroga registrada o fecha_terminacion original
-  const ultimaProrroga = modificaciones.prorrogas.length > 0
-    ? [...modificaciones.prorrogas].sort((a, b) => b.numero_prorroga - a.numero_prorroga)[0]
-    : null
-  const fechaVigente = ultimaProrroga?.nueva_fecha_terminacion ?? c.fecha_terminacion
-
-  // Días restantes basados en la fecha vigente (no la original)
-  const diasRestantesVigentes = fechaVigente
-    ? Math.ceil((new Date(fechaVigente).getTime() - Date.now()) / 86400000)
-    : null
-
-  // Días suspendidos acumulados
-  const diasSuspendidos = modificaciones.suspensiones.reduce((s, sus) => {
-    if (!sus.fin_suspension) return s
-    const diff = Math.round(
-      (new Date(sus.fin_suspension).getTime() - new Date(sus.inicio_suspension).getTime()) / 86400000
-    )
-    return s + Math.max(0, diff)
-  }, 0)
-
-  // Último aclaratorio
-  const ultimoAclaratorio = modificaciones.aclaratorios.length > 0
-    ? [...modificaciones.aclaratorios].sort((a, b) => b.numero_aclaratorio - a.numero_aclaratorio)[0]
-    : null
-
-  const hayModificaciones = modificaciones.adiciones.length > 0 ||
-    modificaciones.prorrogas.length > 0 ||
-    modificaciones.suspensiones.length > 0 ||
-    modificaciones.aclaratorios.length > 0
-
-  const valorParaPct = tieneAdiciones ? valorActual : (c.valor_final ?? c.valor_inicial)
+  const {
+    totalAdiciones, valorActual, tieneAdiciones, valorVigente,
+    ultimaProrroga, fechaVigente, diasRestantesVigentes,
+    diasSuspendidos, ultimoAclaratorio, hayModificaciones, valorParaPct,
+  } = cons
   const pctPagado = valorParaPct && valorParaPct > 0 && c.valor_pagado != null
     ? Math.min(100, Math.round((c.valor_pagado / valorParaPct) * 100))
     : null
@@ -110,7 +94,7 @@ function InfoTab({ c, parent, modificaciones }: {
     <div className="space-y-5">
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <KpiCard label="Valor Contrato"   value={formatCOP(tieneAdiciones ? valorActual : (c.valor_final ?? c.valor_inicial))} />
+        <KpiCard label="Valor Contrato"   value={formatCOP(valorVigente)} />
         <KpiCard label="Valor Pagado"     value={c.valor_pagado != null ? formatCOP(c.valor_pagado) : "—"} color="text-[#10B981]" />
         <KpiCard label="Saldo Pendiente"  value={c.valor_pendiente != null ? formatCOP(c.valor_pendiente) : "—"} color={c.valor_pendiente && c.valor_pendiente > 0 ? "text-[#D97706]" : "text-[#10B981]"} />
         <KpiCard
@@ -423,6 +407,38 @@ export function DerivedContractExpediente({
     modificaciones.suspensiones.length + modificaciones.reinicios.length + modificaciones.aclaratorios.length
   const taskPend  = tasks.filter(t => t.status !== "COMPLETADA").length
 
+  // ── Única fuente de verdad contractual (header + InfoTab comparten este objeto) ──
+  const _totalAdiciones = modificaciones.adiciones.reduce((s, a) => s + a.valor_adicion, 0)
+  const _valorActual    = (c.valor_inicial ?? 0) + _totalAdiciones
+  const _tieneAdiciones = modificaciones.adiciones.length > 0
+  const _ultimaProrroga = modificaciones.prorrogas.length > 0
+    ? [...modificaciones.prorrogas].sort((a, b) => b.numero_prorroga - a.numero_prorroga)[0]
+    : null
+  const _fechaVigente   = _ultimaProrroga?.nueva_fecha_terminacion ?? c.fecha_terminacion ?? null
+  const cons: ConsolidadoDerivado = {
+    totalAdiciones:       _totalAdiciones,
+    valorActual:          _valorActual,
+    tieneAdiciones:       _tieneAdiciones,
+    valorVigente:         _tieneAdiciones ? _valorActual : (c.valor_final ?? c.valor_inicial ?? null),
+    ultimaProrroga:       _ultimaProrroga ?? null,
+    fechaVigente:         _fechaVigente ?? null,
+    diasRestantesVigentes: _fechaVigente
+      ? Math.ceil((new Date(_fechaVigente).getTime() - Date.now()) / 86400000)
+      : null,
+    diasSuspendidos: modificaciones.suspensiones.reduce((s, sus) => {
+      if (!sus.fin_suspension) return s
+      return s + Math.max(0, Math.round(
+        (new Date(sus.fin_suspension).getTime() - new Date(sus.inicio_suspension).getTime()) / 86400000
+      ))
+    }, 0),
+    ultimoAclaratorio: modificaciones.aclaratorios.length > 0
+      ? [...modificaciones.aclaratorios].sort((a, b) => b.numero_aclaratorio - a.numero_aclaratorio)[0]
+      : null,
+    hayModificaciones: modificaciones.adiciones.length > 0 || modificaciones.prorrogas.length > 0 ||
+      modificaciones.suspensiones.length > 0 || modificaciones.aclaratorios.length > 0,
+    valorParaPct: _tieneAdiciones ? _valorActual : (c.valor_final ?? c.valor_inicial ?? null),
+  }
+
   const badges: Partial<Record<TabId, number>> = {
     seguimiento:    taskPend    > 0 ? taskPend    : undefined,
     modificaciones: modCount    > 0 ? modCount    : undefined,
@@ -479,22 +495,45 @@ export function DerivedContractExpediente({
           </div>
         )}
 
-        {/* Mini KPIs header */}
-        <div className="flex flex-wrap gap-4 pt-1 border-t border-[#EAEAEA]">
-          <div className="text-sm">
-            <span className="text-[#747783] text-xs">Valor final: </span>
-            <span className="font-bold text-[#002869]">{formatCOP(c.valor_final ?? c.valor_inicial)}</span>
+        {/* Mini KPIs header — consume cons (única fuente de verdad) */}
+        <div className="flex flex-wrap gap-x-5 gap-y-2 pt-2 border-t border-[#EAEAEA]">
+          <div className="text-sm flex items-baseline gap-1.5">
+            <span className="text-[#747783] text-xs">
+              {cons.tieneAdiciones ? "Valor vigente:" : "Valor final:"}
+            </span>
+            <span className="font-bold text-[#002869]">{formatCOP(cons.valorVigente)}</span>
           </div>
-          {c.fecha_terminacion && (
-            <div className="text-sm">
-              <span className="text-[#747783] text-xs">Terminación: </span>
-              <span className="font-semibold text-[#434652]">{formatDateShort(c.fecha_terminacion)}</span>
+          {cons.fechaVigente && (
+            <div className="text-sm flex items-baseline gap-1.5">
+              <span className="text-[#747783] text-xs">
+                {cons.ultimaProrroga ? "Terminación vigente:" : "Terminación:"}
+              </span>
+              <span className="font-semibold text-[#434652]">{formatDateShort(cons.fechaVigente)}</span>
             </div>
           )}
           {c.supervisor && (
-            <div className="text-sm">
-              <span className="text-[#747783] text-xs">Supervisor: </span>
+            <div className="text-sm flex items-baseline gap-1.5">
+              <span className="text-[#747783] text-xs">Supervisor:</span>
               <span className="font-semibold text-[#434652]">{c.supervisor}</span>
+            </div>
+          )}
+          {cons.hayModificaciones && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {modificaciones.adiciones.length > 0 && (
+                <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                  {modificaciones.adiciones.length} adición{modificaciones.adiciones.length > 1 ? "es" : ""}
+                </span>
+              )}
+              {modificaciones.prorrogas.length > 0 && (
+                <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                  {modificaciones.prorrogas.length} prórroga{modificaciones.prorrogas.length > 1 ? "s" : ""}
+                </span>
+              )}
+              {modificaciones.suspensiones.length > 0 && (
+                <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+                  {modificaciones.suspensiones.length} suspensión{modificaciones.suspensiones.length > 1 ? "es" : ""}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -532,7 +571,7 @@ export function DerivedContractExpediente({
 
       <div className="pb-10">
         {tab === "info" && (
-          <InfoTab c={c} parent={parent} modificaciones={modificaciones} />
+          <InfoTab c={c} parent={parent} modificaciones={modificaciones} cons={cons} />
         )}
         {tab === "seguimiento" && (
           <DerivedSeguimientoTab
