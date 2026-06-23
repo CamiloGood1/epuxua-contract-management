@@ -111,5 +111,3 @@ export async function deleteContractPago(
   revalidate(projectId, contratoId)
   return { error: null }
 }
-
-export type { ContractPago }

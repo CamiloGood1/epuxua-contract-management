@@ -148,5 +148,3 @@ export async function deleteContractTask(
   revalidate(projectId, contratoId)
   return { error: null }
 }
-
-export type { ContractTask }
