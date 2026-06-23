@@ -5,8 +5,6 @@ import { X, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { formatPctEjecutado } from "@/modules/contracts/lib/derived-contract-financials"
-import type { EstadoContrato } from "@/types/database"
-
 // ── Tipos mínimos necesarios (compatibles con DerivedContractRow y FuncionamientoContrato) ─
 
 export interface ContractDetailData {
@@ -46,7 +44,7 @@ export interface ContractDetailData {
   suspension:               string | null
   reinicio:                 string | null
   observaciones:            string | null
-  estado:                   EstadoContrato | null
+  estado:                   string | null
   link_ficha:               string | null
   numero_poliza:            string | null
   fecha_aprobacion_poliza:  string | null

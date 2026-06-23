@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ContractDetailDrawer, type ContractDetailData } from "@/modules/contracts/components/contract-detail-drawer"
+import { ContractDetailDrawer } from "@/modules/contracts/components/contract-detail-drawer"
 import type { DerivedContractRow, DerivedContractsKPIs } from "@/services/derived-contracts.service"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { NewContractModal, type SimpleInteradmin } from "./new-contract-modal"
@@ -453,7 +453,7 @@ export function DerivedContractsClient({ contracts, kpis, canCreate = false, can
         )}
       </div>
 
-      <ContractDetailDrawer contract={selected as ContractDetailData | null} onClose={() => setSelected(null)} />
+      <ContractDetailDrawer contract={selected} onClose={() => setSelected(null)} />
 
       <NewContractModal
         open={showNewModal}
