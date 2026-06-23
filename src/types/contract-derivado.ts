@@ -163,6 +163,6 @@ export const CONTRACT_DERIVADO_FIELD_LABELS: Record<string, string> = {
   area_responsable:     "Área Responsable",
   numero_poliza:        "N° Póliza",
   link_ficha:           "Enlace SECOP",
-  enlace_carpeta:       "Enlace Carpeta Documental",
+  link_carpeta_documental:       "Enlace Carpeta Documental",
   observaciones:        "Observaciones",
 }

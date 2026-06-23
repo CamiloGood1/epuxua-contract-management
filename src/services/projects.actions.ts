@@ -198,7 +198,7 @@ export interface NewDerivedContractInput {
   estado?: string
   crp?: string                      // RP (Registro Presupuestal)
   fecha_crp?: string                // Fecha RP
-  enlace_carpeta?: string           // Enlace Carpeta Documental
+  link_carpeta_documental?: string           // Enlace Carpeta Documental
   link_ficha?: string               // Enlace Secop
   link_documentacion?: string       // Enlace Documentación
   // Backward compat
@@ -248,7 +248,7 @@ export async function createDerivedContract(
       estado:                   input.estado                   || null,
       crp:                      input.crp                      || null,
       fecha_crp:                input.fecha_crp                || null,
-      enlace_carpeta:           input.enlace_carpeta           || null,
+      link_carpeta_documental:           input.link_carpeta_documental           || null,
       link_ficha:               input.link_ficha               || null,
     })
     .select("id")
@@ -290,7 +290,7 @@ export interface NewFuncionamientoContractInput {
   fecha_cdp?: string         // Fecha CDP
   crp?: string               // CRP (número)
   fecha_crp?: string         // Fecha CRP
-  enlace_carpeta?: string    // Enlace Carpeta Documental
+  link_carpeta_documental?: string    // Enlace Carpeta Documental
   link_ficha?: string        // Enlace carpeta documental
   recurso?: string
   rubro?: string
@@ -343,7 +343,7 @@ export async function createFuncionamientoContract(
       fecha_cdp:                input.fecha_cdp                || null,
       crp:                      input.crp                      || null,
       fecha_crp:                input.fecha_crp                || null,
-      enlace_carpeta:           input.enlace_carpeta           || null,
+      link_carpeta_documental:           input.link_carpeta_documental           || null,
       link_ficha:               input.link_ficha               || null,
       recurso:                  input.recurso                  || null,
       rubro:                    input.rubro                   || null,

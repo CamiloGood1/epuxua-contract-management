@@ -254,7 +254,7 @@ export async function GET(
     "Valor Actual":              fin.valorActual,
     "Valor Pagado":              fin.valorPagado,
     "Saldo Pendiente":           fin.saldoPendiente,
-    "Enlace Carpeta Documental": s((c as unknown as Record<string, unknown>).enlace_carpeta as string),
+    "Enlace Carpeta Documental": s((c as unknown as Record<string, unknown>).link_carpeta_documental as string),
   }}))
   ws3["!cols"] = [{ wch: 18 }, { wch: 45 }, { wch: 25 }, { wch: 16 }, { wch: 18 },
     { wch: 22 }, { wch: 14 }, { wch: 18 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 18 },

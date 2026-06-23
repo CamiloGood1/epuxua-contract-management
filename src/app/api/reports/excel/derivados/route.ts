@@ -193,7 +193,7 @@ export async function GET(req: NextRequest) {
       "Fecha Terminación":         d(c.fecha_terminacion),
       "Plazo":                     s(c.plazo_ejecucion),
       "Enlace Secop":              s(c.link_ficha),
-      "Enlace Carpeta Documental": s(c.enlace_carpeta),
+      "Enlace Carpeta Documental": s(c.link_carpeta_documental),
       // ── Relación Contractual ────────────────────────────────────────
       "N° Contrato Interadministrativo": s(c.id_interadministrativo),
       "Nombre Proyecto":           s(parent?.objeto_contrato),

@@ -78,7 +78,7 @@ interface DeriForm {
   valor_inicial: string
   crp: string
   fecha_crp: string
-  enlace_carpeta: string
+  link_carpeta_documental: string
 }
 
 const EMPTY_DERI: DeriForm = {
@@ -87,7 +87,7 @@ const EMPTY_DERI: DeriForm = {
   numero_proceso_seleccion: "", estado: "EN EJECUCIÓN", fecha_suscripcion: "",
   fecha_inicio: "", fecha_terminacion: "", plazo_ejecucion: "", supervisor: "",
   link_ficha: "", link_documentacion: "", valor_inicial: "", crp: "", fecha_crp: "",
-  enlace_carpeta: "",
+  link_carpeta_documental: "",
 }
 
 // ── Funcionamiento form ───────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ interface FuncForm {
   fecha_cdp: string
   crp: string
   fecha_crp: string
-  enlace_carpeta: string
+  link_carpeta_documental: string
   link_ficha: string
   observaciones: string
 }
@@ -122,7 +122,7 @@ const EMPTY_FUNC: FuncForm = {
   area_responsable: "", estado: "EN EJECUCIÓN", fecha_suscripcion: "",
   fecha_inicio: "", fecha_terminacion: "", plazo_ejecucion: "", supervisor: "",
   objeto_contrato: "", valor_inicial: "", cdp: "", fecha_cdp: "", crp: "",
-  fecha_crp: "", enlace_carpeta: "", link_ficha: "", observaciones: "",
+  fecha_crp: "", link_carpeta_documental: "", link_ficha: "", observaciones: "",
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -228,7 +228,7 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
         valor_inicial:            parseNum(deri.valor_inicial),
         crp:                      deri.crp.trim() || undefined,
         fecha_crp:                deri.fecha_crp || undefined,
-        enlace_carpeta:           deri.enlace_carpeta.trim() || undefined,
+        link_carpeta_documental:           deri.link_carpeta_documental.trim() || undefined,
       })
     } else {
       result = await createFuncionamientoContract({
@@ -250,7 +250,7 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
         fecha_cdp:          func_.fecha_cdp || undefined,
         crp:                func_.crp.trim() || undefined,
         fecha_crp:          func_.fecha_crp || undefined,
-        enlace_carpeta:     func_.enlace_carpeta.trim() || undefined,
+        link_carpeta_documental:     func_.link_carpeta_documental.trim() || undefined,
         link_ficha:         func_.link_ficha.trim() || undefined,
         observaciones:      func_.observaciones.trim() || undefined,
       })
@@ -453,7 +453,7 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
                     </div>
                     <div>
                       <Label>Enlace Carpeta Documental</Label>
-                      <input type="url" className={inputCls} placeholder="https://drive.google.com/…" value={deri.enlace_carpeta} onChange={(e) => setD("enlace_carpeta", e.target.value)} />
+                      <input type="url" className={inputCls} placeholder="https://drive.google.com/…" value={deri.link_carpeta_documental} onChange={(e) => setD("link_carpeta_documental", e.target.value)} />
                     </div>
                   </Row>
                 </>
@@ -566,7 +566,7 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
 
                   <div>
                     <Label>Enlace Carpeta Documental</Label>
-                    <input type="url" className={inputCls} placeholder="https://drive.google.com/…" value={func_.enlace_carpeta} onChange={(e) => setF("enlace_carpeta", e.target.value)} />
+                    <input type="url" className={inputCls} placeholder="https://drive.google.com/…" value={func_.link_carpeta_documental} onChange={(e) => setF("link_carpeta_documental", e.target.value)} />
                   </div>
 
                   <div>

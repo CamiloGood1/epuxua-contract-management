@@ -100,7 +100,7 @@ export interface Contrato {
   fecha_cdp: string | null
   crp: string | null
   fecha_crp: string | null
-  enlace_carpeta: string | null
+  link_carpeta_documental: string | null
   suspension: string | null
   reinicio: string | null
   observaciones: string | null

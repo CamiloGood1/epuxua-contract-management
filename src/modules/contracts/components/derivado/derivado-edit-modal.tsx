@@ -68,7 +68,7 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
     nit_identificacion:       c.nit_identificacion ?? "",
     crp:                      c.crp ?? "",
     fecha_crp:                c.fecha_crp ?? "",
-    enlace_carpeta:           c.enlace_carpeta ?? "",
+    link_carpeta_documental:  c.link_carpeta_documental ?? "",
     numero_poliza:            c.numero_poliza ?? "",
     fecha_aprobacion_poliza:  c.fecha_aprobacion_poliza ?? "",
     link_ficha:               c.link_ficha ?? "",
@@ -118,7 +118,7 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
         nit_identificacion:       nullIfEmpty(form.nit_identificacion),
         crp:                      nullIfEmpty(form.crp),
         fecha_crp:                nullIfEmpty(form.fecha_crp),
-        enlace_carpeta:           nullIfEmpty(form.enlace_carpeta),
+        link_carpeta_documental:  nullIfEmpty(form.link_carpeta_documental),
         numero_poliza:            nullIfEmpty(form.numero_poliza),
         fecha_aprobacion_poliza:  nullIfEmpty(form.fecha_aprobacion_poliza),
         link_ficha:               nullIfEmpty(form.link_ficha),
@@ -281,7 +281,7 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
               <input type="url" value={form.link_ficha} onChange={e => set("link_ficha", e.target.value)} className={inputCls} placeholder="https://…" />
             </Field>
             <Field label="Enlace Carpeta Documental">
-              <input type="url" value={form.enlace_carpeta} onChange={e => set("enlace_carpeta", e.target.value)} className={inputCls} placeholder="https://drive.google.com/…" />
+              <input type="url" value={form.link_carpeta_documental} onChange={e => set("link_carpeta_documental", e.target.value)} className={inputCls} placeholder="https://drive.google.com/…" />
             </Field>
 
             {/* Observaciones */}
