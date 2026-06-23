@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "./user.service"
 import { assertContratoWriteAccess } from "./interadmin-access"
 import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
-import type { ContractTask } from "@/types/contract-derivado"
 
 type Res = { error: string | null }
 
@@ -31,7 +30,7 @@ export interface CreateContractTaskInput {
   nombre: string
   descripcion: string
   fecha_compromiso: string
-  prioridad: ContractTask["prioridad"]
+  prioridad: "BAJA" | "MEDIA" | "ALTA" | "CRITICA"
   responsable: string
 }
 

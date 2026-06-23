@@ -5,10 +5,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "./user.service"
 import { assertContratoWriteAccess } from "./interadmin-access"
 import { canEditProjects } from "@/modules/projects/lib/access"
-import type {
-  ContractAdicion, ContractProrroga, ContractSuspension,
-  ContractReinicio, ContractAclaratorio,
-} from "@/types/contract-derivado"
 
 type Res = { error: string | null }
 

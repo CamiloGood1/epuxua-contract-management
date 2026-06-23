@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "./user.service"
 import { assertContratoWriteAccess } from "./interadmin-access"
 import { canEditProjects } from "@/modules/projects/lib/access"
-import type { EstadoContrato } from "@/types/database"
 
 type Res = { error: string | null }
 
@@ -18,7 +17,7 @@ export interface UpdateContratoInput {
   contratista?:              string | null
   objeto_contrato?:          string | null
   supervisor?:               string | null
-  estado?:                   EstadoContrato | null
+  estado?:                   string | null
   fecha_suscripcion?:        string | null
   fecha_inicio?:             string | null
   fecha_terminacion?:        string | null
