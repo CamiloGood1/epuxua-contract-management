@@ -4,8 +4,9 @@ import {
   groupByContratoId,
   type DerivedContractFinancials,
 } from "@/modules/contracts/lib/derived-contract-financials"
-import type { ContractAdicion, ContractPago } from "@/types/contract-derivado"
-import type { EstadoInteradministrativo, EstadoContrato } from "@/types/database"
+
+type AdicionRow = { contrato_id: number; valor_adicion: number | null }
+type PagoRow    = { contrato_id: number; valor_pagado: number; fecha_pago: string }
 
 export interface DerivedContractRow {
   id: number
@@ -44,7 +45,7 @@ export interface DerivedContractRow {
   suspension:               string | null
   reinicio:                 string | null
   observaciones:            string | null
-  estado:                   EstadoContrato | null
+  estado:                   string | null
   link_ficha:               string | null
   numero_poliza:            string | null
   fecha_aprobacion_poliza:  string | null
@@ -55,7 +56,7 @@ export interface DerivedContractRow {
   parent_objeto:            string | null
   parent_secretaria:        string | null
   parent_area:              string | null
-  parent_estado:            EstadoInteradministrativo | null
+  parent_estado:            string | null
   parent_total:             number | null
   parent_pendiente:         number | null
   /** Calculado dinámicamente: contrato + adiciones + pagos al contratista */
@@ -75,11 +76,11 @@ export interface DerivedContractsKPIs {
 }
 
 async function loadFinancialAggregates(contractIds: number[]): Promise<{
-  adicionesByContrato: Map<number, ContractAdicion[]>
-  pagosByContrato: Map<number, ContractPago[]>
+  adicionesByContrato: Map<number, AdicionRow[]>
+  pagosByContrato: Map<number, PagoRow[]>
 }> {
-  const adicionesByContrato = new Map<number, ContractAdicion[]>()
-  const pagosByContrato = new Map<number, ContractPago[]>()
+  const adicionesByContrato = new Map<number, AdicionRow[]>()
+  const pagosByContrato = new Map<number, PagoRow[]>()
 
   if (contractIds.length === 0) {
     return { adicionesByContrato, pagosByContrato }
@@ -97,10 +98,10 @@ async function loadFinancialAggregates(contractIds: number[]): Promise<{
       .in("contrato_id", contractIds),
   ])
 
-  for (const [id, list] of groupByContratoId((adicionesRaw ?? []) as ContractAdicion[])) {
+  for (const [id, list] of groupByContratoId((adicionesRaw ?? []) as AdicionRow[])) {
     adicionesByContrato.set(id, list)
   }
-  for (const [id, list] of groupByContratoId((pagosRaw ?? []) as ContractPago[])) {
+  for (const [id, list] of groupByContratoId((pagosRaw ?? []) as PagoRow[])) {
     pagosByContrato.set(id, list)
   }
 
@@ -109,8 +110,8 @@ async function loadFinancialAggregates(contractIds: number[]): Promise<{
 
 export function attachDerivedFinancials<T extends { id: number; valor_inicial?: number | null }>(
   row: T,
-  adiciones: ContractAdicion[],
-  pagos: ContractPago[],
+  adiciones: AdicionRow[],
+  pagos: PagoRow[],
 ): T & { financials: DerivedContractFinancials } {
   return {
     ...row,
@@ -156,7 +157,7 @@ export async function getAllDerivedContracts(): Promise<DerivedContractRow[]> {
       parent_objeto:          (parent?.objeto_contrato      as string | null) ?? null,
       parent_secretaria:      (parent?.secretaria           as string | null) ?? null,
       parent_area:            (parent?.area_responsable     as string | null) ?? null,
-      parent_estado:          (parent?.estado               as EstadoInteradministrativo | null) ?? null,
+      parent_estado:          (parent?.estado               as string | null) ?? null,
       parent_total:           (parent?.total_contrato       as number | null) ?? null,
       parent_pendiente:       (parent?.valor_pendiente_cobrar as number | null) ?? null,
     } as Omit<DerivedContractRow, "financials">

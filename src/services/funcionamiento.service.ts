@@ -1,5 +1,4 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import type { EstadoContrato } from "@/types/database"
 
 export interface FuncionamientoContrato {
   id: number
@@ -38,7 +37,7 @@ export interface FuncionamientoContrato {
   suspension:               string | null
   reinicio:                 string | null
   observaciones:            string | null
-  estado:                   EstadoContrato | null
+  estado:                   string | null
   link_ficha:               string | null
   numero_poliza:            string | null
   fecha_aprobacion_poliza:  string | null
