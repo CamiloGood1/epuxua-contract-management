@@ -20,6 +20,9 @@
 # production
 /build
 
+# claude/cursor agent worktrees (local only)
+.claude/worktrees/
+
 # misc
 .DS_Store
 *.pem
