@@ -385,7 +385,3 @@ export async function deleteContractAclaratorio(id: number, contratoId: number, 
   revalidate(projectId, contratoId)
   return { error: null }
 }
-
-// ── Re-exportar tipos para los componentes ────────────────────────────────────
-
-export type { ContractAdicion, ContractProrroga, ContractSuspension, ContractReinicio, ContractAclaratorio }
