@@ -5,7 +5,7 @@ import {
   type DerivedContractFinancials,
 } from "@/modules/contracts/lib/derived-contract-financials"
 
-type AdicionRow = { contrato_id: number; valor_adicion: number | null }
+type AdicionRow = { contrato_id: number; valor_adicion: number }
 type PagoRow    = { contrato_id: number; valor_pagado: number; fecha_pago: string }
 
 export interface DerivedContractRow {

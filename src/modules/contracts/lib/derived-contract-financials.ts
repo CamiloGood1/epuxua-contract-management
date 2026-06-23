@@ -1,5 +1,3 @@
-import type { ContractAdicion, ContractPago } from "@/types/contract-derivado"
-
 /** Resumen financiero calculado dinámicamente (única fuente de verdad). */
 export interface DerivedContractFinancials {
   valorInicial: number
@@ -10,8 +8,8 @@ export interface DerivedContractFinancials {
   pctEjecutado: number | null
 }
 
-type AdicionLike = Pick<ContractAdicion, "valor_adicion">
-type PagoLike = Pick<ContractPago, "valor_pagado" | "fecha_pago">
+type AdicionLike = { valor_adicion: number }
+type PagoLike    = { valor_pagado: number; fecha_pago: string }
 
 /** Pago válido: fecha y valor bruto positivo. */
 export function isValidContractPago(pago: PagoLike): boolean {
