@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { X, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react"
+import { X, Plus, Trash2, ChevronDown, ChevronUp, Pencil } from "lucide-react"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import {
-  createAdicion, deleteAdicion,
-  createProrroga, deleteProrroga,
-  createSuspension, deleteSuspension,
-  createReinicio, deleteReinicio,
-  createAclaratorio, deleteAclaratorio,
+  createAdicion, updateAdicion, deleteAdicion,
+  createProrroga, updateProrroga, deleteProrroga,
+  createSuspension, updateSuspension, deleteSuspension,
+  createReinicio, updateReinicio, deleteReinicio,
+  createAclaratorio, updateAclaratorio, deleteAclaratorio,
 } from "@/services/modificaciones.actions"
 import type { ModificacionesData, Adicion, Prorroga, Suspension, Reinicio, Aclaratorio } from "@/types/modificaciones"
 
@@ -88,36 +88,57 @@ function FormButtons({ onClose, isPending, label }: { onClose: () => void; isPen
   )
 }
 
-// ── Modales de creación ───────────────────────────────────────────────────────
+// ── Modales (creación + edición) ──────────────────────────────────────────────
 
-function AdicionModal({ interadministrativoId, nextNum, onClose }: { interadministrativoId: number; nextNum: number; onClose: () => void }) {
+function AdicionModal({
+  interadministrativoId, nextNum, onClose, editData,
+}: {
+  interadministrativoId: number
+  nextNum: number
+  onClose: () => void
+  editData?: Adicion | null
+}) {
   const router = useRouter()
-  const [f, setF] = useState({ fecha: "", valorTotal: "", valorCuota: "", valorBienes: "", numeroRp: "", motivo: "", link: "" })
+  const [f, setF] = useState({
+    fecha:      editData?.fecha_adicion         ?? "",
+    valorTotal: editData?.valor_total            != null ? String(editData.valor_total) : "",
+    valorCuota: editData?.valor_cuota_gerencia   != null ? String(editData.valor_cuota_gerencia) : "",
+    valorBienes:editData?.valor_bienes_servicios != null ? String(editData.valor_bienes_servicios) : "",
+    numeroRp:   editData?.numero_rp              ?? "",
+    motivo:     editData?.motivo                 ?? "",
+    link:       editData?.link_documental        ?? "",
+  })
   const [err, setErr] = useState<string | null>(null)
   const [pending, start] = useTransition()
+
+  function parseNum(s: string) {
+    const n = parseFloat(s.replace(/\./g, "").replace(",", "."))
+    return isNaN(n) ? null : n
+  }
 
   function handle(e: React.FormEvent) {
     e.preventDefault(); setErr(null)
     start(async () => {
-      const res = await createAdicion({
-        interadministrativo_id: interadministrativoId,
-        numero_adicion:         nextNum,
+      const payload = {
         fecha_adicion:          f.fecha,
-        valor_total:            f.valorTotal ? parseFloat(f.valorTotal.replace(/\./g, "").replace(",", ".")) : null,
-        valor_cuota_gerencia:   f.valorCuota ? parseFloat(f.valorCuota.replace(/\./g, "").replace(",", ".")) : null,
-        valor_bienes_servicios: f.valorBienes ? parseFloat(f.valorBienes.replace(/\./g, "").replace(",", ".")) : null,
+        valor_total:            parseNum(f.valorTotal),
+        valor_cuota_gerencia:   parseNum(f.valorCuota),
+        valor_bienes_servicios: parseNum(f.valorBienes),
         numero_rp:              f.numeroRp || null,
         motivo:                 f.motivo || null,
         link_documental:        f.link || null,
-      })
+      }
+      const res = editData
+        ? await updateAdicion(editData.id, interadministrativoId, payload)
+        : await createAdicion({ interadministrativo_id: interadministrativoId, numero_adicion: nextNum, ...payload })
       if (res.error) { setErr(res.error); return }
-      onClose()
-      router.refresh()
+      onClose(); router.refresh()
     })
   }
 
+  const isEdit = !!editData
   return (
-    <Modal title={`Nueva Adición — ${ordinal(nextNum)}`} onClose={onClose}>
+    <Modal title={isEdit ? "Editar Adición" : `Nueva Adición — ${ordinal(nextNum)}`} onClose={onClose}>
       <form onSubmit={handle} className="p-6 space-y-4">
         <Field label="Fecha de la Adición *">
           <input type="date" required className={inputCls} value={f.fecha} onChange={(e) => setF({ ...f, fecha: e.target.value })} />
@@ -145,15 +166,29 @@ function AdicionModal({ interadministrativoId, nextNum, onClose }: { interadmini
           <input type="url" className={inputCls} placeholder="https://…" value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} />
         </Field>
         {err && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{err}</p>}
-        <FormButtons onClose={onClose} isPending={pending} label="Registrar Adición" />
+        <FormButtons onClose={onClose} isPending={pending} label={isEdit ? "Guardar cambios" : "Registrar Adición"} />
       </form>
     </Modal>
   )
 }
 
-function ProrrogaModal({ interadministrativoId, nextNum, fechaTerminacionActual, onClose }: { interadministrativoId: number; nextNum: number; fechaTerminacionActual: string | null; onClose: () => void }) {
+function ProrrogaModal({
+  interadministrativoId, nextNum, fechaTerminacionActual, onClose, editData,
+}: {
+  interadministrativoId: number
+  nextNum: number
+  fechaTerminacionActual: string | null
+  onClose: () => void
+  editData?: Prorroga | null
+}) {
   const router = useRouter()
-  const [f, setF] = useState({ fechaSusc: "", nuevaFecha: "", plazo: "", justificacion: "" })
+  const [f, setF] = useState({
+    fechaSusc:    editData?.fecha_suscripcion       ?? "",
+    nuevaFecha:   editData?.nueva_fecha_terminacion ?? "",
+    plazo:        editData?.plazo_prorroga           ?? "",
+    justificacion:editData?.justificacion            ?? "",
+    link:         editData?.link_documental          ?? "",
+  })
   const [err, setErr] = useState<string | null>(null)
   const [pending, start] = useTransition()
 
@@ -162,24 +197,26 @@ function ProrrogaModal({ interadministrativoId, nextNum, fechaTerminacionActual,
   function handle(e: React.FormEvent) {
     e.preventDefault(); setErr(null)
     start(async () => {
-      const res = await createProrroga({
-        interadministrativo_id:  interadministrativoId,
-        numero_prorroga:         nextNum,
+      const payload = {
         fecha_suscripcion:       f.fechaSusc,
         nueva_fecha_terminacion: f.nuevaFecha,
         plazo_prorroga:          f.plazo || (diasPlazo != null ? `${diasPlazo} días` : null),
         justificacion:           f.justificacion || null,
-      })
+        link_documental:         f.link || null,
+      }
+      const res = editData
+        ? await updateProrroga(editData.id, interadministrativoId, payload)
+        : await createProrroga({ interadministrativo_id: interadministrativoId, numero_prorroga: nextNum, ...payload })
       if (res.error) { setErr(res.error); return }
-      onClose()
-      router.refresh()
+      onClose(); router.refresh()
     })
   }
 
+  const isEdit = !!editData
   return (
-    <Modal title={`Nueva Prórroga — ${ordinal(nextNum)}`} onClose={onClose}>
+    <Modal title={isEdit ? "Editar Prórroga" : `Nueva Prórroga — ${ordinal(nextNum)}`} onClose={onClose}>
       <form onSubmit={handle} className="p-6 space-y-4">
-        {fechaTerminacionActual && (
+        {!isEdit && fechaTerminacionActual && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
             Fecha de terminación actual: <strong>{fmtDate(fechaTerminacionActual)}</strong>
           </div>
@@ -196,16 +233,33 @@ function ProrrogaModal({ interadministrativoId, nextNum, fechaTerminacionActual,
         <Field label="Justificación">
           <textarea rows={3} className={textareaCls} value={f.justificacion} onChange={(e) => setF({ ...f, justificacion: e.target.value })} />
         </Field>
+        <Field label="Enlace Documental (URL)">
+          <input type="url" className={inputCls} placeholder="https://…" value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} />
+        </Field>
         {err && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{err}</p>}
-        <FormButtons onClose={onClose} isPending={pending} label="Registrar Prórroga" />
+        <FormButtons onClose={onClose} isPending={pending} label={isEdit ? "Guardar cambios" : "Registrar Prórroga"} />
       </form>
     </Modal>
   )
 }
 
-function SuspensionModal({ interadministrativoId, nextNum, onClose }: { interadministrativoId: number; nextNum: number; onClose: () => void }) {
+function SuspensionModal({
+  interadministrativoId, nextNum, onClose, editData,
+}: {
+  interadministrativoId: number
+  nextNum: number
+  onClose: () => void
+  editData?: Suspension | null
+}) {
   const router = useRouter()
-  const [f, setF] = useState({ fechaSusc: "", inicio: "", fin: "", plazo: "", motivo: "" })
+  const [f, setF] = useState({
+    fechaSusc: editData?.fecha_suscripcion ?? "",
+    inicio:    editData?.inicio_suspension  ?? "",
+    fin:       editData?.fin_suspension     ?? "",
+    plazo:     editData?.plazo_suspension   ?? "",
+    motivo:    editData?.motivo             ?? "",
+    link:      editData?.link_documental    ?? "",
+  })
   const [err, setErr] = useState<string | null>(null)
   const [pending, start] = useTransition()
 
@@ -214,23 +268,25 @@ function SuspensionModal({ interadministrativoId, nextNum, onClose }: { interadm
   function handle(e: React.FormEvent) {
     e.preventDefault(); setErr(null)
     start(async () => {
-      const res = await createSuspension({
-        interadministrativo_id: interadministrativoId,
-        numero_suspension:      nextNum,
-        fecha_suscripcion:      f.fechaSusc || null,
-        inicio_suspension:      f.inicio,
-        fin_suspension:         f.fin || null,
-        plazo_suspension:       f.plazo || (diasSusp != null ? `${diasSusp} días` : null),
-        motivo:                 f.motivo || null,
-      })
+      const payload = {
+        fecha_suscripcion: f.fechaSusc || null,
+        inicio_suspension: f.inicio,
+        fin_suspension:    f.fin || null,
+        plazo_suspension:  f.plazo || (diasSusp != null ? `${diasSusp} días` : null),
+        motivo:            f.motivo || null,
+        link_documental:   f.link || null,
+      }
+      const res = editData
+        ? await updateSuspension(editData.id, interadministrativoId, payload)
+        : await createSuspension({ interadministrativo_id: interadministrativoId, numero_suspension: nextNum, ...payload })
       if (res.error) { setErr(res.error); return }
-      onClose()
-      router.refresh()
+      onClose(); router.refresh()
     })
   }
 
+  const isEdit = !!editData
   return (
-    <Modal title={`Nueva Suspensión — N°${nextNum}`} onClose={onClose}>
+    <Modal title={isEdit ? "Editar Suspensión" : `Nueva Suspensión — N°${nextNum}`} onClose={onClose}>
       <form onSubmit={handle} className="p-6 space-y-4">
         <Field label="Fecha de Suscripción">
           <input type="date" className={inputCls} value={f.fechaSusc} onChange={(e) => setF({ ...f, fechaSusc: e.target.value })} />
@@ -249,38 +305,56 @@ function SuspensionModal({ interadministrativoId, nextNum, onClose }: { interadm
         <Field label="Motivo / Justificación">
           <textarea rows={3} className={textareaCls} value={f.motivo} onChange={(e) => setF({ ...f, motivo: e.target.value })} />
         </Field>
+        <Field label="Enlace Documental (URL)">
+          <input type="url" className={inputCls} placeholder="https://…" value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} />
+        </Field>
         {err && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{err}</p>}
-        <FormButtons onClose={onClose} isPending={pending} label="Registrar Suspensión" />
+        <FormButtons onClose={onClose} isPending={pending} label={isEdit ? "Guardar cambios" : "Registrar Suspensión"} />
       </form>
     </Modal>
   )
 }
 
-function ReinicioModal({ interadministrativoId, nextNum, onClose }: { interadministrativoId: number; nextNum: number; onClose: () => void }) {
+function ReinicioModal({
+  interadministrativoId, nextNum, onClose, editData,
+}: {
+  interadministrativoId: number
+  nextNum: number
+  onClose: () => void
+  editData?: Reinicio | null
+}) {
   const router = useRouter()
-  const [f, setF] = useState({ fechaReinicio: "", fechaSusc: "", motivo: "", obs: "" })
+  const [f, setF] = useState({
+    fechaReinicio: editData?.fecha_reinicio    ?? "",
+    fechaSusc:     editData?.fecha_suscripcion ?? "",
+    motivo:        editData?.motivo            ?? "",
+    obs:           editData?.observaciones     ?? "",
+    link:          editData?.link_documental   ?? "",
+  })
   const [err, setErr] = useState<string | null>(null)
   const [pending, start] = useTransition()
 
   function handle(e: React.FormEvent) {
     e.preventDefault(); setErr(null)
     start(async () => {
-      const res = await createReinicio({
-        interadministrativo_id: interadministrativoId,
-        numero_reinicio:        nextNum,
-        fecha_reinicio:         f.fechaReinicio,
-        fecha_suscripcion:      f.fechaSusc || null,
-        motivo:                 f.motivo || null,
-        observaciones:          f.obs || null,
-      })
+      const payload = {
+        fecha_reinicio:    f.fechaReinicio,
+        fecha_suscripcion: f.fechaSusc || null,
+        motivo:            f.motivo || null,
+        observaciones:     f.obs || null,
+        link_documental:   f.link || null,
+      }
+      const res = editData
+        ? await updateReinicio(editData.id, interadministrativoId, payload)
+        : await createReinicio({ interadministrativo_id: interadministrativoId, numero_reinicio: nextNum, ...payload })
       if (res.error) { setErr(res.error); return }
-      onClose()
-      router.refresh()
+      onClose(); router.refresh()
     })
   }
 
+  const isEdit = !!editData
   return (
-    <Modal title={`Nuevo Reinicio — N°${nextNum}`} onClose={onClose}>
+    <Modal title={isEdit ? "Editar Reinicio" : `Nuevo Reinicio — N°${nextNum}`} onClose={onClose}>
       <form onSubmit={handle} className="p-6 space-y-4">
         <Field label="Fecha de Reinicio *">
           <input type="date" required className={inputCls} value={f.fechaReinicio} onChange={(e) => setF({ ...f, fechaReinicio: e.target.value })} />
@@ -294,37 +368,54 @@ function ReinicioModal({ interadministrativoId, nextNum, onClose }: { interadmin
         <Field label="Observaciones">
           <textarea rows={2} className={textareaCls} value={f.obs} onChange={(e) => setF({ ...f, obs: e.target.value })} />
         </Field>
+        <Field label="Enlace Documental (URL)">
+          <input type="url" className={inputCls} placeholder="https://…" value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} />
+        </Field>
         {err && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{err}</p>}
-        <FormButtons onClose={onClose} isPending={pending} label="Registrar Reinicio" />
+        <FormButtons onClose={onClose} isPending={pending} label={isEdit ? "Guardar cambios" : "Registrar Reinicio"} />
       </form>
     </Modal>
   )
 }
 
-function AclaratorioModal({ interadministrativoId, nextNum, onClose }: { interadministrativoId: number; nextNum: number; onClose: () => void }) {
+function AclaratorioModal({
+  interadministrativoId, nextNum, onClose, editData,
+}: {
+  interadministrativoId: number
+  nextNum: number
+  onClose: () => void
+  editData?: Aclaratorio | null
+}) {
   const router = useRouter()
-  const [f, setF] = useState({ fecha: "", motivo: "", descripcion: "" })
+  const [f, setF] = useState({
+    fecha:      editData?.fecha_suscripcion ?? "",
+    motivo:     editData?.motivo           ?? "",
+    descripcion:editData?.descripcion      ?? "",
+    link:       editData?.link_documental  ?? "",
+  })
   const [err, setErr] = useState<string | null>(null)
   const [pending, start] = useTransition()
 
   function handle(e: React.FormEvent) {
     e.preventDefault(); setErr(null)
     start(async () => {
-      const res = await createAclaratorio({
-        interadministrativo_id: interadministrativoId,
-        numero_aclaratorio:     nextNum,
-        fecha_suscripcion:      f.fecha,
-        motivo:                 f.motivo || null,
-        descripcion:            f.descripcion || null,
-      })
+      const payload = {
+        fecha_suscripcion: f.fecha,
+        motivo:            f.motivo || null,
+        descripcion:       f.descripcion || null,
+        link_documental:   f.link || null,
+      }
+      const res = editData
+        ? await updateAclaratorio(editData.id, interadministrativoId, payload)
+        : await createAclaratorio({ interadministrativo_id: interadministrativoId, numero_aclaratorio: nextNum, ...payload })
       if (res.error) { setErr(res.error); return }
-      onClose()
-      router.refresh()
+      onClose(); router.refresh()
     })
   }
 
+  const isEdit = !!editData
   return (
-    <Modal title={`Nuevo Aclaratorio — N°${nextNum}`} onClose={onClose}>
+    <Modal title={isEdit ? "Editar Aclaratorio" : `Nuevo Aclaratorio — N°${nextNum}`} onClose={onClose}>
       <form onSubmit={handle} className="p-6 space-y-4">
         <Field label="Fecha de Suscripción *">
           <input type="date" required className={inputCls} value={f.fecha} onChange={(e) => setF({ ...f, fecha: e.target.value })} />
@@ -335,8 +426,11 @@ function AclaratorioModal({ interadministrativoId, nextNum, onClose }: { interad
         <Field label="Descripción del Aclaratorio">
           <textarea rows={4} className={textareaCls} value={f.descripcion} onChange={(e) => setF({ ...f, descripcion: e.target.value })} />
         </Field>
+        <Field label="Enlace Documental (URL)">
+          <input type="url" className={inputCls} placeholder="https://…" value={f.link} onChange={(e) => setF({ ...f, link: e.target.value })} />
+        </Field>
         {err && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{err}</p>}
-        <FormButtons onClose={onClose} isPending={pending} label="Registrar Aclaratorio" />
+        <FormButtons onClose={onClose} isPending={pending} label={isEdit ? "Guardar cambios" : "Registrar Aclaratorio"} />
       </form>
     </Modal>
   )
@@ -362,7 +456,26 @@ function buildTimeline(m: ModificacionesData): TimelineEvent[] {
   return events.sort((a, b) => a.fecha.localeCompare(b.fecha))
 }
 
-function EventDetail({ event, canDelete, onDelete }: { event: TimelineEvent; canDelete: boolean; onDelete: () => Promise<{ error: string | null }> }) {
+function DocLink({ url }: { url: string | null | undefined }) {
+  if (!url) return null
+  return (
+    <div className="col-span-2">
+      <a href={url} target="_blank" rel="noreferrer" className="text-xs text-[#0B3D91] underline">
+        Ver documento ↗
+      </a>
+    </div>
+  )
+}
+
+function EventDetail({
+  event, canDelete, canEdit, onDelete, onEdit,
+}: {
+  event: TimelineEvent
+  canDelete: boolean
+  canEdit: boolean
+  onDelete: () => Promise<{ error: string | null }>
+  onEdit: () => void
+}) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [delPending, startDel] = useTransition()
@@ -374,10 +487,7 @@ function EventDetail({ event, canDelete, onDelete }: { event: TimelineEvent; can
     if (!confirm(msg)) return
     startDel(async () => {
       const res = await onDelete()
-      if (res.error) {
-        alert(res.error)
-        return
-      }
+      if (res.error) { alert(res.error); return }
       router.refresh()
     })
   }
@@ -417,7 +527,7 @@ function EventDetail({ event, canDelete, onDelete }: { event: TimelineEvent; can
               {d.valor_bienes_servicios && <div><p className="text-[10px] text-[#747783] uppercase">Bienes y Servicios</p><p className="font-semibold">{formatCOP(d.valor_bienes_servicios)}</p></div>}
               {d.numero_rp && <div><p className="text-[10px] text-[#747783] uppercase">Número RP</p><p className="font-semibold font-mono">{d.numero_rp}</p></div>}
               {d.motivo && <div className="col-span-2"><p className="text-[10px] text-[#747783] uppercase">Motivo</p><p>{d.motivo}</p></div>}
-              {d.link_documental && <div className="col-span-2"><a href={d.link_documental} target="_blank" rel="noreferrer" className="text-xs text-[#0B3D91] underline">Ver documento</a></div>}
+              <DocLink url={d.link_documental} />
             </div>
           )})()}
           {event.tipo === "PRÓRROGA" && (() => { const d = event.data as Prorroga; return (
@@ -425,6 +535,7 @@ function EventDetail({ event, canDelete, onDelete }: { event: TimelineEvent; can
               <div><p className="text-[10px] text-[#747783] uppercase">Nueva Terminación</p><p className="font-semibold text-amber-600">{fmtDate(d.nueva_fecha_terminacion)}</p></div>
               {d.plazo_prorroga && <div><p className="text-[10px] text-[#747783] uppercase">Plazo</p><p>{d.plazo_prorroga}</p></div>}
               {d.justificacion && <div className="col-span-2"><p className="text-[10px] text-[#747783] uppercase">Justificación</p><p>{d.justificacion}</p></div>}
+              <DocLink url={d.link_documental} />
             </div>
           )})()}
           {event.tipo === "SUSPENSIÓN" && (() => { const d = event.data as Suspension; return (
@@ -433,6 +544,7 @@ function EventDetail({ event, canDelete, onDelete }: { event: TimelineEvent; can
               <div><p className="text-[10px] text-[#747783] uppercase">Fin</p><p className="font-semibold">{d.fin_suspension ? fmtDate(d.fin_suspension) : "En curso"}</p></div>
               {d.plazo_suspension && <div><p className="text-[10px] text-[#747783] uppercase">Plazo</p><p>{d.plazo_suspension}</p></div>}
               {d.motivo && <div className="col-span-2"><p className="text-[10px] text-[#747783] uppercase">Motivo</p><p>{d.motivo}</p></div>}
+              <DocLink url={d.link_documental} />
             </div>
           )})()}
           {event.tipo === "REINICIO" && (() => { const d = event.data as Reinicio; return (
@@ -441,24 +553,39 @@ function EventDetail({ event, canDelete, onDelete }: { event: TimelineEvent; can
               {d.fecha_suscripcion && <div><p className="text-[10px] text-[#747783] uppercase">Fecha Suscripción</p><p>{fmtDate(d.fecha_suscripcion)}</p></div>}
               {d.motivo && <div className="col-span-2"><p className="text-[10px] text-[#747783] uppercase">Motivo</p><p>{d.motivo}</p></div>}
               {d.observaciones && <div className="col-span-2"><p className="text-[10px] text-[#747783] uppercase">Observaciones</p><p>{d.observaciones}</p></div>}
+              <DocLink url={d.link_documental} />
             </div>
           )})()}
           {event.tipo === "ACLARATORIO" && (() => { const d = event.data as Aclaratorio; return (
             <div className="space-y-2 text-sm">
               {d.motivo && <div><p className="text-[10px] text-[#747783] uppercase">Motivo</p><p>{d.motivo}</p></div>}
               {d.descripcion && <div><p className="text-[10px] text-[#747783] uppercase">Descripción</p><p>{d.descripcion}</p></div>}
+              <DocLink url={d.link_documental} />
             </div>
           )})()}
 
-          {canDelete && (
-            <div className="pt-2 border-t border-[#EAEAEA] flex justify-end">
-              <button type="button" disabled={delPending} onClick={handleDelete}
-                className="inline-flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 disabled:opacity-50">
-                <Trash2 size={12} /> Eliminar registro
-              </button>
+          {(canEdit || canDelete) && (
+            <div className="pt-2 border-t border-[#EAEAEA] flex items-center justify-between">
+              <p className="text-[9px] text-[#747783]">Por: {event.data.user_email ?? "sistema"}</p>
+              <div className="flex items-center gap-2">
+                {canEdit && (
+                  <button type="button" onClick={onEdit}
+                    className="inline-flex items-center gap-1 text-xs text-[#0B3D91] hover:text-[#002869]">
+                    <Pencil size={11} /> Editar
+                  </button>
+                )}
+                {canDelete && (
+                  <button type="button" disabled={delPending} onClick={handleDelete}
+                    className="inline-flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 disabled:opacity-50">
+                    <Trash2 size={12} /> Eliminar
+                  </button>
+                )}
+              </div>
             </div>
           )}
-          <p className="text-[9px] text-[#747783]">Registrado por: {event.data.user_email ?? "sistema"}</p>
+          {!canEdit && !canDelete && (
+            <p className="text-[9px] text-[#747783]">Registrado por: {event.data.user_email ?? "sistema"}</p>
+          )}
         </div>
       )}
     </div>
@@ -481,6 +608,7 @@ type ModalType = "adicion" | "prorroga" | "suspension" | "reinicio" | "aclarator
 
 export function ModificacionesTab({ interadministrativoId, fechaTerminacionOriginal, modificaciones: m, canEdit, canDelete }: Props) {
   const [modal, setModal] = useState<ModalType>(null)
+  const [editRecord, setEditRecord] = useState<Adicion | Prorroga | Suspension | Reinicio | Aclaratorio | null>(null)
 
   const timeline = buildTimeline(m)
   const totalAdiciones = m.adiciones.reduce((s, a) => s + (a.valor_total ?? 0), 0)
@@ -490,18 +618,25 @@ export function ModificacionesTab({ interadministrativoId, fechaTerminacionOrigi
   }, 0)
   const ultimaProrroga = m.prorrogas.at(-1)
 
+  function openEdit(event: TimelineEvent) {
+    switch (event.tipo) {
+      case "ADICIÓN":     setEditRecord(event.data as Adicion);    setModal("adicion");    break
+      case "PRÓRROGA":    setEditRecord(event.data as Prorroga);   setModal("prorroga");   break
+      case "SUSPENSIÓN":  setEditRecord(event.data as Suspension); setModal("suspension"); break
+      case "REINICIO":    setEditRecord(event.data as Reinicio);   setModal("reinicio");   break
+      case "ACLARATORIO": setEditRecord(event.data as Aclaratorio);setModal("aclaratorio");break
+    }
+  }
+
+  function closeModal() { setModal(null); setEditRecord(null) }
+
   function deleteEvent(event: TimelineEvent): Promise<{ error: string | null }> {
     switch (event.tipo) {
-      case "ADICIÓN":
-        return deleteAdicion((event.data as Adicion).id, interadministrativoId)
-      case "PRÓRROGA":
-        return deleteProrroga((event.data as Prorroga).id, interadministrativoId)
-      case "SUSPENSIÓN":
-        return deleteSuspension((event.data as Suspension).id, interadministrativoId)
-      case "REINICIO":
-        return deleteReinicio((event.data as Reinicio).id, interadministrativoId)
-      case "ACLARATORIO":
-        return deleteAclaratorio((event.data as Aclaratorio).id, interadministrativoId)
+      case "ADICIÓN":     return deleteAdicion((event.data as Adicion).id, interadministrativoId)
+      case "PRÓRROGA":    return deleteProrroga((event.data as Prorroga).id, interadministrativoId)
+      case "SUSPENSIÓN":  return deleteSuspension((event.data as Suspension).id, interadministrativoId)
+      case "REINICIO":    return deleteReinicio((event.data as Reinicio).id, interadministrativoId)
+      case "ACLARATORIO": return deleteAclaratorio((event.data as Aclaratorio).id, interadministrativoId)
     }
   }
 
@@ -538,7 +673,7 @@ export function ModificacionesTab({ interadministrativoId, fechaTerminacionOrigi
             <button
               key={btn.tipo}
               type="button"
-              onClick={() => setModal(btn.tipo)}
+              onClick={() => { setEditRecord(null); setModal(btn.tipo) }}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold transition-colors ${btn.color}`}
             >
               <Plus size={12} /> {btn.label}
@@ -564,7 +699,9 @@ export function ModificacionesTab({ interadministrativoId, fechaTerminacionOrigi
                 <EventDetail
                   event={event}
                   canDelete={canDelete}
+                  canEdit={canEdit}
                   onDelete={() => deleteEvent(event)}
+                  onEdit={() => openEdit(event)}
                 />
               </div>
             ))}
@@ -573,11 +710,11 @@ export function ModificacionesTab({ interadministrativoId, fechaTerminacionOrigi
       )}
 
       {/* ── Modales ── */}
-      {modal === "adicion"     && <AdicionModal     interadministrativoId={interadministrativoId} nextNum={m.adiciones.length + 1}     onClose={() => setModal(null)} />}
-      {modal === "prorroga"    && <ProrrogaModal    interadministrativoId={interadministrativoId} nextNum={m.prorrogas.length + 1}     fechaTerminacionActual={ultimaProrroga?.nueva_fecha_terminacion ?? fechaTerminacionOriginal} onClose={() => setModal(null)} />}
-      {modal === "suspension"  && <SuspensionModal  interadministrativoId={interadministrativoId} nextNum={m.suspensiones.length + 1}  onClose={() => setModal(null)} />}
-      {modal === "reinicio"    && <ReinicioModal    interadministrativoId={interadministrativoId} nextNum={m.reinicios.length + 1}     onClose={() => setModal(null)} />}
-      {modal === "aclaratorio" && <AclaratorioModal interadministrativoId={interadministrativoId} nextNum={m.aclaratorios.length + 1}  onClose={() => setModal(null)} />}
+      {modal === "adicion"     && <AdicionModal     interadministrativoId={interadministrativoId} nextNum={m.adiciones.length + 1}     onClose={closeModal} editData={editRecord as Adicion | null} />}
+      {modal === "prorroga"    && <ProrrogaModal    interadministrativoId={interadministrativoId} nextNum={m.prorrogas.length + 1}     fechaTerminacionActual={ultimaProrroga?.nueva_fecha_terminacion ?? fechaTerminacionOriginal} onClose={closeModal} editData={editRecord as Prorroga | null} />}
+      {modal === "suspension"  && <SuspensionModal  interadministrativoId={interadministrativoId} nextNum={m.suspensiones.length + 1}  onClose={closeModal} editData={editRecord as Suspension | null} />}
+      {modal === "reinicio"    && <ReinicioModal    interadministrativoId={interadministrativoId} nextNum={m.reinicios.length + 1}     onClose={closeModal} editData={editRecord as Reinicio | null} />}
+      {modal === "aclaratorio" && <AclaratorioModal interadministrativoId={interadministrativoId} nextNum={m.aclaratorios.length + 1}  onClose={closeModal} editData={editRecord as Aclaratorio | null} />}
     </div>
   )
 }

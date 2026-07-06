@@ -29,6 +29,12 @@ async function audit(
   supabase.from("interadmin_audit_log" as never).insert(payload as never).then(() => {})
 }
 
+function validateUrl(url: string | null | undefined): Res | null {
+  if (!url) return null
+  try { new URL(url) } catch { return { error: "El enlace documental no es una URL válida." } }
+  return null
+}
+
 // ── 0. Edición básica ────────────────────────────────────────────────────────
 
 export interface UpdateBasicInfoInput {
@@ -104,9 +110,8 @@ export async function createAdicion(input: CreateAdicionInput): Promise<Res> {
   if (denied) return denied
   if (!input.fecha_adicion) return { error: "La fecha de la adición es obligatoria." }
   if (!input.numero_adicion) return { error: "El número de adición es obligatorio." }
-  if (input.link_documental) {
-    try { new URL(input.link_documental) } catch { return { error: "El enlace documental no es una URL válida." } }
-  }
+  const urlErr = validateUrl(input.link_documental)
+  if (urlErr) return urlErr
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("interadmin_adiciones").insert({
@@ -133,6 +138,40 @@ export async function createAdicion(input: CreateAdicionInput): Promise<Res> {
     user_email:    profile?.email ?? null,
   })
   revalidate(input.interadministrativo_id)
+  return { error: null }
+}
+
+export interface UpdateAdicionInput {
+  fecha_adicion?: string
+  valor_total?: number | null
+  valor_cuota_gerencia?: number | null
+  valor_bienes_servicios?: number | null
+  numero_rp?: string | null
+  motivo?: string | null
+  link_documental?: string | null
+}
+
+export async function updateAdicion(id: number, interadministrativo_id: number, input: UpdateAdicionInput): Promise<Res> {
+  const profile = await getCurrentUserProfile().catch(() => null)
+  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar adiciones." }
+  const denied = await requireWrite(interadministrativo_id)
+  if (denied) return denied
+  const urlErr = validateUrl(input.link_documental)
+  if (urlErr) return urlErr
+
+  const supabase = await createSupabaseServerClient()
+  const patch: Record<string, unknown> = {}
+  if (input.fecha_adicion          !== undefined) patch.fecha_adicion          = input.fecha_adicion
+  if (input.valor_total            !== undefined) patch.valor_total            = input.valor_total
+  if (input.valor_cuota_gerencia   !== undefined) patch.valor_cuota_gerencia   = input.valor_cuota_gerencia
+  if (input.valor_bienes_servicios !== undefined) patch.valor_bienes_servicios = input.valor_bienes_servicios
+  if (input.numero_rp              !== undefined) patch.numero_rp              = input.numero_rp?.trim() || null
+  if (input.motivo                 !== undefined) patch.motivo                 = input.motivo?.trim() || null
+  if (input.link_documental        !== undefined) patch.link_documental        = input.link_documental?.trim() || null
+
+  const { error } = await supabase.from("interadmin_adiciones").update(patch).eq("id", id).eq("interadministrativo_id", interadministrativo_id)
+  if (error) return { error: error.message }
+  revalidate(interadministrativo_id)
   return { error: null }
 }
 
@@ -193,6 +232,7 @@ export interface CreateProrrogaInput {
   nueva_fecha_terminacion: string
   plazo_prorroga?: string | null
   justificacion?: string | null
+  link_documental?: string | null
 }
 
 export async function createProrroga(input: CreateProrrogaInput): Promise<Res> {
@@ -204,6 +244,8 @@ export async function createProrroga(input: CreateProrrogaInput): Promise<Res> {
   if (!input.nueva_fecha_terminacion) return { error: "La nueva fecha de terminación es obligatoria." }
   if (input.nueva_fecha_terminacion < input.fecha_suscripcion)
     return { error: "La nueva fecha de terminación debe ser posterior a la suscripción." }
+  const urlErr = validateUrl(input.link_documental)
+  if (urlErr) return urlErr
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("interadmin_prorrogas").insert({
@@ -213,6 +255,7 @@ export async function createProrroga(input: CreateProrrogaInput): Promise<Res> {
     nueva_fecha_terminacion: input.nueva_fecha_terminacion,
     plazo_prorroga:          input.plazo_prorroga?.trim()  || null,
     justificacion:           input.justificacion?.trim()   || null,
+    link_documental:         input.link_documental?.trim() || null,
     user_id:                 profile?.id                   ?? null,
     user_email:              profile?.email                ?? null,
   })
@@ -227,6 +270,36 @@ export async function createProrroga(input: CreateProrrogaInput): Promise<Res> {
     user_email:    profile?.email ?? null,
   })
   revalidate(input.interadministrativo_id)
+  return { error: null }
+}
+
+export interface UpdateProrrogaInput {
+  fecha_suscripcion?: string
+  nueva_fecha_terminacion?: string
+  plazo_prorroga?: string | null
+  justificacion?: string | null
+  link_documental?: string | null
+}
+
+export async function updateProrroga(id: number, interadministrativo_id: number, input: UpdateProrrogaInput): Promise<Res> {
+  const profile = await getCurrentUserProfile().catch(() => null)
+  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar prórrogas." }
+  const denied = await requireWrite(interadministrativo_id)
+  if (denied) return denied
+  const urlErr = validateUrl(input.link_documental)
+  if (urlErr) return urlErr
+
+  const supabase = await createSupabaseServerClient()
+  const patch: Record<string, unknown> = {}
+  if (input.fecha_suscripcion       !== undefined) patch.fecha_suscripcion       = input.fecha_suscripcion
+  if (input.nueva_fecha_terminacion !== undefined) patch.nueva_fecha_terminacion = input.nueva_fecha_terminacion
+  if (input.plazo_prorroga          !== undefined) patch.plazo_prorroga          = input.plazo_prorroga?.trim() || null
+  if (input.justificacion           !== undefined) patch.justificacion           = input.justificacion?.trim() || null
+  if (input.link_documental         !== undefined) patch.link_documental         = input.link_documental?.trim() || null
+
+  const { error } = await supabase.from("interadmin_prorrogas").update(patch).eq("id", id).eq("interadministrativo_id", interadministrativo_id)
+  if (error) return { error: error.message }
+  revalidate(interadministrativo_id)
   return { error: null }
 }
 
@@ -252,6 +325,7 @@ export interface CreateSuspensionInput {
   fin_suspension?: string | null
   plazo_suspension?: string | null
   motivo?: string | null
+  link_documental?: string | null
 }
 
 export async function createSuspension(input: CreateSuspensionInput): Promise<Res> {
@@ -262,6 +336,8 @@ export async function createSuspension(input: CreateSuspensionInput): Promise<Re
   if (!input.inicio_suspension) return { error: "La fecha de inicio de suspensión es obligatoria." }
   if (input.fin_suspension && input.fin_suspension < input.inicio_suspension)
     return { error: "La fecha de fin debe ser posterior al inicio de la suspensión." }
+  const urlErr = validateUrl(input.link_documental)
+  if (urlErr) return urlErr
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("interadmin_suspensiones").insert({
@@ -272,6 +348,7 @@ export async function createSuspension(input: CreateSuspensionInput): Promise<Re
     fin_suspension:         input.fin_suspension     || null,
     plazo_suspension:       input.plazo_suspension?.trim() || null,
     motivo:                 input.motivo?.trim()     || null,
+    link_documental:        input.link_documental?.trim() || null,
     user_id:                profile?.id              ?? null,
     user_email:             profile?.email           ?? null,
   })
@@ -286,6 +363,38 @@ export async function createSuspension(input: CreateSuspensionInput): Promise<Re
     user_email:    profile?.email ?? null,
   })
   revalidate(input.interadministrativo_id)
+  return { error: null }
+}
+
+export interface UpdateSuspensionInput {
+  fecha_suscripcion?: string | null
+  inicio_suspension?: string
+  fin_suspension?: string | null
+  plazo_suspension?: string | null
+  motivo?: string | null
+  link_documental?: string | null
+}
+
+export async function updateSuspension(id: number, interadministrativo_id: number, input: UpdateSuspensionInput): Promise<Res> {
+  const profile = await getCurrentUserProfile().catch(() => null)
+  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar suspensiones." }
+  const denied = await requireWrite(interadministrativo_id)
+  if (denied) return denied
+  const urlErr = validateUrl(input.link_documental)
+  if (urlErr) return urlErr
+
+  const supabase = await createSupabaseServerClient()
+  const patch: Record<string, unknown> = {}
+  if (input.fecha_suscripcion !== undefined) patch.fecha_suscripcion = input.fecha_suscripcion || null
+  if (input.inicio_suspension !== undefined) patch.inicio_suspension = input.inicio_suspension
+  if (input.fin_suspension    !== undefined) patch.fin_suspension    = input.fin_suspension || null
+  if (input.plazo_suspension  !== undefined) patch.plazo_suspension  = input.plazo_suspension?.trim() || null
+  if (input.motivo            !== undefined) patch.motivo            = input.motivo?.trim() || null
+  if (input.link_documental   !== undefined) patch.link_documental   = input.link_documental?.trim() || null
+
+  const { error } = await supabase.from("interadmin_suspensiones").update(patch).eq("id", id).eq("interadministrativo_id", interadministrativo_id)
+  if (error) return { error: error.message }
+  revalidate(interadministrativo_id)
   return { error: null }
 }
 
@@ -310,6 +419,7 @@ export interface CreateReinicioInput {
   fecha_suscripcion?: string | null
   motivo?: string | null
   observaciones?: string | null
+  link_documental?: string | null
 }
 
 export async function createReinicio(input: CreateReinicioInput): Promise<Res> {
@@ -318,6 +428,8 @@ export async function createReinicio(input: CreateReinicioInput): Promise<Res> {
   const deniedRe = await requireWrite(input.interadministrativo_id)
   if (deniedRe) return deniedRe
   if (!input.fecha_reinicio) return { error: "La fecha de reinicio es obligatoria." }
+  const urlErr = validateUrl(input.link_documental)
+  if (urlErr) return urlErr
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("interadmin_reinicios").insert({
@@ -327,6 +439,7 @@ export async function createReinicio(input: CreateReinicioInput): Promise<Res> {
     fecha_suscripcion:      input.fecha_suscripcion  || null,
     motivo:                 input.motivo?.trim()     || null,
     observaciones:          input.observaciones?.trim() || null,
+    link_documental:        input.link_documental?.trim() || null,
     user_id:                profile?.id              ?? null,
     user_email:             profile?.email           ?? null,
   })
@@ -341,6 +454,36 @@ export async function createReinicio(input: CreateReinicioInput): Promise<Res> {
     user_email:    profile?.email ?? null,
   })
   revalidate(input.interadministrativo_id)
+  return { error: null }
+}
+
+export interface UpdateReinicioInput {
+  fecha_reinicio?: string
+  fecha_suscripcion?: string | null
+  motivo?: string | null
+  observaciones?: string | null
+  link_documental?: string | null
+}
+
+export async function updateReinicio(id: number, interadministrativo_id: number, input: UpdateReinicioInput): Promise<Res> {
+  const profile = await getCurrentUserProfile().catch(() => null)
+  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar reinicios." }
+  const denied = await requireWrite(interadministrativo_id)
+  if (denied) return denied
+  const urlErr = validateUrl(input.link_documental)
+  if (urlErr) return urlErr
+
+  const supabase = await createSupabaseServerClient()
+  const patch: Record<string, unknown> = {}
+  if (input.fecha_reinicio    !== undefined) patch.fecha_reinicio    = input.fecha_reinicio
+  if (input.fecha_suscripcion !== undefined) patch.fecha_suscripcion = input.fecha_suscripcion || null
+  if (input.motivo            !== undefined) patch.motivo            = input.motivo?.trim() || null
+  if (input.observaciones     !== undefined) patch.observaciones     = input.observaciones?.trim() || null
+  if (input.link_documental   !== undefined) patch.link_documental   = input.link_documental?.trim() || null
+
+  const { error } = await supabase.from("interadmin_reinicios").update(patch).eq("id", id).eq("interadministrativo_id", interadministrativo_id)
+  if (error) return { error: error.message }
+  revalidate(interadministrativo_id)
   return { error: null }
 }
 
@@ -364,6 +507,7 @@ export interface CreateAclaratorioInput {
   fecha_suscripcion: string
   motivo?: string | null
   descripcion?: string | null
+  link_documental?: string | null
 }
 
 export async function createAclaratorio(input: CreateAclaratorioInput): Promise<Res> {
@@ -372,6 +516,8 @@ export async function createAclaratorio(input: CreateAclaratorioInput): Promise<
   const deniedAc = await requireWrite(input.interadministrativo_id)
   if (deniedAc) return deniedAc
   if (!input.fecha_suscripcion) return { error: "La fecha de suscripción es obligatoria." }
+  const urlErr = validateUrl(input.link_documental)
+  if (urlErr) return urlErr
 
   const supabase = await createSupabaseServerClient()
   const { error } = await supabase.from("interadmin_aclaratorios").insert({
@@ -380,6 +526,7 @@ export async function createAclaratorio(input: CreateAclaratorioInput): Promise<
     fecha_suscripcion:      input.fecha_suscripcion,
     motivo:                 input.motivo?.trim()      || null,
     descripcion:            input.descripcion?.trim() || null,
+    link_documental:        input.link_documental?.trim() || null,
     user_id:                profile?.id               ?? null,
     user_email:             profile?.email            ?? null,
   })
@@ -394,6 +541,34 @@ export async function createAclaratorio(input: CreateAclaratorioInput): Promise<
     user_email:    profile?.email ?? null,
   })
   revalidate(input.interadministrativo_id)
+  return { error: null }
+}
+
+export interface UpdateAclaratorioInput {
+  fecha_suscripcion?: string
+  motivo?: string | null
+  descripcion?: string | null
+  link_documental?: string | null
+}
+
+export async function updateAclaratorio(id: number, interadministrativo_id: number, input: UpdateAclaratorioInput): Promise<Res> {
+  const profile = await getCurrentUserProfile().catch(() => null)
+  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar aclaratorios." }
+  const denied = await requireWrite(interadministrativo_id)
+  if (denied) return denied
+  const urlErr = validateUrl(input.link_documental)
+  if (urlErr) return urlErr
+
+  const supabase = await createSupabaseServerClient()
+  const patch: Record<string, unknown> = {}
+  if (input.fecha_suscripcion !== undefined) patch.fecha_suscripcion = input.fecha_suscripcion
+  if (input.motivo            !== undefined) patch.motivo            = input.motivo?.trim() || null
+  if (input.descripcion       !== undefined) patch.descripcion       = input.descripcion?.trim() || null
+  if (input.link_documental   !== undefined) patch.link_documental   = input.link_documental?.trim() || null
+
+  const { error } = await supabase.from("interadmin_aclaratorios").update(patch).eq("id", id).eq("interadministrativo_id", interadministrativo_id)
+  if (error) return { error: error.message }
+  revalidate(interadministrativo_id)
   return { error: null }
 }
 

@@ -2,16 +2,19 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { X, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react"
+import { X, Plus, Trash2, ChevronDown, ChevronUp, Pencil } from "lucide-react"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import {
-  createContractAdicion, deleteContractAdicion,
-  createContractProrroga, deleteContractProrroga,
-  createContractSuspension, deleteContractSuspension,
-  createContractReinicio, deleteContractReinicio,
-  createContractAclaratorio, deleteContractAclaratorio,
+  createContractAdicion, updateContractAdicion, deleteContractAdicion,
+  createContractProrroga, updateContractProrroga, deleteContractProrroga,
+  createContractSuspension, updateContractSuspension, deleteContractSuspension,
+  createContractReinicio, updateContractReinicio, deleteContractReinicio,
+  createContractAclaratorio, updateContractAclaratorio, deleteContractAclaratorio,
 } from "@/services/contract-modificaciones.actions"
-import type { ContractModificacionesData } from "@/types/contract-derivado"
+import type {
+  ContractModificacionesData,
+  ContractAdicion, ContractProrroga, ContractSuspension, ContractReinicio, ContractAclaratorio,
+} from "@/types/contract-derivado"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -106,21 +109,44 @@ function Section({ title, tipo, count, children }: {
   )
 }
 
-// ── Modales de cada tipo ──────────────────────────────────────────────────────
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-[10px] font-bold uppercase tracking-widest text-[#0B3D91] border-b border-[#EAEAEA] pb-1 mb-3">{children}</p>
   )
 }
 
-function AdicionModal({ contratoId, projectId, onClose }: { contratoId: number; projectId: string; onClose: () => void }) {
+function DocLink({ url }: { url: string | null | undefined }) {
+  if (!url) return null
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer"
+      className="text-xs text-[#0B3D91] hover:underline inline-block">
+      Ver carpeta documental ↗
+    </a>
+  )
+}
+
+// ── Modales de cada tipo ──────────────────────────────────────────────────────
+
+function AdicionModal({
+  contratoId, projectId, onClose, editData,
+}: {
+  contratoId: number
+  projectId: string
+  onClose: () => void
+  editData?: ContractAdicion | null
+}) {
   const router = useRouter()
   const [form, setForm] = useState({
-    fecha_adicion: "", motivo: "",
-    valor_adicion: "", valor_bienes_servicios: "",
-    numero_cdp: "", fecha_cdp: "", numero_rp: "", fecha_rp: "",
-    link_documental: "", observaciones: "",
+    fecha_adicion:          editData?.fecha_adicion           ?? "",
+    motivo:                 editData?.motivo                  ?? "",
+    valor_adicion:          editData?.valor_adicion           != null ? String(editData.valor_adicion) : "",
+    valor_bienes_servicios: editData?.valor_bienes_servicios  != null ? String(editData.valor_bienes_servicios) : "",
+    numero_cdp:             editData?.numero_cdp              ?? "",
+    fecha_cdp:              editData?.fecha_cdp               ?? "",
+    numero_rp:              editData?.numero_rp               ?? "",
+    fecha_rp:               editData?.fecha_rp                ?? "",
+    link_documental:        editData?.link_documental         ?? "",
+    observaciones:          editData?.observaciones           ?? "",
   })
   const [error, setError]  = useState<string | null>(null)
   const [isPending, start] = useTransition()
@@ -132,32 +158,51 @@ function AdicionModal({ contratoId, projectId, onClose }: { contratoId: number; 
     e.preventDefault(); setError(null)
     const valTotal  = parseVal(form.valor_adicion)
     const valBienes = parseVal(form.valor_bienes_servicios)
-    if (isNaN(valTotal) || valTotal <= 0)   { setError("Ingrese un valor total válido."); return }
-    if (isNaN(valBienes) || valBienes < 0)  { setError("Ingrese un valor bienes y servicios válido."); return }
+
     start(async () => {
-      const res = await createContractAdicion({
-        contrato_id: contratoId, project_id: projectId,
-        fecha_adicion:          form.fecha_adicion,
-        valor_adicion:          valTotal,
-        valor_bienes_servicios: valBienes,
-        motivo:                 form.motivo,
-        numero_cdp:             form.numero_cdp,
-        fecha_cdp:              form.fecha_cdp,
-        numero_rp:              form.numero_rp,
-        fecha_rp:               form.fecha_rp,
-        link_documental:        form.link_documental || undefined,
-        observaciones:          form.observaciones   || undefined,
-      })
+      let res
+      if (editData) {
+        if (isNaN(valTotal) || valTotal <= 0) { setError("Ingrese un valor total válido."); return }
+        if (isNaN(valBienes) || valBienes < 0) { setError("Ingrese un valor bienes y servicios válido."); return }
+        res = await updateContractAdicion(editData.id, contratoId, {
+          project_id: projectId,
+          fecha_adicion:          form.fecha_adicion,
+          valor_adicion:          valTotal,
+          valor_bienes_servicios: valBienes,
+          motivo:                 form.motivo,
+          numero_cdp:             form.numero_cdp,
+          fecha_cdp:              form.fecha_cdp,
+          numero_rp:              form.numero_rp,
+          fecha_rp:               form.fecha_rp,
+          link_documental:        form.link_documental || null,
+          observaciones:          form.observaciones   || null,
+        })
+      } else {
+        if (isNaN(valTotal) || valTotal <= 0)   { setError("Ingrese un valor total válido."); return }
+        if (isNaN(valBienes) || valBienes < 0)  { setError("Ingrese un valor bienes y servicios válido."); return }
+        res = await createContractAdicion({
+          contrato_id: contratoId, project_id: projectId,
+          fecha_adicion:          form.fecha_adicion,
+          valor_adicion:          valTotal,
+          valor_bienes_servicios: valBienes,
+          motivo:                 form.motivo,
+          numero_cdp:             form.numero_cdp,
+          fecha_cdp:              form.fecha_cdp,
+          numero_rp:              form.numero_rp,
+          fecha_rp:               form.fecha_rp,
+          link_documental:        form.link_documental || undefined,
+          observaciones:          form.observaciones   || undefined,
+        })
+      }
       if (res.error) { setError(res.error); return }
       onClose(); router.refresh()
     })
   }
 
+  const isEdit = !!editData
   return (
-    <Modal title="Registrar Adición" onClose={onClose}>
+    <Modal title={isEdit ? "Editar Adición" : "Registrar Adición"} onClose={onClose}>
       <form onSubmit={submit} className="p-6 space-y-5">
-
-        {/* Información General */}
         <div>
           <SectionLabel>Información General</SectionLabel>
           <div className="space-y-4">
@@ -171,23 +216,17 @@ function AdicionModal({ contratoId, projectId, onClose }: { contratoId: number; 
             </Field>
           </div>
         </div>
-
-        {/* Valores */}
         <div>
           <SectionLabel>Valores</SectionLabel>
           <div className="grid grid-cols-1 gap-4">
             <Field label="Valor Total Adición *">
               <input required value={form.valor_adicion} onChange={e => set("valor_adicion", e.target.value)} placeholder="Ej: 10000000" className={inputCls} />
             </Field>
-            <div className="grid grid-cols-1 gap-4">
-              <Field label="Valor Bolsa Bienes y Servicios *">
-                <input required value={form.valor_bienes_servicios} onChange={e => set("valor_bienes_servicios", e.target.value)} placeholder="Ej: 8000000" className={inputCls} />
-              </Field>
-            </div>
+            <Field label="Valor Bolsa Bienes y Servicios *">
+              <input required value={form.valor_bienes_servicios} onChange={e => set("valor_bienes_servicios", e.target.value)} placeholder="Ej: 8000000" className={inputCls} />
+            </Field>
           </div>
         </div>
-
-        {/* Soporte Presupuestal */}
         <div>
           <SectionLabel>Soporte Presupuestal</SectionLabel>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -205,12 +244,10 @@ function AdicionModal({ contratoId, projectId, onClose }: { contratoId: number; 
             </Field>
           </div>
         </div>
-
-        {/* Documentación */}
         <div>
           <SectionLabel>Documentación</SectionLabel>
           <div className="space-y-4">
-            <Field label="Enlace Carpeta Externa">
+            <Field label="Enlace Documental (URL)">
               <input type="url" value={form.link_documental} onChange={e => set("link_documental", e.target.value)} placeholder="https://…" className={inputCls} />
             </Field>
             <Field label="Observaciones">
@@ -218,17 +255,29 @@ function AdicionModal({ contratoId, projectId, onClose }: { contratoId: number; 
             </Field>
           </div>
         </div>
-
         {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-        <FormButtons onClose={onClose} isPending={isPending} label="Registrar Adición" />
+        <FormButtons onClose={onClose} isPending={isPending} label={isEdit ? "Guardar cambios" : "Registrar Adición"} />
       </form>
     </Modal>
   )
 }
 
-function ProrrogaModal({ contratoId, projectId, onClose }: { contratoId: number; projectId: string; onClose: () => void }) {
+function ProrrogaModal({
+  contratoId, projectId, onClose, editData,
+}: {
+  contratoId: number
+  projectId: string
+  onClose: () => void
+  editData?: ContractProrroga | null
+}) {
   const router = useRouter()
-  const [form, setForm] = useState({ fecha_suscripcion: "", nueva_fecha_terminacion: "", plazo_prorroga: "", justificacion: "" })
+  const [form, setForm] = useState({
+    fecha_suscripcion:       editData?.fecha_suscripcion       ?? "",
+    nueva_fecha_terminacion: editData?.nueva_fecha_terminacion ?? "",
+    plazo_prorroga:          editData?.plazo_prorroga          ?? "",
+    justificacion:           editData?.justificacion           ?? "",
+    link_documental:         editData?.link_documental         ?? "",
+  })
   const [error, setError]  = useState<string | null>(null)
   const [isPending, start] = useTransition()
   function set<K extends keyof typeof form>(k: K, v: string) { setForm(p => ({ ...p, [k]: v })) }
@@ -236,19 +285,24 @@ function ProrrogaModal({ contratoId, projectId, onClose }: { contratoId: number;
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setError(null)
     start(async () => {
-      const res = await createContractProrroga({
-        contrato_id: contratoId, project_id: projectId,
-        fecha_suscripcion: form.fecha_suscripcion,
+      const payload = {
+        fecha_suscripcion:       form.fecha_suscripcion,
         nueva_fecha_terminacion: form.nueva_fecha_terminacion,
-        plazo_prorroga: form.plazo_prorroga, justificacion: form.justificacion,
-      })
+        plazo_prorroga:          form.plazo_prorroga || undefined,
+        justificacion:           form.justificacion || undefined,
+        link_documental:         form.link_documental || undefined,
+      }
+      const res = editData
+        ? await updateContractProrroga(editData.id, contratoId, { project_id: projectId, ...payload })
+        : await createContractProrroga({ contrato_id: contratoId, project_id: projectId, ...payload })
       if (res.error) { setError(res.error); return }
       onClose(); router.refresh()
     })
   }
 
+  const isEdit = !!editData
   return (
-    <Modal title="Registrar Prórroga" onClose={onClose}>
+    <Modal title={isEdit ? "Editar Prórroga" : "Registrar Prórroga"} onClose={onClose}>
       <form onSubmit={submit} className="p-6 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Fecha suscripción *"><input type="date" required value={form.fecha_suscripcion} onChange={e => set("fecha_suscripcion", e.target.value)} className={inputCls} /></Field>
@@ -256,16 +310,31 @@ function ProrrogaModal({ contratoId, projectId, onClose }: { contratoId: number;
         </div>
         <Field label="Plazo prórroga"><input value={form.plazo_prorroga} onChange={e => set("plazo_prorroga", e.target.value)} placeholder="Ej: 3 meses" className={inputCls} /></Field>
         <Field label="Justificación"><textarea rows={2} value={form.justificacion} onChange={e => set("justificacion", e.target.value)} className={textCls} /></Field>
+        <Field label="Enlace Documental (URL)"><input type="url" value={form.link_documental} onChange={e => set("link_documental", e.target.value)} placeholder="https://…" className={inputCls} /></Field>
         {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-        <FormButtons onClose={onClose} isPending={isPending} label="Registrar Prórroga" />
+        <FormButtons onClose={onClose} isPending={isPending} label={isEdit ? "Guardar cambios" : "Registrar Prórroga"} />
       </form>
     </Modal>
   )
 }
 
-function SuspensionModal({ contratoId, projectId, onClose }: { contratoId: number; projectId: string; onClose: () => void }) {
+function SuspensionModal({
+  contratoId, projectId, onClose, editData,
+}: {
+  contratoId: number
+  projectId: string
+  onClose: () => void
+  editData?: ContractSuspension | null
+}) {
   const router = useRouter()
-  const [form, setForm] = useState({ fecha_suscripcion: "", inicio_suspension: "", fin_suspension: "", plazo_suspension: "", motivo: "" })
+  const [form, setForm] = useState({
+    fecha_suscripcion: editData?.fecha_suscripcion ?? "",
+    inicio_suspension: editData?.inicio_suspension ?? "",
+    fin_suspension:    editData?.fin_suspension    ?? "",
+    plazo_suspension:  editData?.plazo_suspension  ?? "",
+    motivo:            editData?.motivo            ?? "",
+    link_documental:   editData?.link_documental   ?? "",
+  })
   const [error, setError]  = useState<string | null>(null)
   const [isPending, start] = useTransition()
   function set<K extends keyof typeof form>(k: K, v: string) { setForm(p => ({ ...p, [k]: v })) }
@@ -273,20 +342,25 @@ function SuspensionModal({ contratoId, projectId, onClose }: { contratoId: numbe
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setError(null)
     start(async () => {
-      const res = await createContractSuspension({
-        contrato_id: contratoId, project_id: projectId,
+      const payload = {
         fecha_suscripcion: form.fecha_suscripcion || undefined,
         inicio_suspension: form.inicio_suspension,
-        fin_suspension: form.fin_suspension || undefined,
-        plazo_suspension: form.plazo_suspension, motivo: form.motivo,
-      })
+        fin_suspension:    form.fin_suspension || undefined,
+        plazo_suspension:  form.plazo_suspension || undefined,
+        motivo:            form.motivo || undefined,
+        link_documental:   form.link_documental || undefined,
+      }
+      const res = editData
+        ? await updateContractSuspension(editData.id, contratoId, { project_id: projectId, ...payload })
+        : await createContractSuspension({ contrato_id: contratoId, project_id: projectId, ...payload })
       if (res.error) { setError(res.error); return }
       onClose(); router.refresh()
     })
   }
 
+  const isEdit = !!editData
   return (
-    <Modal title="Registrar Suspensión" onClose={onClose}>
+    <Modal title={isEdit ? "Editar Suspensión" : "Registrar Suspensión"} onClose={onClose}>
       <form onSubmit={submit} className="p-6 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Inicio suspensión *"><input type="date" required value={form.inicio_suspension} onChange={e => set("inicio_suspension", e.target.value)} className={inputCls} /></Field>
@@ -297,16 +371,30 @@ function SuspensionModal({ contratoId, projectId, onClose }: { contratoId: numbe
           <Field label="Plazo suspensión"><input value={form.plazo_suspension} onChange={e => set("plazo_suspension", e.target.value)} placeholder="Ej: 15 días" className={inputCls} /></Field>
         </div>
         <Field label="Motivo"><textarea rows={2} value={form.motivo} onChange={e => set("motivo", e.target.value)} className={textCls} /></Field>
+        <Field label="Enlace Documental (URL)"><input type="url" value={form.link_documental} onChange={e => set("link_documental", e.target.value)} placeholder="https://…" className={inputCls} /></Field>
         {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-        <FormButtons onClose={onClose} isPending={isPending} label="Registrar Suspensión" />
+        <FormButtons onClose={onClose} isPending={isPending} label={isEdit ? "Guardar cambios" : "Registrar Suspensión"} />
       </form>
     </Modal>
   )
 }
 
-function ReinicioModal({ contratoId, projectId, onClose }: { contratoId: number; projectId: string; onClose: () => void }) {
+function ReinicioModal({
+  contratoId, projectId, onClose, editData,
+}: {
+  contratoId: number
+  projectId: string
+  onClose: () => void
+  editData?: ContractReinicio | null
+}) {
   const router = useRouter()
-  const [form, setForm] = useState({ fecha_reinicio: "", fecha_suscripcion: "", motivo: "", observaciones: "" })
+  const [form, setForm] = useState({
+    fecha_reinicio:    editData?.fecha_reinicio    ?? "",
+    fecha_suscripcion: editData?.fecha_suscripcion ?? "",
+    motivo:            editData?.motivo            ?? "",
+    observaciones:     editData?.observaciones     ?? "",
+    link_documental:   editData?.link_documental   ?? "",
+  })
   const [error, setError]  = useState<string | null>(null)
   const [isPending, start] = useTransition()
   function set<K extends keyof typeof form>(k: K, v: string) { setForm(p => ({ ...p, [k]: v })) }
@@ -314,19 +402,24 @@ function ReinicioModal({ contratoId, projectId, onClose }: { contratoId: number;
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setError(null)
     start(async () => {
-      const res = await createContractReinicio({
-        contrato_id: contratoId, project_id: projectId,
-        fecha_reinicio: form.fecha_reinicio,
+      const payload = {
+        fecha_reinicio:    form.fecha_reinicio,
         fecha_suscripcion: form.fecha_suscripcion || undefined,
-        motivo: form.motivo, observaciones: form.observaciones,
-      })
+        motivo:            form.motivo || undefined,
+        observaciones:     form.observaciones || undefined,
+        link_documental:   form.link_documental || undefined,
+      }
+      const res = editData
+        ? await updateContractReinicio(editData.id, contratoId, { project_id: projectId, ...payload })
+        : await createContractReinicio({ contrato_id: contratoId, project_id: projectId, ...payload })
       if (res.error) { setError(res.error); return }
       onClose(); router.refresh()
     })
   }
 
+  const isEdit = !!editData
   return (
-    <Modal title="Registrar Reinicio" onClose={onClose}>
+    <Modal title={isEdit ? "Editar Reinicio" : "Registrar Reinicio"} onClose={onClose}>
       <form onSubmit={submit} className="p-6 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Fecha reinicio *"><input type="date" required value={form.fecha_reinicio} onChange={e => set("fecha_reinicio", e.target.value)} className={inputCls} /></Field>
@@ -334,16 +427,29 @@ function ReinicioModal({ contratoId, projectId, onClose }: { contratoId: number;
         </div>
         <Field label="Motivo"><textarea rows={2} value={form.motivo} onChange={e => set("motivo", e.target.value)} className={textCls} /></Field>
         <Field label="Observaciones"><textarea rows={2} value={form.observaciones} onChange={e => set("observaciones", e.target.value)} className={textCls} /></Field>
+        <Field label="Enlace Documental (URL)"><input type="url" value={form.link_documental} onChange={e => set("link_documental", e.target.value)} placeholder="https://…" className={inputCls} /></Field>
         {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-        <FormButtons onClose={onClose} isPending={isPending} label="Registrar Reinicio" />
+        <FormButtons onClose={onClose} isPending={isPending} label={isEdit ? "Guardar cambios" : "Registrar Reinicio"} />
       </form>
     </Modal>
   )
 }
 
-function AclaratoriModal({ contratoId, projectId, onClose }: { contratoId: number; projectId: string; onClose: () => void }) {
+function AclaratoriModal({
+  contratoId, projectId, onClose, editData,
+}: {
+  contratoId: number
+  projectId: string
+  onClose: () => void
+  editData?: ContractAclaratorio | null
+}) {
   const router = useRouter()
-  const [form, setForm] = useState({ fecha_suscripcion: "", motivo: "", descripcion: "" })
+  const [form, setForm] = useState({
+    fecha_suscripcion: editData?.fecha_suscripcion ?? "",
+    motivo:            editData?.motivo            ?? "",
+    descripcion:       editData?.descripcion       ?? "",
+    link_documental:   editData?.link_documental   ?? "",
+  })
   const [error, setError]  = useState<string | null>(null)
   const [isPending, start] = useTransition()
   function set<K extends keyof typeof form>(k: K, v: string) { setForm(p => ({ ...p, [k]: v })) }
@@ -351,24 +457,30 @@ function AclaratoriModal({ contratoId, projectId, onClose }: { contratoId: numbe
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setError(null)
     start(async () => {
-      const res = await createContractAclaratorio({
-        contrato_id: contratoId, project_id: projectId,
+      const payload = {
         fecha_suscripcion: form.fecha_suscripcion,
-        motivo: form.motivo, descripcion: form.descripcion,
-      })
+        motivo:            form.motivo || undefined,
+        descripcion:       form.descripcion || undefined,
+        link_documental:   form.link_documental || undefined,
+      }
+      const res = editData
+        ? await updateContractAclaratorio(editData.id, contratoId, { project_id: projectId, ...payload })
+        : await createContractAclaratorio({ contrato_id: contratoId, project_id: projectId, ...payload })
       if (res.error) { setError(res.error); return }
       onClose(); router.refresh()
     })
   }
 
+  const isEdit = !!editData
   return (
-    <Modal title="Registrar Aclaratorio" onClose={onClose}>
+    <Modal title={isEdit ? "Editar Aclaratorio" : "Registrar Aclaratorio"} onClose={onClose}>
       <form onSubmit={submit} className="p-6 space-y-4">
         <Field label="Fecha suscripción *"><input type="date" required value={form.fecha_suscripcion} onChange={e => set("fecha_suscripcion", e.target.value)} className={inputCls} /></Field>
         <Field label="Motivo"><input value={form.motivo} onChange={e => set("motivo", e.target.value)} className={inputCls} /></Field>
         <Field label="Descripción"><textarea rows={3} value={form.descripcion} onChange={e => set("descripcion", e.target.value)} className={textCls} /></Field>
+        <Field label="Enlace Documental (URL)"><input type="url" value={form.link_documental} onChange={e => set("link_documental", e.target.value)} placeholder="https://…" className={inputCls} /></Field>
         {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
-        <FormButtons onClose={onClose} isPending={isPending} label="Registrar Aclaratorio" />
+        <FormButtons onClose={onClose} isPending={isPending} label={isEdit ? "Guardar cambios" : "Registrar Aclaratorio"} />
       </form>
     </Modal>
   )
@@ -377,6 +489,7 @@ function AclaratoriModal({ contratoId, projectId, onClose }: { contratoId: numbe
 // ── Componente principal ──────────────────────────────────────────────────────
 
 type ModalType = "adicion" | "prorroga" | "suspension" | "reinicio" | "aclaratorio" | null
+type AnyRecord = ContractAdicion | ContractProrroga | ContractSuspension | ContractReinicio | ContractAclaratorio
 
 export function DerivedModificacionesTab({
   data, contratoId, projectId, canEdit,
@@ -392,10 +505,16 @@ export function DerivedModificacionesTab({
   legacyReinicio?: string | null
 }) {
   const router = useRouter()
-  const [modal, setModal] = useState<ModalType>(null)
-  const [isPending, start] = useTransition()
+  const [modal, setModal]       = useState<ModalType>(null)
+  const [editRecord, setEdit]   = useState<AnyRecord | null>(null)
+  const [isPending, start]      = useTransition()
+
   const total = data.adiciones.length + data.prorrogas.length + data.suspensiones.length +
     data.reinicios.length + data.aclaratorios.length
+
+  function openCreate(tipo: ModalType) { setEdit(null); setModal(tipo) }
+  function openEdit(tipo: ModalType, record: AnyRecord) { setEdit(record); setModal(tipo) }
+  function closeModal() { setModal(null); setEdit(null) }
 
   function confirmDelete(action: () => Promise<{ error: string | null }>) {
     if (!confirm("¿Eliminar este registro?")) return
@@ -404,20 +523,20 @@ export function DerivedModificacionesTab({
 
   return (
     <>
-      {modal === "adicion"    && <AdicionModal    contratoId={contratoId} projectId={projectId} onClose={() => setModal(null)} />}
-      {modal === "prorroga"   && <ProrrogaModal   contratoId={contratoId} projectId={projectId} onClose={() => setModal(null)} />}
-      {modal === "suspension" && <SuspensionModal contratoId={contratoId} projectId={projectId} onClose={() => setModal(null)} />}
-      {modal === "reinicio"   && <ReinicioModal   contratoId={contratoId} projectId={projectId} onClose={() => setModal(null)} />}
-      {modal === "aclaratorio"&& <AclaratoriModal contratoId={contratoId} projectId={projectId} onClose={() => setModal(null)} />}
+      {modal === "adicion"    && <AdicionModal    contratoId={contratoId} projectId={projectId} onClose={closeModal} editData={editRecord as ContractAdicion | null} />}
+      {modal === "prorroga"   && <ProrrogaModal   contratoId={contratoId} projectId={projectId} onClose={closeModal} editData={editRecord as ContractProrroga | null} />}
+      {modal === "suspension" && <SuspensionModal contratoId={contratoId} projectId={projectId} onClose={closeModal} editData={editRecord as ContractSuspension | null} />}
+      {modal === "reinicio"   && <ReinicioModal   contratoId={contratoId} projectId={projectId} onClose={closeModal} editData={editRecord as ContractReinicio | null} />}
+      {modal === "aclaratorio"&& <AclaratoriModal contratoId={contratoId} projectId={projectId} onClose={closeModal} editData={editRecord as ContractAclaratorio | null} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-5">
         {[
-          { label: "Adiciones",    count: data.adiciones.length,    tipo: "ADICIÓN" },
-          { label: "Prórrogas",    count: data.prorrogas.length,    tipo: "PRÓRROGA" },
-          { label: "Suspensiones", count: data.suspensiones.length, tipo: "SUSPENSIÓN" },
-          { label: "Reinicios",    count: data.reinicios.length,    tipo: "REINICIO" },
-          { label: "Aclaratorios", count: data.aclaratorios.length, tipo: "ACLARATORIO" },
+          { label: "Adiciones",    count: data.adiciones.length },
+          { label: "Prórrogas",    count: data.prorrogas.length },
+          { label: "Suspensiones", count: data.suspensiones.length },
+          { label: "Reinicios",    count: data.reinicios.length },
+          { label: "Aclaratorios", count: data.aclaratorios.length },
         ].map(({ label, count }) => (
           <div key={label} className="bg-white border border-[#EAEAEA] rounded-xl p-3 text-center">
             <p className="text-2xl font-bold text-[#002869]">{count}</p>
@@ -429,7 +548,7 @@ export function DerivedModificacionesTab({
       {canEdit && (
         <div className="flex flex-wrap gap-2 mb-5">
           {(["adicion","prorroga","suspension","reinicio","aclaratorio"] as const).map(t => (
-            <button key={t} onClick={() => setModal(t)}
+            <button key={t} onClick={() => openCreate(t)}
               className="flex items-center gap-1.5 px-3 py-1.5 border border-[#EAEAEA] bg-white text-[#434652] rounded-lg text-xs font-medium hover:bg-[#f0f3ff] transition-colors">
               <Plus size={12} />
               {{adicion:"Adición",prorroga:"Prórroga",suspension:"Suspensión",reinicio:"Reinicio",aclaratorio:"Aclaratorio"}[t]}
@@ -496,25 +615,26 @@ export function DerivedModificacionesTab({
               <div className="space-y-4">
                 {data.adiciones.map(a => (
                   <div key={a.id} className="bg-[#f9f9ff] rounded-xl border border-[#EAEAEA] overflow-hidden">
-                    {/* Header */}
                     <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-[#EAEAEA]">
                       <p className="text-sm font-bold text-[#002869]">{ordinal(a.numero_adicion)} Adición — {formatCOP(a.valor_adicion)}</p>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-[#747783]">{fmtDate(a.fecha_adicion)}</span>
                         {canEdit && (
-                          <button onClick={() => confirmDelete(() => deleteContractAdicion(a.id, contratoId, projectId))}
-                            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400"><Trash2 size={13} /></button>
+                          <>
+                            <button onClick={() => openEdit("adicion", a)}
+                              className="p-1.5 rounded-lg hover:bg-[#f0f3ff] text-[#0B3D91]" title="Editar">
+                              <Pencil size={13} />
+                            </button>
+                            <button onClick={() => confirmDelete(() => deleteContractAdicion(a.id, contratoId, projectId))}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-red-400" title="Eliminar">
+                              <Trash2 size={13} />
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
-
                     <div className="px-4 py-3 space-y-3">
-                      {/* Motivo */}
-                      {a.motivo && (
-                        <p className="text-xs text-[#434652]">{a.motivo}</p>
-                      )}
-
-                      {/* Soporte presupuestal */}
+                      {a.motivo && <p className="text-xs text-[#434652]">{a.motivo}</p>}
                       {(a.numero_cdp || a.numero_rp) && (
                         <div>
                           <p className="text-[9px] font-bold uppercase tracking-widest text-[#0B3D91] mb-1.5">Soporte Presupuestal</p>
@@ -536,26 +656,17 @@ export function DerivedModificacionesTab({
                           </div>
                         </div>
                       )}
-
-                      {/* Distribución económica */}
                       {a.valor_bienes_servicios != null && (
                         <div>
                           <p className="text-[9px] font-bold uppercase tracking-widest text-[#0B3D91] mb-1.5">Distribución Económica</p>
-                          <div className="grid grid-cols-1 gap-3">
-                            <div className="bg-white rounded-lg px-3 py-2 border border-[#EAEAEA]">
-                              <p className="text-[9px] text-[#747783] uppercase tracking-wide">Bienes y Servicios</p>
-                              <p className="text-xs font-semibold text-[#151C27]">{formatCOP(a.valor_bienes_servicios)}</p>
-                            </div>
+                          <div className="bg-white rounded-lg px-3 py-2 border border-[#EAEAEA]">
+                            <p className="text-[9px] text-[#747783] uppercase tracking-wide">Bienes y Servicios</p>
+                            <p className="text-xs font-semibold text-[#151C27]">{formatCOP(a.valor_bienes_servicios)}</p>
                           </div>
                         </div>
                       )}
-
-                      {/* Observaciones y enlace */}
                       {a.observaciones && <p className="text-xs text-[#747783] italic">{a.observaciones}</p>}
-                      {a.link_documental && (
-                        <a href={a.link_documental} target="_blank" rel="noopener noreferrer"
-                          className="text-xs text-[#0B3D91] hover:underline inline-block">Ver carpeta documental ↗</a>
-                      )}
+                      <DocLink url={a.link_documental} />
                     </div>
                   </div>
                 ))}
@@ -574,10 +685,19 @@ export function DerivedModificacionesTab({
                       <p className="text-xs text-[#747783] mt-0.5">Nueva terminación: <strong>{fmtDate(pr.nueva_fecha_terminacion)}</strong></p>
                       {pr.plazo_prorroga && <p className="text-xs text-[#434652]">Plazo: {pr.plazo_prorroga}</p>}
                       {pr.justificacion && <p className="text-xs text-[#434652] mt-1">{pr.justificacion}</p>}
+                      <DocLink url={pr.link_documental} />
                     </div>
                     {canEdit && (
-                      <button onClick={() => confirmDelete(() => deleteContractProrroga(pr.id, contratoId, projectId))}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 shrink-0"><Trash2 size={13} /></button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => openEdit("prorroga", pr)}
+                          className="p-1.5 rounded-lg hover:bg-[#f0f3ff] text-[#0B3D91]" title="Editar">
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={() => confirmDelete(() => deleteContractProrroga(pr.id, contratoId, projectId))}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-red-400" title="Eliminar">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -595,10 +715,19 @@ export function DerivedModificacionesTab({
                       <p className="text-sm font-semibold text-[#002869]">{ordinal(s.numero_suspension)} Suspensión</p>
                       <p className="text-xs text-[#747783] mt-0.5">Inicio: {fmtDate(s.inicio_suspension)} {s.fin_suspension ? `— Fin: ${fmtDate(s.fin_suspension)}` : ""}</p>
                       {s.motivo && <p className="text-xs text-[#434652] mt-1">{s.motivo}</p>}
+                      <DocLink url={s.link_documental} />
                     </div>
                     {canEdit && (
-                      <button onClick={() => confirmDelete(() => deleteContractSuspension(s.id, contratoId, projectId))}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 shrink-0"><Trash2 size={13} /></button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => openEdit("suspension", s)}
+                          className="p-1.5 rounded-lg hover:bg-[#f0f3ff] text-[#0B3D91]" title="Editar">
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={() => confirmDelete(() => deleteContractSuspension(s.id, contratoId, projectId))}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-red-400" title="Eliminar">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -616,10 +745,19 @@ export function DerivedModificacionesTab({
                       <p className="text-sm font-semibold text-[#002869]">{ordinal(r.numero_reinicio)} Reinicio</p>
                       <p className="text-xs text-[#747783] mt-0.5">Fecha reinicio: {fmtDate(r.fecha_reinicio)}</p>
                       {r.motivo && <p className="text-xs text-[#434652] mt-1">{r.motivo}</p>}
+                      <DocLink url={r.link_documental} />
                     </div>
                     {canEdit && (
-                      <button onClick={() => confirmDelete(() => deleteContractReinicio(r.id, contratoId, projectId))}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 shrink-0"><Trash2 size={13} /></button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => openEdit("reinicio", r)}
+                          className="p-1.5 rounded-lg hover:bg-[#f0f3ff] text-[#0B3D91]" title="Editar">
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={() => confirmDelete(() => deleteContractReinicio(r.id, contratoId, projectId))}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-red-400" title="Eliminar">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -638,10 +776,19 @@ export function DerivedModificacionesTab({
                       <p className="text-xs text-[#747783] mt-0.5">Suscrito: {fmtDate(ac.fecha_suscripcion)}</p>
                       {ac.motivo && <p className="text-xs text-[#434652] mt-1">{ac.motivo}</p>}
                       {ac.descripcion && <p className="text-xs text-[#747783] mt-0.5">{ac.descripcion}</p>}
+                      <DocLink url={ac.link_documental} />
                     </div>
                     {canEdit && (
-                      <button onClick={() => confirmDelete(() => deleteContractAclaratorio(ac.id, contratoId, projectId))}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 shrink-0"><Trash2 size={13} /></button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => openEdit("aclaratorio", ac)}
+                          className="p-1.5 rounded-lg hover:bg-[#f0f3ff] text-[#0B3D91]" title="Editar">
+                          <Pencil size={13} />
+                        </button>
+                        <button onClick={() => confirmDelete(() => deleteContractAclaratorio(ac.id, contratoId, projectId))}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-red-400" title="Eliminar">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))}

@@ -26,6 +26,7 @@ export interface Prorroga {
   nueva_fecha_terminacion: string
   plazo_prorroga: string | null
   justificacion: string | null
+  link_documental: string | null
   user_id: string | null
   user_email: string | null
   created_at: string
@@ -41,6 +42,7 @@ export interface Suspension {
   fin_suspension: string | null
   plazo_suspension: string | null
   motivo: string | null
+  link_documental: string | null
   user_id: string | null
   user_email: string | null
   created_at: string
@@ -55,6 +57,7 @@ export interface Reinicio {
   fecha_suscripcion: string | null
   motivo: string | null
   observaciones: string | null
+  link_documental: string | null
   user_id: string | null
   user_email: string | null
   created_at: string
@@ -68,6 +71,7 @@ export interface Aclaratorio {
   fecha_suscripcion: string
   motivo: string | null
   descripcion: string | null
+  link_documental: string | null
   user_id: string | null
   user_email: string | null
   created_at: string
