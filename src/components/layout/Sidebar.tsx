@@ -74,8 +74,9 @@ const navSections: NavSection[] = [
     collapsible: true,
     defaultOpen: false,
     items: [
-      { href: "/administracion/usuarios", label: "Usuarios", icon: "group" },
-      { href: "/administracion/configuracion", label: "Configuración", icon: "settings" },
+      { href: "/administracion/usuarios",  label: "Usuarios",            icon: "group" },
+      { href: "/administracion/integridad", label: "Integridad de Datos", icon: "verified_user" },
+      { href: "/administracion/configuracion", label: "Configuración",   icon: "settings" },
     ],
   },
 ]
@@ -268,7 +269,9 @@ function SidebarContent({
       ...section,
       defaultOpen: true,
       items: section.items.filter(
-        (item) => item.href !== "/administracion/usuarios" || isAdmin
+        (item) =>
+          (item.href !== "/administracion/usuarios" && item.href !== "/administracion/integridad") ||
+          isAdmin
       ),
     }
   })
