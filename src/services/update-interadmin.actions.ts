@@ -165,6 +165,11 @@ export async function updateInteradministrativo(
 
     if (Object.keys(patch).length === 0) return { error: null }
 
+    // Mantener total_cuota_admin sincronizado con cuota_admin_inicial
+    if ("cuota_admin_inicial" in patch) {
+      patch.total_cuota_admin = patch.cuota_admin_inicial
+    }
+
     patch.updated_at = new Date().toISOString()
     const { data: updated, error: updateErr } = await supabase
       .from("interadministrativos")

@@ -426,8 +426,10 @@ export function FormaPagoTab({ project: p, hitos, canEdit, canDelete }: Props) {
   const summary = useMemo(() => calcFormaPagoSummary(hitos), [hitos])
 
   // Valores de referencia desde el contrato
-  const totalContrato   = Number(p.total_contrato   ?? 0)
-  const totalCuota      = Number(p.total_cuota_admin ?? 0)
+  // Usamos cuota_admin_inicial (fuente canónica, igual que InfoGeneralTab)
+  // total_cuota_admin no se actualiza en ediciones y puede estar desincronizado
+  const totalContrato   = Number(p.total_contrato      ?? 0)
+  const totalCuota      = Number(p.cuota_admin_inicial ?? 0)
   const valorBienes     = Math.max(0, totalContrato - totalCuota)
 
   // Validaciones globales
