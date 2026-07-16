@@ -1,7 +1,7 @@
 import type { UserRole } from "@/types/project"
 
 const READ_ONLY_ROLES: UserRole[] = ["DIRECTIVO", "CONSULTOR_PROYECTO", "ESPECTADOR"]
-const CREATE_ROLES:    UserRole[] = ["ADMIN", "GERENTE", "GERENTE_PROYECTO"]
+const CREATE_ROLES:    UserRole[] = ["ADMIN", "GERENTE", "DIRECTIVO", "ESTRUCTURADOR"]
 const DELETE_ROLES:    UserRole[] = ["ADMIN"]
 
 /** Roles con acceso completo de edición sobre Fuentes de Financiación y Rendimientos Financieros. */
