@@ -8,14 +8,10 @@ import {
 import { InteradministrativosPageClient } from "@/modules/projects/components/interadministrativos-page-client"
 import { getCurrentUserProfile } from "@/services/user.service"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { buildAllCurrentStates } from "@/modules/projects/lib/build-current-state"
+import type { ContractCurrentState } from "@/types/contract-current-state"
 import type { UserRole } from "@/types/project"
-
-export type ModCounts = Record<number, {
-  adiciones:   number
-  prorrogas:   number
-  suspensiones: number
-  reinicios:   number
-}>
+import type { AdicionLite, ProrrogaLite } from "@/modules/projects/lib/build-current-state"
 
 export default async function ProyectosPage() {
   const profile  = await getCurrentUserProfile().catch(() => null)
@@ -28,7 +24,7 @@ export default async function ProyectosPage() {
     areas: [] as string[],
     years: [] as number[],
   }
-  let modCounts: ModCounts = {}
+  let currentStates: Record<number, ContractCurrentState> = {}
   let loadError: string | null = null
 
   try {
@@ -39,22 +35,45 @@ export default async function ProyectosPage() {
     projects = await enrichProjectsWithManagers(raw)
     catalogs = catalogsResult
 
-    // Batch-fetch modification counts — 4 queries, zero N+1
     if (projects.length > 0) {
-      const ids = projects.map((p) => p.id)
+      const ids     = projects.map((p) => p.id)
       const supabase = await createSupabaseServerClient()
+
+      // 4 queries paralelas — seleccionamos campos reales, no solo IDs
       const [adRes, prRes, suRes, reRes] = await Promise.all([
-        supabase.from("interadmin_adiciones")   .select("interadministrativo_id").in("interadministrativo_id", ids).limit(20000),
-        supabase.from("interadmin_prorrogas")    .select("interadministrativo_id").in("interadministrativo_id", ids).limit(20000),
-        supabase.from("interadmin_suspensiones") .select("interadministrativo_id").in("interadministrativo_id", ids).limit(20000),
-        supabase.from("interadmin_reinicios")    .select("interadministrativo_id").in("interadministrativo_id", ids).limit(20000),
+        supabase
+          .from("interadmin_adiciones")
+          .select("interadministrativo_id, valor_total, valor_bienes_servicios, valor_cuota_gerencia")
+          .in("interadministrativo_id", ids)
+          .limit(20000),
+        supabase
+          .from("interadmin_prorrogas")
+          .select("interadministrativo_id, numero_prorroga, nueva_fecha_terminacion")
+          .in("interadministrativo_id", ids)
+          .limit(20000),
+        supabase
+          .from("interadmin_suspensiones")
+          .select("interadministrativo_id")
+          .in("interadministrativo_id", ids)
+          .limit(20000),
+        supabase
+          .from("interadmin_reinicios")
+          .select("interadministrativo_id")
+          .in("interadministrativo_id", ids)
+          .limit(20000),
       ])
 
-      for (const id of ids) modCounts[id] = { adiciones: 0, prorrogas: 0, suspensiones: 0, reinicios: 0 }
-      for (const r of (adRes.data ?? [])) if (modCounts[r.interadministrativo_id]) modCounts[r.interadministrativo_id].adiciones++
-      for (const r of (prRes.data ?? [])) if (modCounts[r.interadministrativo_id]) modCounts[r.interadministrativo_id].prorrogas++
-      for (const r of (suRes.data ?? [])) if (modCounts[r.interadministrativo_id]) modCounts[r.interadministrativo_id].suspensiones++
-      for (const r of (reRes.data ?? [])) if (modCounts[r.interadministrativo_id]) modCounts[r.interadministrativo_id].reinicios++
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      currentStates = buildAllCurrentStates(
+        projects,
+        (adRes.data ?? []) as AdicionLite[],
+        (prRes.data ?? []) as ProrrogaLite[],
+        suRes.data ?? [],
+        reRes.data ?? [],
+        today
+      )
     }
   } catch (e) {
     loadError = e instanceof Error ? e.message : "Error al cargar contratos"
@@ -84,7 +103,7 @@ export default async function ProyectosPage() {
         entities={catalogs.entities}
         years={catalogs.years}
         userRole={userRole}
-        modCounts={modCounts}
+        currentStates={currentStates}
       />
     </PageShell>
   )
