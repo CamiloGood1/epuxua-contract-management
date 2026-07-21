@@ -535,7 +535,7 @@ export function InfoGeneralTab({
           <KpiCard label="Valor Original"      value={fmtCOP(financials.valorOriginal)} />
           <KpiCard label="Total Adicionado"     value={totalAdicionado > 0 ? `+${fmtCOP(totalAdicionado)}` : "—"}  accent="text-emerald-600" />
           <KpiCard label="Valor Total Actual"   value={fmtCOP(valorActual)}    accent="text-[#0B3D91]" bg="bg-[#f0f3ff]" />
-          <KpiCard label="Bienes y Servicios"   value={fmtCOP(valorBienes)} />
+          <KpiCard label="Bolsa de Inversión"     value={fmtCOP(valorBienes)} />
           <KpiCard label="Cuota de Gerencia"    value={fmtCOP(cuotaVigente)} />
           <KpiCard
             label="Valor Facturado"

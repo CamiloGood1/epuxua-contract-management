@@ -471,7 +471,7 @@ export function NewInteradminProjectModal({ open, onClose, isAdmin = false }: Pr
                 </div>
                 <div />
                 <div>
-                  <Label required>Valor Bienes y Servicios</Label>
+                  <Label required>Bolsa de Inversión</Label>
                   <CopInput value={form.valor_inicial}
                     onChange={(v) => set("valor_inicial", v)} />
                   <FieldError msg={fieldErrors.valor_inicial} />

@@ -222,7 +222,7 @@ function AdicionModal({
             <Field label="Valor Total Adición *">
               <input required value={form.valor_adicion} onChange={e => set("valor_adicion", e.target.value)} placeholder="Ej: 10000000" className={inputCls} />
             </Field>
-            <Field label="Valor Bolsa Bienes y Servicios *">
+            <Field label="Valor Bolsa de Inversión *">
               <input required value={form.valor_bienes_servicios} onChange={e => set("valor_bienes_servicios", e.target.value)} placeholder="Ej: 8000000" className={inputCls} />
             </Field>
           </div>
@@ -660,7 +660,7 @@ export function DerivedModificacionesTab({
                         <div>
                           <p className="text-[9px] font-bold uppercase tracking-widest text-[#0B3D91] mb-1.5">Distribución Económica</p>
                           <div className="bg-white rounded-lg px-3 py-2 border border-[#EAEAEA]">
-                            <p className="text-[9px] text-[#747783] uppercase tracking-wide">Bienes y Servicios</p>
+                            <p className="text-[9px] text-[#747783] uppercase tracking-wide">Bolsa de Inversión</p>
                             <p className="text-xs font-semibold text-[#151C27]">{formatCOP(a.valor_bienes_servicios)}</p>
                           </div>
                         </div>

@@ -284,12 +284,12 @@ export async function GET(req: NextRequest) {
 
       // ── INFORMACIÓN FINANCIERA
       "Valor Inicial Contrato":         n(p.valor_inicial),
-      "Valor Inicial Bienes y Servicios": n(p.bolsa_gerencia_inicial),
-      "Valor Inicial Cuota Gerencia":   n(p.cuota_admin_inicial),
+      "Bolsa de Inversión Inicial":     n(p.valor_inicial),
+      "Cuota de Gerencia Inicial":      n(p.cuota_admin_inicial),
       "Valor Total Adiciones":          n(fin.totalAdiciones),
-      "Valor Actual Contrato":          n(fin.valorTotalActual),
-      "Valor Actual Bienes y Servicios": n(fin.bienesServiciosVigente),
-      "Valor Actual Cuota Gerencia":    n(fin.cuotaGerenciaVigente),
+      "Valor Total Vigente":            n(fin.valorTotalActual),
+      "Total Bolsa de Inversión":       n(fin.bienesServiciosVigente),
+      "Total Cuota de Gerencia":        n(fin.cuotaGerenciaVigente),
 
       // ── CONTRATOS DERIVADOS
       "Cantidad Derivados":             n(devs.length),
@@ -308,11 +308,11 @@ export async function GET(req: NextRequest) {
       "Cantidad Aclaratorios":          n(acs.length),
 
       // ── FACTURACIÓN Y RECAUDO
-      "Facturado Bienes y Servicios":   n(facturadoBS),
-      "Facturado Cuota Gerencia":       n(facturadoCG),
+      "Facturado Bolsa de Inversión":   n(facturadoBS),
+      "Facturado Cuota de Gerencia":    n(facturadoCG),
       "Facturado Total":                n(facturadoTotal),
-      "Recaudado Bienes y Servicios":   n(recaudadoBS),
-      "Recaudado Cuota Gerencia":       n(recaudadoCG),
+      "Recaudado Bolsa de Inversión":   n(recaudadoBS),
+      "Recaudado Cuota de Gerencia":    n(recaudadoCG),
       "Recaudado Total":                n(recaudadoTotal),
       "Pendiente Recaudo":              n(pendienteRecaudo),
 

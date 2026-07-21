@@ -482,10 +482,10 @@ export function ProjectDashboardView({
           </div>
         </div>
 
-        {/* KPI 4: Bienes y Servicios = valor − cuota */}
+        {/* KPI 4: Bolsa de Inversión = valor − cuota */}
         <div className="bg-white p-4 sm:p-6 rounded-xl border border-[#EAEAEA] hover:border-[#0B3D91]/20 transition-all flex flex-col">
           <div className="flex justify-between items-start mb-3">
-            <span className="text-[#434652] text-sm font-medium leading-tight">Bienes y<br/>Servicios</span>
+            <span className="text-[#434652] text-sm font-medium leading-tight">Bolsa de<br/>Inversión</span>
             <span className="text-[#434652] text-[11px] font-semibold bg-[#f0f3ff] px-2 py-0.5 rounded shrink-0">COP</span>
           </div>
           <span className="text-2xl sm:text-[32px] font-bold leading-tight sm:leading-[40px] text-[#0B3D91] tabular-nums">
@@ -681,7 +681,7 @@ export function ProjectDashboardView({
               { label: "Facturado Total",   value: fmtCompact(facturacionKPIs.facturadoTotal),  accent: "text-[#0B3D91]" },
               { label: "Recaudo Total",     value: fmtCompact(facturacionKPIs.ingresadoTotal),  accent: "text-emerald-600" },
               { label: "Pendiente",         value: fmtCompact(facturacionKPIs.pendienteTotal),  accent: facturacionKPIs.pendienteTotal > 0 ? "text-amber-600" : "text-[#747783]" },
-              { label: "Bienes y Servicios",value: fmtCompact(facturacionKPIs.facturadoBienes), accent: "text-[#0B3D91]" },
+              { label: "Bolsa de Inversión", value: fmtCompact(facturacionKPIs.facturadoBienes), accent: "text-[#0B3D91]" },
               { label: "Cuota de Gerencia", value: fmtCompact(facturacionKPIs.facturadoCuota),  accent: "text-violet-600" },
             ].map((k) => (
               <div key={k.label} className="px-3 sm:px-6 py-4 sm:py-5 text-center">

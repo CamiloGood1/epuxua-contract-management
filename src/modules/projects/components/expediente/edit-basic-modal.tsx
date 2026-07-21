@@ -402,7 +402,7 @@ export function EditBasicModal({ project: p, onClose }: Props) {
               {/* ── Financiero ── */}
               <SectionTitle title="Información Financiera" />
 
-              <Field label="Valor Inicial (Bienes y Servicios)">
+              <Field label="Bolsa de Inversión Inicial">
                 <input type="number" min={0} step="any" value={form.valor_inicial} onChange={e => setField("valor_inicial", e.target.value)}
                   className={inputCls + " h-10"} placeholder="0" />
               </Field>

@@ -3,8 +3,15 @@ import type { FacturacionKPIs } from "@/types/facturas"
 
 /** Resumen financiero calculado dinámicamente para interadministrativos. */
 export interface InteradminFinancials {
+  // ── Valores originales ───────────────────────────────────────────────────
   valorOriginal: number
+  // ── Adiciones desglosadas ────────────────────────────────────────────────
   totalAdiciones: number
+  /** Porción de adiciones que corresponde a Bolsa de Inversión (bienes + remainder sin asignar). */
+  adicionesBolsaInversion: number
+  /** Porción de adiciones que corresponde a Cuota de Gerencia. */
+  adicionesCuotaGerencia: number
+  // ── Totales vigentes ─────────────────────────────────────────────────────
   valorTotalActual: number
   bienesServiciosVigente: number
   cuotaGerenciaVigente: number
@@ -60,6 +67,8 @@ export function calcInteradminFinancials(input: {
   return {
     valorOriginal,
     totalAdiciones,
+    adicionesBolsaInversion: adBienes + adRemainder,
+    adicionesCuotaGerencia: adCuota,
     valorTotalActual,
     bienesServiciosVigente,
     cuotaGerenciaVigente,
@@ -86,7 +95,7 @@ export function formatFacturadoKpiSub(
   const hasCuota = kpis.facturadoCuota > 0
 
   if (hasBS && !hasCuota && fin.bienesServiciosVigente > 0) {
-    return `${formatPctInteradmin(roundPct((kpis.facturadoBienes / fin.bienesServiciosVigente) * 100))} de Bienes y Servicios`
+    return `${formatPctInteradmin(roundPct((kpis.facturadoBienes / fin.bienesServiciosVigente) * 100))} de Bolsa de Inversión`
   }
 
   if (hasCuota && !hasBS && fin.cuotaGerenciaVigente > 0) {
@@ -98,7 +107,7 @@ export function formatFacturadoKpiSub(
     const pct = fin.bienesServiciosVigente > 0
       ? formatPctInteradmin(roundPct((kpis.facturadoBienes / fin.bienesServiciosVigente) * 100))
       : null
-    parts.push(pct ? `B/S: ${pct}` : "B/S facturado")
+    parts.push(pct ? `Bolsa de Inv.: ${pct}` : "Bolsa de Inversión facturada")
   }
   if (hasCuota) {
     const pct = fin.cuotaGerenciaVigente > 0

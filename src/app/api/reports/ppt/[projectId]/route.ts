@@ -190,8 +190,8 @@ export async function GET(
 
     const kpis = [
       { label: "Valor Total", value: formatCOP(project.total_value), color: BLUE },
-      { label: "Bienes y Servicios", value: formatCOP(project.goods_services_value), color: "345BAB" },
-      { label: "Cuota Gerencia", value: formatCOP(project.management_fee_amount), color: GOLD },
+      { label: "Bolsa de Inversión", value: formatCOP(project.goods_services_value), color: "345BAB" },
+      { label: "Cuota de Gerencia", value: formatCOP(project.management_fee_amount), color: GOLD },
       { label: "Ejecutado", value: formatCOP(project.executed_value), color: "10B981" },
       { label: "Pagado", value: formatCOP(project.paid_value), color: "0E9F6E" },
       { label: "Saldo Disponible", value: formatCOP(project.available_balance), color: "8B5CF6" },

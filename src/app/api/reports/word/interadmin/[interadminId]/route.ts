@@ -330,18 +330,16 @@ export async function GET(
           ...table(
             ["Concepto", "Valor"],
             [
-              ["Valor inicial del contrato",      cop(p.valor_inicial)],
-              ["Adiciones",                        cop(fin.totalAdiciones)],
-              ["Total contrato",                   cop(fin.valorTotalActual)],
-              ["Cuota administración inicial",     cop(p.cuota_admin_inicial)],
-              ["Adición cuota administración",     cop(p.adicion_cuota_admin)],
-              ["Total cuota administración",       cop(fin.cuotaGerenciaVigente)],
-              ["Bolsa gerencia inicial",           cop(p.bolsa_gerencia_inicial)],
-              ["Adición bolsa mandato",            cop(p.adicion_bolsa_mandato)],
-              ["Total bolsa mandato",              cop(p.total_bolsa_mandato)],
+              ["Bolsa de Inversión inicial",       cop(p.valor_inicial)],
+              ["Adiciones Bolsa de Inversión",     cop(fin.adicionesBolsaInversion)],
+              ["Total Bolsa de Inversión",         cop(fin.bienesServiciosVigente)],
+              ["Cuota de Gerencia inicial",        cop(p.cuota_admin_inicial)],
+              ["Adiciones Cuota de Gerencia",      cop(fin.adicionesCuotaGerencia)],
+              ["Total Cuota de Gerencia",          cop(fin.cuotaGerenciaVigente)],
+              ["Valor Total Vigente",              cop(fin.valorTotalActual)],
+              ["% Cuota de Gerencia",              p.pct_cuota_gerencia != null ? `${p.pct_cuota_gerencia}%` : "—"],
               ["Valor pendiente de cobrar",        cop(p.valor_pendiente_cobrar)],
               ["Vigencias futuras",                cop(p.vigencias_futuras)],
-              ["% Cuota gerencia",                 p.pct_cuota_gerencia != null ? `${p.pct_cuota_gerencia}%` : "—"],
             ],
           ),
 
@@ -352,7 +350,7 @@ export async function GET(
 
           h2("3.1 Adiciones"),
           ...table(
-            ["N°", "Fecha", "Valor Total", "Cuota Gerencia", "Bienes y Servicios", "Número RP", "Motivo"],
+            ["N°", "Fecha", "Valor Total", "Cuota de Gerencia", "Bolsa de Inversión", "Número RP", "Motivo"],
             adiciones.map((a) => [
               str(a.numero_adicion),
               dt(a.fecha_adicion),
@@ -462,7 +460,7 @@ export async function GET(
             facturas.map((f) => [
               str(f.numero_factura),
               dt(f.fecha_remision),
-              f.destino === "BIENES_SERVICIOS" ? "Bienes y Servicios" : "Cuota Gerencia",
+              f.destino === "BIENES_SERVICIOS" ? "Bolsa de Inversión" : "Cuota de Gerencia",
               cop(f.valor_cobrado),
               cop(f.valor_ingresado),
               str(f.estado),

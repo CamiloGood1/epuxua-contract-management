@@ -15,7 +15,7 @@ export type { Factura }
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const DESTINO_LABEL: Record<DestinoFactura, string> = {
-  BIENES_SERVICIOS: "Bienes y Servicios",
+  BIENES_SERVICIOS: "Bolsa de Inversión",
   CUOTA_GERENCIA:   "Cuota de Gerencia",
 }
 
@@ -182,7 +182,7 @@ function FacturaModal({ interadministrativoId, factura, onClose }: ModalProps) {
             <div>
               <label className={labelCls}>Destino <span className="text-red-500">*</span></label>
               <select value={form.destino} onChange={(e) => set("destino", e.target.value as DestinoFactura)} className={inputCls + " appearance-none"}>
-                <option value="BIENES_SERVICIOS">Bienes y Servicios</option>
+                <option value="BIENES_SERVICIOS">Bolsa de Inversión</option>
                 <option value="CUOTA_GERENCIA">Cuota de Gerencia</option>
               </select>
             </div>
@@ -370,7 +370,7 @@ export function FacturacionTab({ interadministrativoId, facturas, canEdit, canDe
           icon={<Clock size={14} />}
         />
         <KpiCard
-          label="Bienes y Servicios"
+          label="Bolsa de Inversión"
           value={fmt(kpis.facturadoBienes)}
           sub={`Ingresado: ${fmt(kpis.ingresadoBienes)}`}
           accent="text-[#0B3D91]"
@@ -480,7 +480,7 @@ export function FacturacionTab({ interadministrativoId, facturas, canEdit, canDe
             className="h-9 rounded-lg border border-[#EAEAEA] pl-3 pr-6 text-xs appearance-none focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20"
           >
             <option value="all">Todos los destinos</option>
-            <option value="BIENES_SERVICIOS">Bienes y Servicios</option>
+            <option value="BIENES_SERVICIOS">Bolsa de Inversión</option>
             <option value="CUOTA_GERENCIA">Cuota de Gerencia</option>
           </select>
 

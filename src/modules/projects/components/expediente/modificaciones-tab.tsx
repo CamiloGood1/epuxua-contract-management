@@ -152,7 +152,7 @@ function AdicionModal({
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Bienes y Servicios (COP)">
+          <Field label="Bolsa de Inversión (COP)">
             <input type="text" className={inputCls} placeholder="0" value={f.valorBienes} onChange={(e) => setF({ ...f, valorBienes: e.target.value })} />
           </Field>
           <Field label="Número RP">
@@ -524,7 +524,7 @@ function EventDetail({
             <div className="grid grid-cols-2 gap-3 text-sm">
               {d.valor_total            && <div><p className="text-[10px] text-[#747783] uppercase">Valor Total</p><p className="font-semibold">{formatCOP(d.valor_total)}</p></div>}
               {d.valor_cuota_gerencia   && <div><p className="text-[10px] text-[#747783] uppercase">Cuota Gerencia</p><p className="font-semibold">{formatCOP(d.valor_cuota_gerencia)}</p></div>}
-              {d.valor_bienes_servicios && <div><p className="text-[10px] text-[#747783] uppercase">Bienes y Servicios</p><p className="font-semibold">{formatCOP(d.valor_bienes_servicios)}</p></div>}
+              {d.valor_bienes_servicios && <div><p className="text-[10px] text-[#747783] uppercase">Bolsa de Inversión</p><p className="font-semibold">{formatCOP(d.valor_bienes_servicios)}</p></div>}
               {d.numero_rp && <div><p className="text-[10px] text-[#747783] uppercase">Número RP</p><p className="font-semibold font-mono">{d.numero_rp}</p></div>}
               {d.motivo && <div className="col-span-2"><p className="text-[10px] text-[#747783] uppercase">Motivo</p><p>{d.motivo}</p></div>}
               <DocLink url={d.link_documental} />

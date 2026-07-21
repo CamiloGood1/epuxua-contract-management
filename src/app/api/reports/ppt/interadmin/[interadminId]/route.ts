@@ -285,8 +285,8 @@ export async function GET(
     const kpiData = [
       { label: "Estado",             value: p.estado,               accent: BLUE  },
       { label: "Valor Total",        value: cop(fin.valorTotalActual), accent: BLUE  },
-      { label: "Bienes y Servicios", value: cop(fin.bienesServiciosVigente), accent: "345BAB" },
-      { label: "Cuota Gerencia",     value: cop(fin.cuotaGerenciaVigente), accent: GOLD  },
+      { label: "Bolsa de Inversión", value: cop(fin.bienesServiciosVigente), accent: "345BAB" },
+      { label: "Cuota de Gerencia",  value: cop(fin.cuotaGerenciaVigente), accent: GOLD  },
       { label: "Avance Físico",      value: p.avance_fisico_pct != null ? `${p.avance_fisico_pct}%` : "—", accent: GREEN },
       { label: "Días Restantes",     value: diasRestantes,           accent: diasRestantes.includes("Venc") ? RED : AMBER },
     ]
@@ -363,8 +363,8 @@ export async function GET(
       { label: "Valor Inicial",        value: cop(fin.valorOriginal),          accent: BLUE  },
       { label: "Adiciones",            value: cop(fin.totalAdiciones),         accent: "5B8DD9" },
       { label: "Total Contrato",       value: cop(fin.valorTotalActual),       accent: BLUE  },
-      { label: "Total Cuota Admin",    value: cop(fin.cuotaGerenciaVigente),   accent: GOLD  },
-      { label: "Total Bolsa Mandato",  value: cop(p.total_bolsa_mandato),      accent: GOLD  },
+      { label: "Total Cuota de Gerencia",    value: cop(fin.cuotaGerenciaVigente),     accent: GOLD  },
+      { label: "Total Bolsa de Inversión",  value: cop(fin.bienesServiciosVigente),   accent: GOLD  },
       { label: "Pend. de Cobrar",      value: cop(p.valor_pendiente_cobrar),   accent: RED   },
       { label: "Facturado",            value: cop(facturadoTotal),             accent: "5B8DD9" },
       { label: "Recaudado",            value: cop(ingresadoTotal),             accent: GREEN },

@@ -16,7 +16,7 @@ export type { PaymentMilestone }
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const DESTINO_CFG: Record<DestinoHito, { label: string; bg: string; text: string; border: string }> = {
-  BIENES_SERVICIOS: { label: "Bienes y Servicios", bg: "bg-[#0B3D91]/10", text: "text-[#0B3D91]",   border: "border-[#0B3D91]/20" },
+  BIENES_SERVICIOS: { label: "Bolsa de Inversión", bg: "bg-[#0B3D91]/10", text: "text-[#0B3D91]",   border: "border-[#0B3D91]/20" },
   CUOTA_GERENCIA:   { label: "Cuota de Gerencia",  bg: "bg-violet-50",    text: "text-violet-700",  border: "border-violet-200" },
   MIXTO:            { label: "Mixto",              bg: "bg-teal-50",      text: "text-teal-700",    border: "border-teal-200" },
 }
@@ -232,7 +232,7 @@ function MilestoneModal({ interadministrativoId, milestone, existingNumbers, onC
                 onChange={(e) => set("destination", e.target.value as DestinoHito)}
                 className={inputCls + " h-10 appearance-none"}
               >
-                <option value="BIENES_SERVICIOS">Bienes y Servicios</option>
+                <option value="BIENES_SERVICIOS">Bolsa de Inversión</option>
                 <option value="CUOTA_GERENCIA">Cuota de Gerencia</option>
                 <option value="MIXTO">Mixto</option>
               </select>
@@ -462,7 +462,7 @@ export function FormaPagoTab({ project: p, hitos, canEdit, canDelete }: Props) {
       {/* ── Resumen Financiero ── */}
       <div className="flex flex-col md:flex-row gap-4">
         <SummaryBlock
-          title="Bienes y Servicios"
+          title="Bolsa de Inversión"
           available={valorBienes}
           programado={summary.programadoBienes + summary.programadoMixto}
           color="#0B3D91"
@@ -524,9 +524,9 @@ export function FormaPagoTab({ project: p, hitos, canEdit, canDelete }: Props) {
             <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
               <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-amber-700">Los hitos de Bienes y Servicios superan el valor disponible</p>
+                <p className="text-sm font-semibold text-amber-700">Los hitos de Bolsa de Inversión superan el valor disponible</p>
                 <p className="text-xs text-amber-600 mt-0.5">
-                  Programado B&amp;S: {fmt(summary.programadoBienes)} · Disponible: {fmt(valorBienes)}
+                  Programado Bolsa de Inv.: {fmt(summary.programadoBienes)} · Disponible: {fmt(valorBienes)}
                 </p>
               </div>
             </div>

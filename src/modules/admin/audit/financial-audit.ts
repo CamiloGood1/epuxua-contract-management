@@ -97,7 +97,7 @@ function r03CuotaAdminSync(c: Interadministrativo): AuditFinding | null {
   if (approxEqual(canonical, legacy)) return null
   return {
     ruleId: "R03_CUOTA_ADMIN_SYNC",
-    ruleName: "Cuota Admin sincronizada",
+    ruleName: "Cuota de Gerencia sincronizada",
     severity: "warning",
     module: "Forma de Pago",
     field: "total_cuota_admin",
@@ -222,7 +222,7 @@ function r08BienesNoNegativo(c: Interadministrativo, adiciones: Adicion[]): Audi
     severity: "error",
     module: "Resumen Financiero",
     field: "bienesServiciosVigente",
-    message: "El valor vigente de Bienes y Servicios es negativo tras aplicar las adiciones.",
+    message: "El valor vigente de la Bolsa de Inversión es negativo tras aplicar las adiciones.",
     expected: "≥ 0",
     found: cop(fin.bienesServiciosVigente),
     sqlFix: `-- Revisar adiciones de bienes para contrato ${c.id_contrato} (id=${c.id})`,
@@ -264,7 +264,7 @@ function r10BienesDisponibles(c: Interadministrativo, adiciones: Adicion[], hito
     severity: "warning",
     module: "Forma de Pago",
     field: "programadoBienes",
-    message: "Los hitos de Bienes y Servicios programados superan el valor vigente de la bolsa de bienes.",
+    message: "Los hitos de Bolsa de Inversión programados superan el valor vigente disponible.",
     expected: `Programado ≤ ${cop(fin.bienesServiciosVigente)}`,
     found: cop(pagos.programadoBienes),
     sqlFix: `-- Revisar hitos de BIENES_SERVICIOS para contrato ${c.id_contrato} (id=${c.id})`,
