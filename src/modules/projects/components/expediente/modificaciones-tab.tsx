@@ -12,6 +12,9 @@ import {
   createAclaratorio, updateAclaratorio, deleteAclaratorio,
 } from "@/services/modificaciones.actions"
 import type { ModificacionesData, Adicion, Prorroga, Suspension, Reinicio, Aclaratorio } from "@/types/modificaciones"
+import { DocumentAnalyzerButton } from "@/modules/projects/components/expediente/document-analyzer/DocumentAnalyzerButton"
+import type { ExtractionField } from "@/lib/document-analyzer/types"
+import { ADICION_ANALYZER_SCHEMA } from "@/lib/document-analyzer/schemas/adicion-fields"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -116,6 +119,24 @@ function AdicionModal({
     return isNaN(n) ? null : n
   }
 
+  // Apply extraction results — only fields confirmed with confidence ≥ 70%
+  function applyExtraction(ext: Record<string, ExtractionField>) {
+    const ok = (key: string) => {
+      const f = ext[key]
+      return f != null && f.value !== null && f.confidence >= 0.7
+    }
+    const str = (key: string) => String(ext[key].value!)
+    setF((prev) => ({
+      ...prev,
+      ...(ok("fecha_adicion")          ? { fecha:       str("fecha_adicion") }          : {}),
+      ...(ok("valor_total")            ? { valorTotal:  str("valor_total") }             : {}),
+      ...(ok("valor_bienes_servicios") ? { valorBienes: str("valor_bienes_servicios") }  : {}),
+      ...(ok("valor_cuota_gerencia")   ? { valorCuota:  str("valor_cuota_gerencia") }    : {}),
+      ...(ok("numero_rp")              ? { numeroRp:    str("numero_rp") }               : {}),
+      ...(ok("motivo")                 ? { motivo:      str("motivo") }                  : {}),
+    }))
+  }
+
   function handle(e: React.FormEvent) {
     e.preventDefault(); setErr(null)
     start(async () => {
@@ -140,6 +161,14 @@ function AdicionModal({
   return (
     <Modal title={isEdit ? "Editar Adición" : `Nueva Adición — ${ordinal(nextNum)}`} onClose={onClose}>
       <form onSubmit={handle} className="p-6 space-y-4">
+        {!isEdit && (
+          <DocumentAnalyzerButton
+            documentType="adicion"
+            schema={ADICION_ANALYZER_SCHEMA}
+            onComplete={applyExtraction}
+            disabled={pending}
+          />
+        )}
         <Field label="Fecha de la Adición *">
           <input type="date" required className={inputCls} value={f.fecha} onChange={(e) => setF({ ...f, fecha: e.target.value })} />
         </Field>
