@@ -12,6 +12,16 @@ const ESTADOS: EstadoContrato[] = [
   "NO SUSCRITO", "TERMINADO ANORMALMENTE",
 ]
 
+const MODALIDADES = [
+  "Invitación abierta",
+  "Invitación a oferentes preseleccionados",
+  "Órdenes de compra de bienes, servicios o de obra",
+  "Contratación directa",
+  "Contratación mediante pago contra factura",
+  "Adquisición a través de los mecanismos de agregación de demanda",
+  "Adquisición a través de bolsas de productos",
+]
+
 const inputCls    = "w-full h-10 rounded-lg border border-[#EAEAEA] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20 bg-white"
 const textareaCls = "w-full rounded-lg border border-[#EAEAEA] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20 resize-none bg-white"
 const labelCls    = "block text-[11px] font-bold uppercase tracking-wide text-[#747783] mb-1.5"
@@ -73,6 +83,9 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
     fecha_aprobacion_poliza:  c.fecha_aprobacion_poliza ?? "",
     link_ficha:               c.link_ficha ?? "",
     observaciones:            c.observaciones ?? "",
+    direccion:                c.direccion ?? "",
+    telefono:                 c.telefono ?? "",
+    correo:                   c.correo ?? "",
   })
 
   function set<K extends keyof typeof form>(k: K, v: string) {
@@ -123,6 +136,9 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
         fecha_aprobacion_poliza:  nullIfEmpty(form.fecha_aprobacion_poliza),
         link_ficha:               nullIfEmpty(form.link_ficha),
         observaciones:            nullIfEmpty(form.observaciones),
+        direccion:                nullIfEmpty(form.direccion),
+        telefono:                 nullIfEmpty(form.telefono),
+        correo:                   nullIfEmpty(form.correo),
       })
       if (res.error) { setError(res.error); return }
       onClose()
@@ -197,7 +213,10 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Modalidad de selección">
-                <input value={form.modalidad_seleccion} onChange={e => set("modalidad_seleccion", e.target.value)} className={inputCls} />
+                <select value={form.modalidad_seleccion} onChange={e => set("modalidad_seleccion", e.target.value)} className={inputCls}>
+                  <option value="">— Sin especificar —</option>
+                  {MODALIDADES.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
               </Field>
               <Field label="Clase de contrato">
                 <input value={form.clase_contrato} onChange={e => set("clase_contrato", e.target.value)} className={inputCls} />
@@ -283,6 +302,20 @@ export function DerivedEditModal({ contrato: c, projectId, onClose }: Props) {
             <Field label="Enlace Carpeta Documental">
               <input type="url" value={form.link_carpeta_documental} onChange={e => set("link_carpeta_documental", e.target.value)} className={inputCls} placeholder="https://drive.google.com/…" />
             </Field>
+
+            {/* Información de Contacto */}
+            <Section title="Información de Contacto" />
+            <Field label="Dirección">
+              <input value={form.direccion} onChange={e => set("direccion", e.target.value)} className={inputCls} placeholder="Dirección del contratista" />
+            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Teléfono">
+                <input value={form.telefono} onChange={e => set("telefono", e.target.value)} className={inputCls} placeholder="Ej: 601 234 5678 ext. 100" />
+              </Field>
+              <Field label="Correo Electrónico">
+                <input type="email" value={form.correo} onChange={e => set("correo", e.target.value)} className={inputCls} placeholder="correo@ejemplo.com" />
+              </Field>
+            </div>
 
             {/* Observaciones */}
             <Section title="Observaciones" />

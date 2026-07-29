@@ -207,10 +207,15 @@ export async function GET(req: NextRequest) {
       "Saldo Pendiente":           fin.saldoPendiente,
       "% Ejecutado":               fin.pctEjecutado ?? "",
       // ── Soporte Presupuestal ────────────────────────────────────────
-      "Número RP":                 s(c.crp),
-      "Fecha RP":                  d(c.fecha_crp),
+      "Modalidad de Selección":    s(c.modalidad_seleccion),
       "Número CDP":                s(c.cdp),
       "Fecha CDP":                 d(c.fecha_cdp),
+      "Número RP":                 s(c.crp),
+      "Fecha RP":                  d(c.fecha_crp),
+      // ── Información de Contacto ─────────────────────────────────────
+      "Dirección":                 s(c.direccion),
+      "Teléfono":                  s(c.telefono),
+      "Correo Electrónico":        s(c.correo),
       // ── Modificaciones Contractuales ────────────────────────────────
       "Cantidad Adiciones":        adiciones.length,
       "Valor Total Adiciones":     valorAdiciones,

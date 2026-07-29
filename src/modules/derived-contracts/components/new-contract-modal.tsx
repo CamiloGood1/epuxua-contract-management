@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Save, Loader2, Check, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { createDerivedContract, createFuncionamientoContract } from "@/services/projects.actions"
+import { createDerivedContract, createFuncionamientoContract, getLastContractNumbers } from "@/services/projects.actions"
 
 // ── Shared atoms ──────────────────────────────────────────────────────────────
 
@@ -40,6 +40,16 @@ const ESTADOS = [
   "TERMINADO ANTICIPADAMENTE", "SUSPENDIDO", "DECLARADO FALLIDO", "NO SUSCRITO", "TERMINADO ANORMALMENTE",
 ]
 
+const MODALIDADES = [
+  "Invitación abierta",
+  "Invitación a oferentes preseleccionados",
+  "Órdenes de compra de bienes, servicios o de obra",
+  "Contratación directa",
+  "Contratación mediante pago contra factura",
+  "Adquisición a través de los mecanismos de agregación de demanda",
+  "Adquisición a través de bolsas de productos",
+]
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Tipo = "DERIVADO" | "FUNCIONAMIENTO"
@@ -67,6 +77,7 @@ interface DeriForm {
   persona_natural_juridica: string
   nit_identificacion: string
   numero_proceso_seleccion: string
+  modalidad_seleccion: string
   estado: string
   fecha_suscripcion: string
   fecha_inicio: string
@@ -76,18 +87,24 @@ interface DeriForm {
   link_ficha: string
   link_documentacion: string
   valor_inicial: string
+  cdp: string
+  fecha_cdp: string
   crp: string
   fecha_crp: string
   link_carpeta_documental: string
+  direccion: string
+  telefono: string
+  correo: string
 }
 
 const EMPTY_DERI: DeriForm = {
   id_interadministrativo: "", numero_contrato: "", objeto_contrato: "",
   contratista: "", persona_natural_juridica: "", nit_identificacion: "",
-  numero_proceso_seleccion: "", estado: "EN EJECUCIÓN", fecha_suscripcion: "",
-  fecha_inicio: "", fecha_terminacion: "", plazo_ejecucion: "", supervisor: "",
-  link_ficha: "", link_documentacion: "", valor_inicial: "", crp: "", fecha_crp: "",
-  link_carpeta_documental: "",
+  numero_proceso_seleccion: "", modalidad_seleccion: "", estado: "EN EJECUCIÓN",
+  fecha_suscripcion: "", fecha_inicio: "", fecha_terminacion: "", plazo_ejecucion: "",
+  supervisor: "", link_ficha: "", link_documentacion: "", valor_inicial: "",
+  cdp: "", fecha_cdp: "", crp: "", fecha_crp: "", link_carpeta_documental: "",
+  direccion: "", telefono: "", correo: "",
 }
 
 // ── Funcionamiento form ───────────────────────────────────────────────────────
@@ -114,6 +131,9 @@ interface FuncForm {
   link_carpeta_documental: string
   link_ficha: string
   observaciones: string
+  direccion: string
+  telefono: string
+  correo: string
 }
 
 const EMPTY_FUNC: FuncForm = {
@@ -121,8 +141,9 @@ const EMPTY_FUNC: FuncForm = {
   numero_proceso_seleccion: "", modalidad_seleccion: "",
   area_responsable: "", estado: "EN EJECUCIÓN", fecha_suscripcion: "",
   fecha_inicio: "", fecha_terminacion: "", plazo_ejecucion: "", supervisor: "",
-  objeto_contrato: "", valor_inicial: "", cdp: "", fecha_cdp: "", crp: "",
-  fecha_crp: "", link_carpeta_documental: "", link_ficha: "", observaciones: "",
+  objeto_contrato: "", valor_inicial: "", cdp: "", fecha_cdp: "", crp: "", fecha_crp: "",
+  link_carpeta_documental: "", link_ficha: "", observaciones: "",
+  direccion: "", telefono: "", correo: "",
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -136,6 +157,7 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
   const [error, setError]         = useState<string | null>(null)
   const [success, setSuccess]     = useState(false)
   const [interSearch, setSearch]  = useState("")
+  const [lastNum, setLastNum]     = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -145,6 +167,7 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
       setError(null)
       setSuccess(false)
       setSearch("")
+      getLastContractNumbers().then(r => setLastNum(r.last)).catch(() => {})
     }
   }, [open])
 
@@ -218,6 +241,7 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
         persona_natural_juridica: deri.persona_natural_juridica.trim() || undefined,
         nit_identificacion:       deri.nit_identificacion.trim() || undefined,
         numero_proceso_seleccion: deri.numero_proceso_seleccion.trim() || undefined,
+        modalidad_seleccion:      deri.modalidad_seleccion || undefined,
         estado:                   deri.estado || undefined,
         fecha_suscripcion:        deri.fecha_suscripcion || undefined,
         fecha_inicio:             deri.fecha_inicio || undefined,
@@ -226,9 +250,14 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
         supervisor:               deri.supervisor.trim() || undefined,
         link_ficha:               deri.link_ficha.trim() || undefined,
         valor_inicial:            parseNum(deri.valor_inicial),
+        cdp:                      deri.cdp.trim() || undefined,
+        fecha_cdp:                deri.fecha_cdp || undefined,
         crp:                      deri.crp.trim() || undefined,
         fecha_crp:                deri.fecha_crp || undefined,
-        link_carpeta_documental:           deri.link_carpeta_documental.trim() || undefined,
+        link_carpeta_documental:  deri.link_carpeta_documental.trim() || undefined,
+        direccion:                deri.direccion.trim() || undefined,
+        telefono:                 deri.telefono.trim() || undefined,
+        correo:                   deri.correo.trim() || undefined,
       })
     } else {
       result = await createFuncionamientoContract({
@@ -236,7 +265,7 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
         contratista:        func_.contratista.trim() || undefined,
         nit_identificacion: func_.nit_identificacion.trim() || undefined,
         numero_proceso_seleccion: func_.numero_proceso_seleccion.trim() || undefined,
-        modalidad_seleccion: func_.modalidad_seleccion.trim() || undefined,
+        modalidad_seleccion: func_.modalidad_seleccion || undefined,
         area_responsable:   func_.area_responsable.trim() || undefined,
         estado:             func_.estado || undefined,
         fecha_suscripcion:  func_.fecha_suscripcion || undefined,
@@ -250,9 +279,12 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
         fecha_cdp:          func_.fecha_cdp || undefined,
         crp:                func_.crp.trim() || undefined,
         fecha_crp:          func_.fecha_crp || undefined,
-        link_carpeta_documental:     func_.link_carpeta_documental.trim() || undefined,
+        link_carpeta_documental: func_.link_carpeta_documental.trim() || undefined,
         link_ficha:         func_.link_ficha.trim() || undefined,
         observaciones:      func_.observaciones.trim() || undefined,
+        direccion:          func_.direccion.trim() || undefined,
+        telefono:           func_.telefono.trim() || undefined,
+        correo:             func_.correo.trim() || undefined,
       })
     }
 
@@ -291,7 +323,7 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
             {/* Tipo selector */}
             <div className="shrink-0 px-6 py-3 border-b border-[#EAEAEA] bg-[#f9fafb]">
               <p className={labelCls}>Tipo de Contrato <span className="text-red-500">*</span></p>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {(["DERIVADO", ...(canCreateFuncionamiento ? ["FUNCIONAMIENTO"] : [])] as Tipo[]).map((t) => (
                   <button
                     key={t}
@@ -307,6 +339,12 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
                     {t === "DERIVADO" ? "Derivado" : "Funcionamiento"}
                   </button>
                 ))}
+                {/* Indicador último contrato registrado */}
+                {lastNum && (
+                  <span className="ml-auto text-[11px] text-[#747783] bg-[#f0f3ff] border border-[#EAEAEA] rounded-full px-2.5 py-1 font-medium">
+                    Último registrado: <span className="font-bold text-[#0B3D91]">{lastNum}</span>
+                  </span>
+                )}
               </div>
             </div>
 
@@ -393,6 +431,14 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
                   </Row>
 
                   <div>
+                    <Label>Modalidad de Selección</Label>
+                    <select className={selectCls} value={deri.modalidad_seleccion} onChange={(e) => setD("modalidad_seleccion", e.target.value)}>
+                      <option value="">— Sin especificar —</option>
+                      {MODALIDADES.map((m) => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
                     <Label required>Estado</Label>
                     <select className={selectCls} value={deri.estado} onChange={(e) => setD("estado", e.target.value)}>
                       {ESTADOS.map((s) => <option key={s}>{s}</option>)}
@@ -435,12 +481,41 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
 
                   <Row>
                     <div>
+                      <Label>Número de CDP</Label>
+                      <input className={inputCls} placeholder="N° Certificado Disponibilidad Pres." value={deri.cdp} onChange={(e) => setD("cdp", e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Fecha del CDP</Label>
+                      <input type="date" className={inputCls} value={deri.fecha_cdp} onChange={(e) => setD("fecha_cdp", e.target.value)} />
+                    </div>
+                  </Row>
+
+                  <Row>
+                    <div>
                       <Label>RP</Label>
                       <input className={inputCls} placeholder="N° Registro Presupuestal" value={deri.crp} onChange={(e) => setD("crp", e.target.value)} />
                     </div>
                     <div>
                       <Label>Fecha RP</Label>
                       <input type="date" className={inputCls} value={deri.fecha_crp} onChange={(e) => setD("fecha_crp", e.target.value)} />
+                    </div>
+                  </Row>
+
+                  <Section label="Información de Contacto" />
+
+                  <div>
+                    <Label>Dirección</Label>
+                    <input className={inputCls} placeholder="Dirección del contratista" value={deri.direccion} onChange={(e) => setD("direccion", e.target.value)} />
+                  </div>
+
+                  <Row>
+                    <div>
+                      <Label>Teléfono</Label>
+                      <input className={inputCls} placeholder="Ej: 601 234 5678 ext. 100" value={deri.telefono} onChange={(e) => setD("telefono", e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Correo Electrónico</Label>
+                      <input type="email" className={inputCls} placeholder="correo@ejemplo.com" value={deri.correo} onChange={(e) => setD("correo", e.target.value)} />
                     </div>
                   </Row>
 
@@ -484,8 +559,11 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
 
                   <Row>
                     <div>
-                      <Label required>Tipo Contratación</Label>
-                      <input className={inputCls} placeholder="Ej: OPS, CPS, Prestación de servicios" value={func_.modalidad_seleccion} onChange={(e) => setF("modalidad_seleccion", e.target.value)} />
+                      <Label required>Modalidad de Selección</Label>
+                      <select className={selectCls} value={func_.modalidad_seleccion} onChange={(e) => setF("modalidad_seleccion", e.target.value)}>
+                        <option value="">— Sin especificar —</option>
+                        {MODALIDADES.map((m) => <option key={m} value={m}>{m}</option>)}
+                      </select>
                     </div>
                     <div>
                       <Label required>Área</Label>
@@ -542,23 +620,41 @@ export function NewContractModal({ open, onClose, interadmins, canCreateFunciona
 
                   <Row>
                     <div>
-                      <Label>RP</Label>
-                      <input className={inputCls} placeholder="N° Registro Presupuestal" value={func_.cdp} onChange={(e) => setF("cdp", e.target.value)} />
+                      <Label>Número de CDP</Label>
+                      <input className={inputCls} placeholder="N° Certificado Disponibilidad Pres." value={func_.cdp} onChange={(e) => setF("cdp", e.target.value)} />
                     </div>
                     <div>
-                      <Label>Fecha RP</Label>
+                      <Label>Fecha CDP</Label>
                       <input type="date" className={inputCls} value={func_.fecha_cdp} onChange={(e) => setF("fecha_cdp", e.target.value)} />
                     </div>
                   </Row>
 
                   <Row>
                     <div>
-                      <Label>CRP</Label>
-                      <input className={inputCls} placeholder="N° Contrato Reg. Presupuestal" value={func_.crp} onChange={(e) => setF("crp", e.target.value)} />
+                      <Label>RP</Label>
+                      <input className={inputCls} placeholder="N° Registro Presupuestal" value={func_.crp} onChange={(e) => setF("crp", e.target.value)} />
                     </div>
                     <div>
-                      <Label>Fecha CRP</Label>
+                      <Label>Fecha RP</Label>
                       <input type="date" className={inputCls} value={func_.fecha_crp} onChange={(e) => setF("fecha_crp", e.target.value)} />
+                    </div>
+                  </Row>
+
+                  <Section label="Información de Contacto" />
+
+                  <div>
+                    <Label>Dirección</Label>
+                    <input className={inputCls} placeholder="Dirección del contratista" value={func_.direccion} onChange={(e) => setF("direccion", e.target.value)} />
+                  </div>
+
+                  <Row>
+                    <div>
+                      <Label>Teléfono</Label>
+                      <input className={inputCls} placeholder="Ej: 601 234 5678 ext. 100" value={func_.telefono} onChange={(e) => setF("telefono", e.target.value)} />
+                    </div>
+                    <div>
+                      <Label>Correo Electrónico</Label>
+                      <input type="email" className={inputCls} placeholder="correo@ejemplo.com" value={func_.correo} onChange={(e) => setF("correo", e.target.value)} />
                     </div>
                   </Row>
 

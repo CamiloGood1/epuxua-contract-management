@@ -44,6 +44,9 @@ export interface UpdateContratoInput {
   fecha_aprobacion_poliza?:  string | null
   link_ficha?:               string | null
   observaciones?:            string | null
+  direccion?:                string | null
+  telefono?:                 string | null
+  correo?:                   string | null
 }
 
 // ── Acción ────────────────────────────────────────────────────────────────────

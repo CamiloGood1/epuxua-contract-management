@@ -49,6 +49,9 @@ export interface DerivedContractRow {
   link_ficha:               string | null
   numero_poliza:            string | null
   fecha_aprobacion_poliza:  string | null
+  direccion:                string | null
+  telefono:                 string | null
+  correo:                   string | null
   created_at:               string
   updated_at:               string
   // From JOIN with interadministrativos

@@ -143,6 +143,9 @@ function InfoTab({ c, parent, modificaciones, cons }: {
               ["CDP",                c.cdp],
               ["CRP",                c.crp],
               ["N° Póliza",          c.numero_poliza],
+              ["Dirección",          c.direccion],
+              ["Teléfono",           c.telefono],
+              ["Correo",             c.correo],
             ].map(([label, value]) => value ? (
               <div key={label} className="flex gap-3">
                 <span className="text-[11px] font-semibold text-[#747783] w-36 shrink-0">{label}</span>

@@ -48,6 +48,9 @@ export interface ContractDetailData {
   link_ficha:               string | null
   numero_poliza:            string | null
   fecha_aprobacion_poliza:  string | null
+  direccion:                string | null
+  telefono:                 string | null
+  correo:                   string | null
   // Optional parent info (derivados)
   parent_objeto?:     string | null
   parent_secretaria?: string | null
@@ -315,6 +318,22 @@ export function ContractDetailDrawer({ contract, onClose }: Props) {
                     <Row>
                       <Field label="CRP" value={contract.crp} mono />
                       <Field label="Fecha CRP" value={contract.fecha_crp} />
+                    </Row>
+                  </div>
+                </>
+              )}
+
+              {/* Información de Contacto */}
+              {(contract.direccion || contract.telefono || contract.correo) && (
+                <>
+                  <Section title="Información de Contacto" />
+                  <div className="pt-3 space-y-4">
+                    {contract.direccion && (
+                      <Field label="Dirección" value={contract.direccion} />
+                    )}
+                    <Row>
+                      <Field label="Teléfono" value={contract.telefono} />
+                      <Field label="Correo electrónico" value={contract.correo} />
                     </Row>
                   </div>
                 </>

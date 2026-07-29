@@ -196,9 +196,15 @@ export interface NewDerivedContractInput {
   valor_inicial?: number
   valor_final?: number
   estado?: string
+  cdp?: string                      // CDP (Certificado de Disponibilidad Presupuestal)
+  fecha_cdp?: string                // Fecha CDP
   crp?: string                      // RP (Registro Presupuestal)
   fecha_crp?: string                // Fecha RP
-  link_carpeta_documental?: string           // Enlace Carpeta Documental
+  modalidad_seleccion?: string      // Modalidad de selección
+  link_carpeta_documental?: string  // Enlace Carpeta Documental
+  direccion?: string                // Dirección del contratista
+  telefono?: string                 // Teléfono del contratista
+  correo?: string                   // Correo electrónico del contratista
   link_ficha?: string               // Enlace Secop
   link_documentacion?: string       // Enlace Documentación
   // Backward compat
@@ -246,10 +252,16 @@ export async function createDerivedContract(
       valor_inicial:            input.valor_inicial            ?? null,
       valor_final:              input.valor_final              ?? input.valor_inicial ?? null,
       estado:                   input.estado                   || null,
+      modalidad_seleccion:      input.modalidad_seleccion      || null,
+      cdp:                      input.cdp                      || null,
+      fecha_cdp:                input.fecha_cdp                || null,
       crp:                      input.crp                      || null,
       fecha_crp:                input.fecha_crp                || null,
-      link_carpeta_documental:           input.link_carpeta_documental           || null,
+      link_carpeta_documental:  input.link_carpeta_documental  || null,
       link_ficha:               input.link_ficha               || null,
+      direccion:                input.direccion                || null,
+      telefono:                 input.telefono                 || null,
+      correo:                   input.correo                   || null,
     })
     .select("id")
     .single()
@@ -286,15 +298,18 @@ export interface NewFuncionamientoContractInput {
   valor_inicial?: number
   valor_final?: number
   estado?: string
-  cdp?: string               // CDP (número)
+  cdp?: string               // Número de CDP
   fecha_cdp?: string         // Fecha CDP
-  crp?: string               // CRP (número)
-  fecha_crp?: string         // Fecha CRP
+  crp?: string               // RP (Registro Presupuestal)
+  fecha_crp?: string         // Fecha RP
   link_carpeta_documental?: string    // Enlace Carpeta Documental
-  link_ficha?: string        // Enlace carpeta documental
+  link_ficha?: string        // Enlace SECOP
   recurso?: string
   rubro?: string
   observaciones?: string
+  direccion?: string         // Dirección del contratista
+  telefono?: string          // Teléfono del contratista
+  correo?: string            // Correo electrónico del contratista
   // Backward compat
   proyecto_ref?: string
   contract_number?: string
@@ -343,11 +358,14 @@ export async function createFuncionamientoContract(
       fecha_cdp:                input.fecha_cdp                || null,
       crp:                      input.crp                      || null,
       fecha_crp:                input.fecha_crp                || null,
-      link_carpeta_documental:           input.link_carpeta_documental           || null,
+      link_carpeta_documental:  input.link_carpeta_documental  || null,
       link_ficha:               input.link_ficha               || null,
       recurso:                  input.recurso                  || null,
-      rubro:                    input.rubro                   || null,
-      observaciones:            input.observaciones           || null,
+      rubro:                    input.rubro                    || null,
+      observaciones:            input.observaciones            || null,
+      direccion:                input.direccion                || null,
+      telefono:                 input.telefono                 || null,
+      correo:                   input.correo                   || null,
     })
     .select("id")
     .single()
@@ -358,6 +376,23 @@ export async function createFuncionamientoContract(
   revalidatePath("/")
 
   return { error: null, contractId: String(data.id) }
+}
+
+// ── Último número de contrato registrado (para indicador en formularios) ──────
+
+export async function getLastContractNumbers(): Promise<{
+  last: string | null
+}> {
+  const supabase = await createSupabaseServerClient()
+
+  const { data } = await supabase
+    .from("contratos")
+    .select("numero_contrato")
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return { last: data?.numero_contrato ?? null }
 }
 
 // ── No-op mantenido para compatibilidad (ya no existe projects table) ─────────
