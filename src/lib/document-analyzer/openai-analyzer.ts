@@ -8,6 +8,7 @@ export interface AnalyzerOutput {
 export async function analyzeWithOpenAI(
   systemPrompt: string,
   cleanedText: string,
+  maxTokens = 1400,
 ): Promise<AnalyzerOutput> {
   const key = process.env.OPENAI_API_KEY
   if (!key) {
@@ -26,7 +27,7 @@ export async function analyzeWithOpenAI(
       model,
       response_format: { type: "json_object" },
       temperature: 0,
-      max_tokens: 1400,
+      max_tokens: maxTokens,
       messages: [
         { role: "system", content: systemPrompt },
         {

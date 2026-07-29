@@ -82,3 +82,57 @@ export interface DocumentAnalysisError {
   error: string
   code?: "UNSUPPORTED_FORMAT" | "EXTRACTION_FAILED" | "ANALYSIS_FAILED" | "NO_API_KEY" | "EMPTY_DOCUMENT" | "FILE_TOO_LARGE"
 }
+
+// ─── Unified modifications analysis ──────────────────────────────────────────
+export type ModificationDocType = "ADICION" | "PRORROGA" | "SUSPENSION" | "REINICIO" | "ACLARATORIO"
+
+export interface AdicionFields {
+  fecha_adicion:          ExtractionField<string>
+  valor_total:            ExtractionField<number>
+  valor_bienes_servicios: ExtractionField<number>
+  valor_cuota_gerencia:   ExtractionField<number>
+  numero_rp:              ExtractionField<string>
+  motivo:                 ExtractionField<string>
+}
+
+export interface ProrrogaFields {
+  fecha_suscripcion:       ExtractionField<string>
+  nueva_fecha_terminacion: ExtractionField<string>
+  plazo_prorroga:          ExtractionField<string>
+  justificacion:           ExtractionField<string>
+}
+
+export interface SuspensionFields {
+  fecha_suscripcion: ExtractionField<string>
+  inicio_suspension: ExtractionField<string>
+  fin_suspension:    ExtractionField<string>
+  plazo_suspension:  ExtractionField<string>
+  motivo:            ExtractionField<string>
+}
+
+export interface ReinicioFields {
+  fecha_reinicio:    ExtractionField<string>
+  fecha_suscripcion: ExtractionField<string>
+  motivo:            ExtractionField<string>
+  observaciones:     ExtractionField<string>
+}
+
+export interface AclaratorioFields {
+  fecha_suscripcion: ExtractionField<string>
+  motivo:            ExtractionField<string>
+  descripcion:       ExtractionField<string>
+}
+
+export interface UnifiedModificationResult {
+  detected_types: ModificationDocType[]
+  adicion:        AdicionFields | null
+  prorroga:       ProrrogaFields | null
+  suspension:     SuspensionFields | null
+  reinicio:       ReinicioFields | null
+  aclaratorio:    AclaratorioFields | null
+}
+
+export interface UnifiedAnalysisResponse {
+  result:   UnifiedModificationResult
+  metadata: AnalysisMetadata
+}

@@ -13,6 +13,7 @@ import {
 } from "@/services/modificaciones.actions"
 import type { ModificacionesData, Adicion, Prorroga, Suspension, Reinicio, Aclaratorio } from "@/types/modificaciones"
 import { DocumentAnalyzerButton } from "@/modules/projects/components/expediente/document-analyzer/DocumentAnalyzerButton"
+import { UnifiedAnalyzerModal } from "@/modules/projects/components/expediente/document-analyzer/UnifiedAnalyzerModal"
 import type { ExtractionField } from "@/lib/document-analyzer/types"
 import { ADICION_ANALYZER_SCHEMA } from "@/lib/document-analyzer/schemas/adicion-fields"
 
@@ -637,6 +638,7 @@ type ModalType = "adicion" | "prorroga" | "suspension" | "reinicio" | "aclarator
 
 export function ModificacionesTab({ interadministrativoId, fechaTerminacionOriginal, modificaciones: m, canEdit, canDelete }: Props) {
   const [modal, setModal] = useState<ModalType>(null)
+  const [showAiModal, setShowAiModal] = useState(false)
   const [editRecord, setEditRecord] = useState<Adicion | Prorroga | Suspension | Reinicio | Aclaratorio | null>(null)
 
   const timeline = buildTimeline(m)
@@ -708,6 +710,14 @@ export function ModificacionesTab({ interadministrativoId, fechaTerminacionOrigi
               <Plus size={12} /> {btn.label}
             </button>
           ))}
+          <div className="w-px bg-[#EAEAEA] self-stretch mx-1" />
+          <button
+            type="button"
+            onClick={() => setShowAiModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#0B3D91]/40 text-[#0B3D91] text-xs font-semibold hover:bg-[#f0f3ff] transition-colors"
+          >
+            📄 Analizar Documento (IA)
+          </button>
         </div>
       )}
 
@@ -738,12 +748,26 @@ export function ModificacionesTab({ interadministrativoId, fechaTerminacionOrigi
         </div>
       )}
 
-      {/* ── Modales ── */}
+      {/* ── Modales manuales ── */}
       {modal === "adicion"     && <AdicionModal     interadministrativoId={interadministrativoId} nextNum={m.adiciones.length + 1}     onClose={closeModal} editData={editRecord as Adicion | null} />}
       {modal === "prorroga"    && <ProrrogaModal    interadministrativoId={interadministrativoId} nextNum={m.prorrogas.length + 1}     fechaTerminacionActual={ultimaProrroga?.nueva_fecha_terminacion ?? fechaTerminacionOriginal} onClose={closeModal} editData={editRecord as Prorroga | null} />}
       {modal === "suspension"  && <SuspensionModal  interadministrativoId={interadministrativoId} nextNum={m.suspensiones.length + 1}  onClose={closeModal} editData={editRecord as Suspension | null} />}
       {modal === "reinicio"    && <ReinicioModal    interadministrativoId={interadministrativoId} nextNum={m.reinicios.length + 1}     onClose={closeModal} editData={editRecord as Reinicio | null} />}
       {modal === "aclaratorio" && <AclaratorioModal interadministrativoId={interadministrativoId} nextNum={m.aclaratorios.length + 1}  onClose={closeModal} editData={editRecord as Aclaratorio | null} />}
+
+      {/* ── Modal IA unificado ── */}
+      <UnifiedAnalyzerModal
+        open={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        interadministrativoId={interadministrativoId}
+        nextNums={{
+          adicion:     m.adiciones.length + 1,
+          prorroga:    m.prorrogas.length + 1,
+          suspension:  m.suspensiones.length + 1,
+          reinicio:    m.reinicios.length + 1,
+          aclaratorio: m.aclaratorios.length + 1,
+        }}
+      />
     </div>
   )
 }
