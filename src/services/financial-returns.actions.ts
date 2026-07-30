@@ -94,6 +94,12 @@ export interface CreateFinancialReturnInput {
   return_date: string
   gross_return_value: number
   observations?: string | null
+  repayment_status?: RepaymentStatus
+  documento_evidencia?: string | null
+  repayment_date?: string | null
+  repayment_value?: number | null
+  repayment_support_link?: string | null
+  repayment_observations?: string | null
 }
 
 export async function createFinancialReturn(input: CreateFinancialReturnInput): Promise<Res> {
@@ -127,8 +133,13 @@ export async function createFinancialReturn(input: CreateFinancialReturnInput): 
       return_year: input.return_year,
       return_date: input.return_date,
       gross_return_value: input.gross_return_value,
-      repayment_status: "PENDIENTE",
+      repayment_status: input.repayment_status ?? "PENDIENTE",
       observations: input.observations?.trim() || null,
+      documento_evidencia: input.documento_evidencia?.trim() || null,
+      repayment_date: input.repayment_date || null,
+      repayment_value: input.repayment_value ?? null,
+      repayment_support_link: input.repayment_support_link?.trim() || null,
+      repayment_observations: input.repayment_observations?.trim() || null,
       user_id: profile?.id ?? null,
       user_email: profile?.email ?? null,
     } as never)
@@ -180,7 +191,7 @@ export async function createFinancialReturn(input: CreateFinancialReturnInput): 
 export async function updateFinancialReturn(
   id: number,
   interadministrativoId: number,
-  updates: Partial<CreateFinancialReturnInput> & { repayment_status?: RepaymentStatus },
+  updates: Partial<CreateFinancialReturnInput>,
 ): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!canEditFinancialTabs(profile?.role)) return { error: "Sin permisos para editar rendimientos." }
@@ -228,6 +239,11 @@ export async function updateFinancialReturn(
   if (updates.gross_return_value !== undefined) patch.gross_return_value = updates.gross_return_value
   if (updates.observations !== undefined) patch.observations = updates.observations?.trim() || null
   if (updates.repayment_status !== undefined) patch.repayment_status = updates.repayment_status
+  if (updates.documento_evidencia !== undefined) patch.documento_evidencia = updates.documento_evidencia?.trim() || null
+  if (updates.repayment_date !== undefined) patch.repayment_date = updates.repayment_date || null
+  if (updates.repayment_value !== undefined) patch.repayment_value = updates.repayment_value ?? null
+  if (updates.repayment_support_link !== undefined) patch.repayment_support_link = updates.repayment_support_link?.trim() || null
+  if (updates.repayment_observations !== undefined) patch.repayment_observations = updates.repayment_observations?.trim() || null
 
   const { error } = await supabase
     .from("interadmin_financial_returns" as never)

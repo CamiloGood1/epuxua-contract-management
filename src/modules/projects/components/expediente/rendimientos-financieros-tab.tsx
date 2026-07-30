@@ -4,7 +4,7 @@ import { useState, useMemo, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
   X, Plus, Pencil, Trash2, AlertTriangle, TrendingUp, Eye, ChevronDown, ChevronUp,
-  DollarSign, Calendar, Users,
+  DollarSign, Users, Link2, CheckCircle2,
 } from "lucide-react"
 import { formatCOP } from "@/modules/contracts/lib/status"
 import { formatDateShort } from "@/lib/date-format"
@@ -76,22 +76,32 @@ function ReturnModal({ interadministrativoId, groups, funding, item, onClose }: 
   const [form, setForm] = useState(() =>
     item
       ? {
-          funding_group_id: String(item.funding_group_id),
-          return_month: String(item.return_month),
-          return_year: String(item.return_year),
-          return_date: item.return_date,
-          gross_return_value: String(item.gross_return_value),
-          observations: item.observations ?? "",
-          repayment_status: item.repayment_status,
+          funding_group_id:      String(item.funding_group_id),
+          return_month:          String(item.return_month),
+          return_year:           String(item.return_year),
+          return_date:           item.return_date,
+          gross_return_value:    String(item.gross_return_value),
+          observations:          item.observations ?? "",
+          repayment_status:      item.repayment_status,
+          documento_evidencia:   item.documento_evidencia ?? "",
+          repayment_date:        item.repayment_date ?? "",
+          repayment_value:       item.repayment_value != null ? String(item.repayment_value) : "",
+          repayment_support_link: item.repayment_support_link ?? "",
+          repayment_observations: item.repayment_observations ?? "",
         }
       : {
-          funding_group_id: groups[0] ? String(groups[0].id) : "",
-          return_month: String(now.getMonth() + 1),
-          return_year: String(now.getFullYear()),
-          return_date: now.toISOString().split("T")[0],
-          gross_return_value: "",
-          observations: "",
-          repayment_status: "PENDIENTE" as RepaymentStatus,
+          funding_group_id:      groups[0] ? String(groups[0].id) : "",
+          return_month:          String(now.getMonth() + 1),
+          return_year:           String(now.getFullYear()),
+          return_date:           now.toISOString().split("T")[0],
+          gross_return_value:    "",
+          observations:          "",
+          repayment_status:      "PENDIENTE" as RepaymentStatus,
+          documento_evidencia:   "",
+          repayment_date:        "",
+          repayment_value:       "",
+          repayment_support_link: "",
+          repayment_observations: "",
         },
   )
   const [error, setError] = useState<string | null>(null)
@@ -111,29 +121,38 @@ function ReturnModal({ interadministrativoId, groups, funding, item, onClose }: 
     [parsedGross, groupSources],
   )
 
+  const isDevuelto = form.repayment_status === "DEVUELTO"
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     if (!form.funding_group_id) { setError("Seleccione el origen de recursos."); return }
     if (groupSources.length === 0) { setError("El origen seleccionado no tiene fuentes de financiación."); return }
     if (parsedGross <= 0) { setError("El valor del rendimiento debe ser mayor a 0."); return }
+    if (isDevuelto && !form.repayment_date) {
+      setError("La fecha de devolución es obligatoria cuando el estado es Devuelto.")
+      return
+    }
 
     const input: CreateFinancialReturnInput = {
       interadministrativo_id: interadministrativoId,
-      funding_group_id: selectedGroupId,
-      return_month: parseInt(form.return_month, 10),
-      return_year: parseInt(form.return_year, 10),
-      return_date: form.return_date,
-      gross_return_value: parsedGross,
-      observations: form.observations.trim() || null,
+      funding_group_id:       selectedGroupId,
+      return_month:           parseInt(form.return_month, 10),
+      return_year:            parseInt(form.return_year, 10),
+      return_date:            form.return_date,
+      gross_return_value:     parsedGross,
+      observations:           form.observations.trim() || null,
+      repayment_status:       form.repayment_status,
+      documento_evidencia:    form.documento_evidencia.trim() || null,
+      repayment_date:         isDevuelto ? (form.repayment_date || null) : null,
+      repayment_value:        isDevuelto ? (parseFloat(form.repayment_value) || null) : null,
+      repayment_support_link: isDevuelto ? (form.repayment_support_link.trim() || null) : null,
+      repayment_observations: isDevuelto ? (form.repayment_observations.trim() || null) : null,
     }
 
     start(async () => {
       const res = item
-        ? await updateFinancialReturn(item.id, interadministrativoId, {
-            ...input,
-            repayment_status: form.repayment_status,
-          })
+        ? await updateFinancialReturn(item.id, interadministrativoId, input)
         : await createFinancialReturn(input)
       if (res.error) { setError(res.error); return }
       onClose()
@@ -155,6 +174,7 @@ function ReturnModal({ interadministrativoId, groups, funding, item, onClose }: 
         </div>
 
         <form onSubmit={submit} className="p-6 space-y-4">
+          {/* Período */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Mes <span className="text-red-500">*</span></label>
@@ -195,7 +215,8 @@ function ReturnModal({ interadministrativoId, groups, funding, item, onClose }: 
               className={inputCls} placeholder="0" />
           </div>
 
-          {item && (
+          {/* Estado + Evidencia */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Estado de Devolución</label>
               <select value={form.repayment_status}
@@ -205,6 +226,47 @@ function ReturnModal({ interadministrativoId, groups, funding, item, onClose }: 
                   <option key={s} value={s}>{REPAYMENT_STATUS_LABEL[s]}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className={labelCls}>Extracto Bancario (URL)</label>
+              <input type="url" value={form.documento_evidencia}
+                onChange={(e) => setForm((p) => ({ ...p, documento_evidencia: e.target.value }))}
+                className={inputCls} placeholder="https://…" />
+            </div>
+          </div>
+
+          {/* Sección de devolución — solo cuando estado es DEVUELTO */}
+          {isDevuelto && (
+            <div className="border border-emerald-200 bg-emerald-50 rounded-xl p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-emerald-600" />
+                <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Información de Devolución</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Fecha de Devolución <span className="text-red-500">*</span></label>
+                  <input type="date" value={form.repayment_date}
+                    onChange={(e) => setForm((p) => ({ ...p, repayment_date: e.target.value }))} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>Valor Devuelto (COP)</label>
+                  <input type="text" inputMode="numeric" value={form.repayment_value}
+                    onChange={(e) => setForm((p) => ({ ...p, repayment_value: e.target.value }))}
+                    className={inputCls} placeholder={form.gross_return_value || "0"} />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Soporte de Devolución (URL)</label>
+                <input type="url" value={form.repayment_support_link}
+                  onChange={(e) => setForm((p) => ({ ...p, repayment_support_link: e.target.value }))}
+                  className={inputCls} placeholder="https://…" />
+              </div>
+              <div>
+                <label className={labelCls}>Observaciones de Devolución</label>
+                <textarea value={form.repayment_observations}
+                  onChange={(e) => setForm((p) => ({ ...p, repayment_observations: e.target.value }))}
+                  className={inputCls + " h-16 py-2 resize-none"} placeholder="Opcional" />
+              </div>
             </div>
           )}
 
@@ -283,7 +345,6 @@ function ReturnDetailDrawer({
   onClose: () => void
 }) {
   const group = groups.find((g) => g.id === item.funding_group_id)
-  const dists = distributions
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-sm">
@@ -295,12 +356,12 @@ function ReturnDetailDrawer({
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-3">
             {[
-              { l: "Período", v: `${monthName(item.return_month)} ${item.return_year}` },
-              { l: "Fecha", v: formatDateShort(item.return_date) },
-              { l: "Origen", v: group?.group_name ?? "—" },
-              { l: "Valor Total", v: fmt(item.gross_return_value), accent: "text-[#D9A520]" },
-              { l: "Estado Devolución", v: <StatusBadge status={item.repayment_status} /> },
-              { l: "Registrado por", v: item.user_email ?? "—" },
+              { l: "Período",         v: `${monthName(item.return_month)} ${item.return_year}` },
+              { l: "Fecha Registro",  v: formatDateShort(item.return_date) },
+              { l: "Origen",          v: group?.group_name ?? "—" },
+              { l: "Valor Total",     v: fmt(item.gross_return_value), accent: "text-[#D9A520]" },
+              { l: "Estado",          v: <StatusBadge status={item.repayment_status} /> },
+              { l: "Registrado por",  v: item.user_email ?? "—" },
             ].map((row) => (
               <div key={row.l} className="bg-[#f9f9ff] rounded-lg px-3 py-2.5">
                 <p className="text-[9px] font-bold uppercase tracking-widest text-[#747783]">{row.l}</p>
@@ -308,6 +369,50 @@ function ReturnDetailDrawer({
               </div>
             ))}
           </div>
+
+          {item.documento_evidencia && (
+            <a href={item.documento_evidencia} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2.5 bg-[#f0f3ff] border border-[#0B3D91]/20 rounded-lg hover:bg-[#e8edff] text-[#0B3D91] text-xs font-semibold">
+              <Link2 size={13} />
+              Ver Extracto Bancario
+            </a>
+          )}
+
+          {item.repayment_status === "DEVUELTO" && (
+            <div className="border border-emerald-200 bg-emerald-50 rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-emerald-600" />
+                <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Información de Devolución</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {item.repayment_date && (
+                  <div className="bg-white rounded-lg px-3 py-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-[#747783]">Fecha Devolución</p>
+                    <p className="text-sm font-semibold text-emerald-700 mt-0.5">{formatDateShort(item.repayment_date)}</p>
+                  </div>
+                )}
+                {item.repayment_value != null && (
+                  <div className="bg-white rounded-lg px-3 py-2.5">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-[#747783]">Valor Devuelto</p>
+                    <p className="text-sm font-bold text-emerald-700 mt-0.5 tabular-nums">{fmt(item.repayment_value)}</p>
+                  </div>
+                )}
+              </div>
+              {item.repayment_support_link && (
+                <a href={item.repayment_support_link} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 bg-white border border-emerald-200 rounded-lg hover:bg-emerald-50 text-emerald-700 text-xs font-semibold">
+                  <Link2 size={13} />
+                  Ver Soporte de Devolución
+                </a>
+              )}
+              {item.repayment_observations && (
+                <div className="bg-white rounded-lg p-3">
+                  <p className="text-[10px] font-bold uppercase text-emerald-700 mb-1">Observaciones</p>
+                  <p className="text-xs text-emerald-800">{item.repayment_observations}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {item.observations && (
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -318,24 +423,28 @@ function ReturnDetailDrawer({
 
           <div>
             <h3 className="text-sm font-bold text-[#002869] mb-3">Distribución Automática</h3>
-            <table className="w-full text-left">
-              <thead className="border-b border-[#EAEAEA]">
-                <tr>
-                  {["Fuente", "Participación", "Valor Asignado"].map((h) => (
-                    <th key={h} className="pb-2 text-[10px] font-bold uppercase text-[#747783]">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#EAEAEA]">
-                {dists.map((d) => (
-                  <tr key={d.id}>
-                    <td className="py-2.5 text-sm font-semibold">{d.source_name}</td>
-                    <td className="py-2.5 text-sm text-[#0B3D91]">{d.participation_percentage.toFixed(2)}%</td>
-                    <td className="py-2.5 text-sm font-bold text-[#D9A520] tabular-nums">{fmt(d.distributed_value)}</td>
+            {distributions.length === 0 ? (
+              <p className="text-xs text-[#747783]">Sin distribución registrada.</p>
+            ) : (
+              <table className="w-full text-left">
+                <thead className="border-b border-[#EAEAEA]">
+                  <tr>
+                    {["Fuente", "Participación", "Valor Asignado"].map((h) => (
+                      <th key={h} className="pb-2 text-[10px] font-bold uppercase text-[#747783]">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#EAEAEA]">
+                  {distributions.map((d) => (
+                    <tr key={d.id}>
+                      <td className="py-2.5 text-sm font-semibold">{d.source_name}</td>
+                      <td className="py-2.5 text-sm text-[#0B3D91]">{d.participation_percentage.toFixed(2)}%</td>
+                      <td className="py-2.5 text-sm font-bold text-[#D9A520] tabular-nums">{fmt(d.distributed_value)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>
@@ -351,6 +460,7 @@ interface Props {
   funding: FundingData
   canEdit: boolean
   canDelete: boolean
+  onOpenIaHub?: () => void
 }
 
 export function RendimientosFinancierosTab({
@@ -359,6 +469,7 @@ export function RendimientosFinancierosTab({
   funding,
   canEdit,
   canDelete,
+  onOpenIaHub,
 }: Props) {
   const router = useRouter()
   const [modal, setModal] = useState<{ mode: "create" | "edit"; item?: FinancialReturn } | null>(null)
@@ -391,7 +502,7 @@ export function RendimientosFinancierosTab({
     }
     const parciales = financialReturns.returns.filter((r) => r.repayment_status === "PARCIAL")
     if (parciales.length > 0) {
-      list.push({ level: "info", text: `${parciales.length} rendimiento${parciales.length > 1 ? "s" : ""} con devolución parcial.` })
+      list.push({ level: "info", text: `${parciales.length} rendimiento${parciales.length > 1 ? "s" : ""} en proceso de devolución.` })
     }
     return list
   }, [financialReturns.returns, funding.sources.length])
@@ -435,21 +546,54 @@ export function RendimientosFinancierosTab({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-bold text-[#002869]">Indicadores de Rendimientos</h3>
-        {canEdit && groupsWithSources.length > 0 && (
-          <button type="button" onClick={() => setModal({ mode: "create" })}
-            className="flex items-center gap-1.5 h-9 px-4 bg-[#0B3D91] text-white rounded-lg text-xs font-semibold hover:bg-[#002869]">
-            <Plus size={14} />
-            Registrar Rendimiento Financiero
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {canEdit && groupsWithSources.length > 0 && (
+            <button type="button" onClick={() => setModal({ mode: "create" })}
+              className="flex items-center gap-1.5 h-9 px-4 bg-[#0B3D91] text-white rounded-lg text-xs font-semibold hover:bg-[#002869]">
+              <Plus size={14} />
+              Registrar Rendimiento Financiero
+            </button>
+          )}
+          {onOpenIaHub && (
+            <button type="button" onClick={onOpenIaHub}
+              className="flex items-center gap-1.5 h-9 px-4 text-white rounded-lg text-xs font-semibold transition-opacity hover:opacity-90"
+              style={{ background: "linear-gradient(135deg, #001B4F 0%, #0B3D91 60%, #1A4DA8 100%)" }}>
+              🤖 EPUXUA IA
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        <KpiCard label="Rendimientos Acumulados" value={kpis.rendimientosAcumulados > 0 ? fmt(kpis.rendimientosAcumulados) : "—"} accent="text-[#0B3D91]" icon={<TrendingUp size={14} />} />
-        <KpiCard label="Año Actual" value={kpis.rendimientosAnioActual > 0 ? fmt(kpis.rendimientosAnioActual) : "—"} icon={<Calendar size={14} />} />
-        <KpiCard label="Mes Actual" value={kpis.rendimientosMesActual > 0 ? fmt(kpis.rendimientosMesActual) : "—"} />
-        <KpiCard label="Pendiente por Devolver" value={kpis.pendientePorDevolver > 0 ? fmt(kpis.pendientePorDevolver) : "—"} accent="text-amber-600" icon={<DollarSign size={14} />} />
-        <KpiCard label="Cantidad Registros" value={String(kpis.cantidadRegistros)} sub={kpis.registrosPendientes > 0 ? `${kpis.registrosPendientes} pendientes` : undefined} />
+        <KpiCard
+          label="Total Registros"
+          value={String(kpis.cantidadRegistros)}
+          accent="text-[#0B3D91]"
+          icon={<TrendingUp size={14} />}
+        />
+        <KpiCard
+          label="Pendientes Devolución"
+          value={String(kpis.registrosPendientes)}
+          accent="text-amber-600"
+          sub={kpis.registrosPendientes > 0 ? "requieren gestión" : undefined}
+          icon={<DollarSign size={14} />}
+        />
+        <KpiCard
+          label="Devueltos"
+          value={String(kpis.registrosDevueltos)}
+          accent="text-emerald-600"
+          icon={<CheckCircle2 size={14} />}
+        />
+        <KpiCard
+          label="Valor Pendiente"
+          value={kpis.pendientePorDevolver > 0 ? fmt(kpis.pendientePorDevolver) : "—"}
+          accent="text-amber-600"
+        />
+        <KpiCard
+          label="Valor Total Devuelto"
+          value={kpis.valorTotalDevuelto > 0 ? fmt(kpis.valorTotalDevuelto) : "—"}
+          accent="text-emerald-600"
+        />
       </div>
 
       {resumenFin.length > 0 && (
@@ -503,47 +647,59 @@ export function RendimientosFinancierosTab({
             <table className="w-full text-left">
               <thead className="border-b border-[#EAEAEA]">
                 <tr>
-                  {["Mes", "Año", "Fecha", "Origen", "Valor Total", "Fuentes", "Estado", "Usuario", ""].map((h) => (
-                    <th key={h} className="px-5 py-3 text-[10px] font-bold uppercase text-[#747783]">{h}</th>
+                  {["Período", "Fecha", "Origen", "Valor Total", "Estado", "Devolución", "Usuario", ""].map((h) => (
+                    <th key={h} className="px-4 py-3 text-[10px] font-bold uppercase text-[#747783]">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EAEAEA]">
-                {sortedReturns.map((r) => {
-                  const dists = getDistributionsForReturn(financialReturns.distributions, r.id)
-                  return (
-                    <tr key={r.id} className="hover:bg-[#f9f9ff]">
-                      <td className="px-5 py-3 text-sm font-medium">{monthName(r.return_month)}</td>
-                      <td className="px-5 py-3 text-sm">{r.return_year}</td>
-                      <td className="px-5 py-3 text-sm text-[#747783]">{formatDateShort(r.return_date)}</td>
-                      <td className="px-5 py-3 text-sm font-medium text-[#434652]">{groupNameMap.get(r.funding_group_id) ?? "—"}</td>
-                      <td className="px-5 py-3 text-sm font-bold text-[#D9A520] tabular-nums">{fmt(r.gross_return_value)}</td>
-                      <td className="px-5 py-3 text-sm text-center">{dists.length}</td>
-                      <td className="px-5 py-3"><StatusBadge status={r.repayment_status} /></td>
-                      <td className="px-5 py-3 text-xs text-[#747783] max-w-[120px] truncate">{r.user_email ?? "—"}</td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-1 justify-end">
-                          <button type="button" onClick={() => setDetail(r)}
-                            className="p-1.5 rounded-lg hover:bg-[#f0f3ff] text-[#747783] hover:text-[#0B3D91]" title="Ver detalle">
-                            <Eye size={13} />
+                {sortedReturns.map((r) => (
+                  <tr key={r.id} className="hover:bg-[#f9f9ff]">
+                    <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">{monthName(r.return_month)} {r.return_year}</td>
+                    <td className="px-4 py-3 text-sm text-[#747783] whitespace-nowrap">{formatDateShort(r.return_date)}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-[#434652]">{groupNameMap.get(r.funding_group_id) ?? "—"}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-[#D9A520] tabular-nums whitespace-nowrap">{fmt(r.gross_return_value)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        <StatusBadge status={r.repayment_status} />
+                        {r.documento_evidencia && (
+                          <a href={r.documento_evidencia} target="_blank" rel="noopener noreferrer"
+                            className="text-[#747783] hover:text-[#0B3D91]" title="Ver extracto bancario">
+                            <Link2 size={11} />
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {r.repayment_status === "DEVUELTO" && r.repayment_date ? (
+                        <span className="text-xs text-emerald-700 font-medium">{formatDateShort(r.repayment_date)}</span>
+                      ) : (
+                        <span className="text-xs text-[#747783]">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-[#747783] max-w-30 truncate">{r.user_email ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 justify-end">
+                        <button type="button" onClick={() => setDetail(r)}
+                          className="p-1.5 rounded-lg hover:bg-[#f0f3ff] text-[#747783] hover:text-[#0B3D91]" title="Ver detalle">
+                          <Eye size={13} />
+                        </button>
+                        {canEdit && (
+                          <button type="button" onClick={() => setModal({ mode: "edit", item: r })}
+                            className="p-1.5 rounded-lg hover:bg-[#f0f3ff] text-[#747783] hover:text-[#0B3D91]">
+                            <Pencil size={13} />
                           </button>
-                          {canEdit && (
-                            <button type="button" onClick={() => setModal({ mode: "edit", item: r })}
-                              className="p-1.5 rounded-lg hover:bg-[#f0f3ff] text-[#747783] hover:text-[#0B3D91]">
-                              <Pencil size={13} />
-                            </button>
-                          )}
-                          {canDelete && (
-                            <button type="button" onClick={() => handleDelete(r)} disabled={isPending}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-[#747783] hover:text-red-600">
-                              <Trash2 size={13} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
+                        )}
+                        {canDelete && (
+                          <button type="button" onClick={() => handleDelete(r)} disabled={isPending}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-[#747783] hover:text-red-600">
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

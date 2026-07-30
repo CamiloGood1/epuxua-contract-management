@@ -12,6 +12,12 @@ export interface FinancialReturn {
   gross_return_value: number
   repayment_status: RepaymentStatus
   observations: string | null
+  // Ciclo de vida de devolución
+  documento_evidencia: string | null
+  repayment_date: string | null
+  repayment_value: number | null
+  repayment_support_link: string | null
+  repayment_observations: string | null
   user_id: string | null
   user_email: string | null
   created_at: string
@@ -47,8 +53,12 @@ export interface FinancialReturnsKPIs {
   pendientePorDevolver: number
   cantidadRegistros: number
   registrosPendientes: number
+  registrosEnProceso: number
+  registrosDevueltos: number
+  valorTotalDevuelto: number
   principalBeneficiario: string | null
   valorPrincipalBeneficiario: number
+  /** @deprecated usar valorTotalDevuelto */
   rendimientosDevueltos: number
 }
 
@@ -70,14 +80,14 @@ export const MONTH_NAMES = [
 ] as const
 
 export const REPAYMENT_STATUS_LABEL: Record<RepaymentStatus, string> = {
-  PENDIENTE: "Pendiente",
-  PARCIAL:   "Parcial",
+  PENDIENTE: "Pendiente de devolución",
+  PARCIAL:   "En proceso",
   DEVUELTO:  "Devuelto",
 }
 
 export const REPAYMENT_STATUS_CFG: Record<RepaymentStatus, { bg: string; text: string }> = {
-  PENDIENTE: { bg: "bg-amber-50 border-amber-200",   text: "text-amber-700" },
-  PARCIAL:   { bg: "bg-blue-50 border-blue-200",     text: "text-blue-700" },
+  PENDIENTE: { bg: "bg-amber-50 border-amber-200",     text: "text-amber-700" },
+  PARCIAL:   { bg: "bg-blue-50 border-blue-200",       text: "text-blue-700" },
   DEVUELTO:  { bg: "bg-emerald-50 border-emerald-200", text: "text-emerald-700" },
 }
 
@@ -108,10 +118,17 @@ export function calcFinancialReturnsKPIs(data: FinancialReturnsData): FinancialR
   const pendientePorDevolver = returns
     .filter((r) => r.repayment_status !== "DEVUELTO")
     .reduce((s, r) => s + r.gross_return_value, 0)
-  const rendimientosDevueltos = returns
-    .filter((r) => r.repayment_status === "DEVUELTO")
-    .reduce((s, r) => s + r.gross_return_value, 0)
+
   const registrosPendientes = returns.filter((r) => r.repayment_status === "PENDIENTE").length
+  const registrosEnProceso  = returns.filter((r) => r.repayment_status === "PARCIAL").length
+  const registrosDevueltos  = returns.filter((r) => r.repayment_status === "DEVUELTO").length
+
+  // Valor real devuelto: usa repayment_value si fue capturado, si no gross_return_value
+  const valorTotalDevuelto = returns
+    .filter((r) => r.repayment_status === "DEVUELTO")
+    .reduce((s, r) => s + (r.repayment_value ?? r.gross_return_value), 0)
+
+  const rendimientosDevueltos = valorTotalDevuelto
 
   const bySource = new Map<string, number>()
   for (const d of distributions) {
@@ -133,6 +150,9 @@ export function calcFinancialReturnsKPIs(data: FinancialReturnsData): FinancialR
     pendientePorDevolver,
     cantidadRegistros: returns.length,
     registrosPendientes,
+    registrosEnProceso,
+    registrosDevueltos,
+    valorTotalDevuelto,
     principalBeneficiario,
     valorPrincipalBeneficiario,
     rendimientosDevueltos,

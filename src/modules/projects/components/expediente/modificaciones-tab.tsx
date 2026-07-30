@@ -13,7 +13,6 @@ import {
 } from "@/services/modificaciones.actions"
 import type { ModificacionesData, Adicion, Prorroga, Suspension, Reinicio, Aclaratorio } from "@/types/modificaciones"
 import { DocumentAnalyzerButton } from "@/modules/projects/components/expediente/document-analyzer/DocumentAnalyzerButton"
-import { UnifiedAnalyzerModal } from "@/modules/projects/components/expediente/document-analyzer/UnifiedAnalyzerModal"
 import type { ExtractionField } from "@/lib/document-analyzer/types"
 import { ADICION_ANALYZER_SCHEMA } from "@/lib/document-analyzer/schemas/adicion-fields"
 
@@ -630,15 +629,15 @@ interface Props {
   modificaciones: ModificacionesData
   canEdit: boolean
   canDelete: boolean
+  onOpenIaHub?: () => void
 }
 
 type ModalType = "adicion" | "prorroga" | "suspension" | "reinicio" | "aclaratorio" | null
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-export function ModificacionesTab({ interadministrativoId, fechaTerminacionOriginal, modificaciones: m, canEdit, canDelete }: Props) {
+export function ModificacionesTab({ interadministrativoId, fechaTerminacionOriginal, modificaciones: m, canEdit, canDelete, onOpenIaHub }: Props) {
   const [modal, setModal] = useState<ModalType>(null)
-  const [showAiModal, setShowAiModal] = useState(false)
   const [editRecord, setEditRecord] = useState<Adicion | Prorroga | Suspension | Reinicio | Aclaratorio | null>(null)
 
   const timeline = buildTimeline(m)
@@ -693,7 +692,7 @@ export function ModificacionesTab({ interadministrativoId, fechaTerminacionOrigi
 
       {/* ── Botones de acción ── */}
       {canEdit && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {[
             { label: "Nueva Adición",    tipo: "adicion"    as ModalType, color: "bg-emerald-600 hover:bg-emerald-700" },
             { label: "Nueva Prórroga",   tipo: "prorroga"   as ModalType, color: "bg-amber-600 hover:bg-amber-700" },
@@ -710,14 +709,16 @@ export function ModificacionesTab({ interadministrativoId, fechaTerminacionOrigi
               <Plus size={12} /> {btn.label}
             </button>
           ))}
-          <div className="w-px bg-[#EAEAEA] self-stretch mx-1" />
-          <button
-            type="button"
-            onClick={() => setShowAiModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#0B3D91]/40 text-[#0B3D91] text-xs font-semibold hover:bg-[#f0f3ff] transition-colors"
-          >
-            📄 Analizar Documento (IA)
-          </button>
+          {onOpenIaHub && (
+            <button
+              type="button"
+              onClick={onOpenIaHub}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold transition-opacity hover:opacity-90 ml-auto"
+              style={{ background: "linear-gradient(135deg, #001B4F 0%, #0B3D91 60%, #1A4DA8 100%)" }}
+            >
+              🤖 EPUXUA IA
+            </button>
+          )}
         </div>
       )}
 
@@ -755,19 +756,6 @@ export function ModificacionesTab({ interadministrativoId, fechaTerminacionOrigi
       {modal === "reinicio"    && <ReinicioModal    interadministrativoId={interadministrativoId} nextNum={m.reinicios.length + 1}     onClose={closeModal} editData={editRecord as Reinicio | null} />}
       {modal === "aclaratorio" && <AclaratorioModal interadministrativoId={interadministrativoId} nextNum={m.aclaratorios.length + 1}  onClose={closeModal} editData={editRecord as Aclaratorio | null} />}
 
-      {/* ── Modal IA unificado ── */}
-      <UnifiedAnalyzerModal
-        open={showAiModal}
-        onClose={() => setShowAiModal(false)}
-        interadministrativoId={interadministrativoId}
-        nextNums={{
-          adicion:     m.adiciones.length + 1,
-          prorroga:    m.prorrogas.length + 1,
-          suspension:  m.suspensiones.length + 1,
-          reinicio:    m.reinicios.length + 1,
-          aclaratorio: m.aclaratorios.length + 1,
-        }}
-      />
     </div>
   )
 }

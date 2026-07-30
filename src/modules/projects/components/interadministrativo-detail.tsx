@@ -20,6 +20,8 @@ import type { Tarea, Avance } from "./expediente/seguimiento-tab"
 import { InfoGeneralTab } from "./expediente/info-general-tab"
 import { FuentesFinanciacionTab } from "./expediente/fuentes-financiacion-tab"
 import { RendimientosFinancierosTab } from "./expediente/rendimientos-financieros-tab"
+import { IaHubModal } from "./expediente/ia-hub/IaHubModal"
+import { UnifiedAnalyzerModal } from "./expediente/document-analyzer/UnifiedAnalyzerModal"
 import type { FundingData } from "@/types/funding"
 import { EMPTY_FUNDING } from "@/types/funding"
 import type { FinancialReturnsData } from "@/types/financial-returns"
@@ -125,6 +127,16 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
   const [isDownloading, setIsDownloading]         = useState(false)
   const [isDownloadingPpt, setIsDownloadingPpt]   = useState(false)
   const [isDownloadingXls, setIsDownloadingXls]   = useState(false)
+  const [showIaHub, setShowIaHub]                 = useState(false)
+  const [showIaModificacion, setShowIaModificacion] = useState(false)
+
+  const nextNums = {
+    adicion:     modificaciones.adiciones.length + 1,
+    prorroga:    modificaciones.prorrogas.length + 1,
+    suspension:  modificaciones.suspensiones.length + 1,
+    reinicio:    modificaciones.reinicios.length + 1,
+    aclaratorio: modificaciones.aclaratorios.length + 1,
+  }
 
   async function handleDownloadReport() {
     setIsDownloading(true)
@@ -407,6 +419,7 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
           modificaciones={modificaciones}
           canEdit={canEdit}
           canDelete={canDelete}
+          onOpenIaHub={canEdit ? () => setShowIaHub(true) : undefined}
         />
       )}
 
@@ -438,6 +451,7 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
           funding={funding}
           canEdit={canEditFinancial}
           canDelete={canDelete}
+          onOpenIaHub={canEditFinancial ? () => setShowIaHub(true) : undefined}
         />
       )}
 
@@ -462,6 +476,22 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
         />
       )}
       {showChanges && <ChangeLogModal interadministrativoId={p.id} contractId={p.id_contrato} onClose={() => setShowChanges(false)} />}
+
+      <IaHubModal
+        open={showIaHub}
+        onClose={() => setShowIaHub(false)}
+        onModificacion={() => setShowIaModificacion(true)}
+        interadministrativoId={p.id}
+        fundingGroups={funding.groups}
+        canEdit={canEdit}
+      />
+
+      <UnifiedAnalyzerModal
+        open={showIaModificacion}
+        onClose={() => setShowIaModificacion(false)}
+        interadministrativoId={p.id}
+        nextNums={nextNums}
+      />
     </div>
   )
 }
