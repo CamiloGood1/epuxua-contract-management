@@ -12,8 +12,7 @@ import type { ContractPago, ContractAdicion } from "@/types/contract-derivado"
 import { calcDerivedContractFinancials } from "@/modules/contracts/lib/derived-contract-financials"
 import { calcInteradminFinancials } from "@/modules/projects/lib/interadmin-financials"
 import { calcFacturacionKPIs } from "@/types/facturas"
-
-const REPORT_ROLES = new Set(["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO"])
+import { canDownloadReport } from "@/modules/projects/lib/access"
 
 // ── Format helpers ────────────────────────────────────────────────────────────
 
@@ -65,7 +64,7 @@ export async function GET(
   const profile  = await getCurrentUserProfile().catch(() => null)
 
   if (!profile) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-  if (!REPORT_ROLES.has(profile.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
+  if (!canDownloadReport(profile.role)) return NextResponse.json({ error: "Sin permisos" }, { status: 403 })
 
   // ── Carga principal ───────────────────────────────────────────────────────
   const { data: projectRaw } = await supabase

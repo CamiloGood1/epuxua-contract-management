@@ -23,9 +23,7 @@ import type { FundingGroup, FundingSource } from "@/types/funding"
 import type { FinancialReturn } from "@/types/financial-returns"
 import type { Tarea } from "@/types/seguimiento"
 import { calcInteradminFinancials } from "@/modules/projects/lib/interadmin-financials"
-
-// ── Roles con permiso de descarga ─────────────────────────────────────────────
-const REPORT_ROLES = new Set(["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO"])
+import { canDownloadReport } from "@/modules/projects/lib/access"
 
 // ── Formato ───────────────────────────────────────────────────────────────────
 
@@ -149,7 +147,7 @@ export async function GET(
   if (!profile) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   }
-  if (!REPORT_ROLES.has(profile.role)) {
+  if (!canDownloadReport(profile.role)) {
     return NextResponse.json({ error: "Sin permisos para generar informes" }, { status: 403 })
   }
 

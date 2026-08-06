@@ -9,9 +9,7 @@ import type { FundingGroup, FundingSource } from "@/types/funding"
 import type { FinancialReturn } from "@/types/financial-returns"
 import type { Tarea } from "@/types/seguimiento"
 import { calcInteradminFinancials } from "@/modules/projects/lib/interadmin-financials"
-
-// ── Permisos ──────────────────────────────────────────────────────────────────
-const REPORT_ROLES = new Set(["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO"])
+import { canDownloadReport } from "@/modules/projects/lib/access"
 
 // ── Paleta corporativa ────────────────────────────────────────────────────────
 const BLUE      = "002869"
@@ -144,7 +142,7 @@ export async function GET(
   const profile  = await getCurrentUserProfile().catch(() => null)
 
   if (!profile) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
-  if (!REPORT_ROLES.has(profile.role)) {
+  if (!canDownloadReport(profile.role)) {
     return NextResponse.json({ error: "Sin permisos para generar presentaciones" }, { status: 403 })
   }
 

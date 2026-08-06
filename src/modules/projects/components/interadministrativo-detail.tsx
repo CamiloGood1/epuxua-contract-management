@@ -81,6 +81,8 @@ interface Props {
   project: Interadministrativo
   contratos: Contrato[]
   canEdit: boolean
+  /** Permiso para crear/editar modificaciones contractuales (adiciones, prórrogas, etc.). Solo ADMIN y Secretaría General. */
+  canModify?: boolean
   canEditFinancial?: boolean
   canDelete?: boolean
   canDownloadReport?: boolean
@@ -107,7 +109,7 @@ function parseTab(value: string | null | undefined): TabId {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-function InteradministrativoDetailInner({ project: p, contratos, contratosError, canEdit, canEditFinancial = false, canDelete = false, canDownloadReport = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [], tareas = [], avances = [], funding = EMPTY_FUNDING, financialReturns = EMPTY_FINANCIAL_RETURNS }: Props) {
+function InteradministrativoDetailInner({ project: p, contratos, contratosError, canEdit, canModify = false, canEditFinancial = false, canDelete = false, canDownloadReport = false, modificaciones = EMPTY_MODIFICACIONES, hitos = [], facturas = [], tareas = [], avances = [], funding = EMPTY_FUNDING, financialReturns = EMPTY_FINANCIAL_RETURNS }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -417,9 +419,9 @@ function InteradministrativoDetailInner({ project: p, contratos, contratosError,
           interadministrativoId={p.id}
           fechaTerminacionOriginal={p.fecha_terminacion}
           modificaciones={modificaciones}
-          canEdit={canEdit}
+          canEdit={canModify}
           canDelete={canDelete}
-          onOpenIaHub={canEdit ? () => setShowIaHub(true) : undefined}
+          onOpenIaHub={canModify ? () => setShowIaHub(true) : undefined}
         />
       )}
 

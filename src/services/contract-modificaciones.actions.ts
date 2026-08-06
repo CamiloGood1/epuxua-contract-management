@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "./user.service"
 import { assertContratoWriteAccess } from "./interadmin-access"
-import { canEditProjects } from "@/modules/projects/lib/access"
+import { canCreateModification } from "@/modules/projects/lib/access"
 
 type Res = { error: string | null }
 
@@ -46,7 +46,7 @@ export interface CreateContractAdicionInput {
 
 export async function createContractAdicion(input: CreateContractAdicionInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar adiciones." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos para registrar adiciones." }
   const denied = await requireWrite(input.contrato_id)
   if (denied) return denied
   if (!input.fecha_adicion)                           return { error: "La fecha de suscripción es obligatoria." }
@@ -121,7 +121,7 @@ export interface UpdateContractAdicionInput {
 
 export async function updateContractAdicion(id: number, contratoId: number, input: UpdateContractAdicionInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar adiciones." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos para editar adiciones." }
   const denied = await requireWrite(contratoId)
   if (denied) return denied
   const urlErr = validateUrl(input.link_documental)
@@ -148,7 +148,7 @@ export async function updateContractAdicion(id: number, contratoId: number, inpu
 
 export async function deleteContractAdicion(id: number, contratoId: number, projectId: string): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos." }
   const denied = await requireWrite(contratoId)
   if (denied) return denied
   const supabase = await createSupabaseServerClient()
@@ -172,7 +172,7 @@ export interface CreateContractProrrogaInput {
 
 export async function createContractProrroga(input: CreateContractProrrogaInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar prórrogas." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos para registrar prórrogas." }
   const denied = await requireWrite(input.contrato_id)
   if (denied) return denied
   if (!input.fecha_suscripcion) return { error: "La fecha de suscripción es obligatoria." }
@@ -230,7 +230,7 @@ export interface UpdateContractProrrogaInput {
 
 export async function updateContractProrroga(id: number, contratoId: number, input: UpdateContractProrrogaInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar prórrogas." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos para editar prórrogas." }
   const denied = await requireWrite(contratoId)
   if (denied) return denied
   const urlErr = validateUrl(input.link_documental)
@@ -252,7 +252,7 @@ export async function updateContractProrroga(id: number, contratoId: number, inp
 
 export async function deleteContractProrroga(id: number, contratoId: number, projectId: string): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos." }
   const denied = await requireWrite(contratoId)
   if (denied) return denied
   const supabase = await createSupabaseServerClient()
@@ -277,7 +277,7 @@ export interface CreateContractSuspensionInput {
 
 export async function createContractSuspension(input: CreateContractSuspensionInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar suspensiones." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos para registrar suspensiones." }
   const denied = await requireWrite(input.contrato_id)
   if (denied) return denied
   if (!input.inicio_suspension) return { error: "La fecha de inicio de suspensión es obligatoria." }
@@ -336,7 +336,7 @@ export interface UpdateContractSuspensionInput {
 
 export async function updateContractSuspension(id: number, contratoId: number, input: UpdateContractSuspensionInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar suspensiones." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos para editar suspensiones." }
   const denied = await requireWrite(contratoId)
   if (denied) return denied
   const urlErr = validateUrl(input.link_documental)
@@ -359,7 +359,7 @@ export async function updateContractSuspension(id: number, contratoId: number, i
 
 export async function deleteContractSuspension(id: number, contratoId: number, projectId: string): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos." }
   const denied = await requireWrite(contratoId)
   if (denied) return denied
   const supabase = await createSupabaseServerClient()
@@ -383,7 +383,7 @@ export interface CreateContractReinicioInput {
 
 export async function createContractReinicio(input: CreateContractReinicioInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar reinicios." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos para registrar reinicios." }
   const denied = await requireWrite(input.contrato_id)
   if (denied) return denied
   if (!input.fecha_reinicio) return { error: "La fecha de reinicio es obligatoria." }
@@ -440,7 +440,7 @@ export interface UpdateContractReinicioInput {
 
 export async function updateContractReinicio(id: number, contratoId: number, input: UpdateContractReinicioInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar reinicios." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos para editar reinicios." }
   const denied = await requireWrite(contratoId)
   if (denied) return denied
   const urlErr = validateUrl(input.link_documental)
@@ -462,7 +462,7 @@ export async function updateContractReinicio(id: number, contratoId: number, inp
 
 export async function deleteContractReinicio(id: number, contratoId: number, projectId: string): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos." }
   const denied = await requireWrite(contratoId)
   if (denied) return denied
   const supabase = await createSupabaseServerClient()
@@ -485,7 +485,7 @@ export interface CreateContractAclaratoriInput {
 
 export async function createContractAclaratorio(input: CreateContractAclaratoriInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para registrar aclaratorios." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos para registrar aclaratorios." }
   const denied = await requireWrite(input.contrato_id)
   if (denied) return denied
   if (!input.fecha_suscripcion) return { error: "La fecha de suscripción es obligatoria." }
@@ -540,7 +540,7 @@ export interface UpdateContractAclaratorioInput {
 
 export async function updateContractAclaratorio(id: number, contratoId: number, input: UpdateContractAclaratorioInput): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos para editar aclaratorios." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos para editar aclaratorios." }
   const denied = await requireWrite(contratoId)
   if (denied) return denied
   const urlErr = validateUrl(input.link_documental)
@@ -561,7 +561,7 @@ export async function updateContractAclaratorio(id: number, contratoId: number, 
 
 export async function deleteContractAclaratorio(id: number, contratoId: number, projectId: string): Promise<Res> {
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canEditProjects(profile?.role)) return { error: "Sin permisos." }
+  if (!canCreateModification(profile?.role)) return { error: "Sin permisos." }
   const denied = await requireWrite(contratoId)
   if (denied) return denied
   const supabase = await createSupabaseServerClient()

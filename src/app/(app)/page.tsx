@@ -15,7 +15,7 @@ import {
   type FacturacionDashboardKPIs,
 } from "@/services/dashboard.service"
 import { getCurrentUserProfile } from "@/services/user.service"
-import { canCreateProject } from "@/modules/projects/lib/access"
+import { canCreateInteradmin, canManageUsers } from "@/modules/projects/lib/access"
 import { ProjectDashboardView } from "@/modules/projects/components/project-dashboard-view"
 import type { FuncionamientoContrato } from "@/services/funcionamiento.service"
 
@@ -67,8 +67,8 @@ export default async function Page() {
     interadminKPIs  = interadminKPIsRaw
     facturacionKPIs = facturacionRaw
     alerts          = alertsRaw
-    canCreate       = canCreateProject(profile?.role)
-    isAdmin         = profile?.role === "ADMIN"
+    canCreate       = canCreateInteradmin(profile?.role)
+    isAdmin         = canManageUsers(profile?.role)
     topFuncContracts = funcContracts.slice(0, 5)
     projects = await enrichProjectsWithManagers(raw)
     entities = catalogs.entities

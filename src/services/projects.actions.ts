@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import type { EstadoInteradministrativo } from "@/types/database"
 import { getCurrentUserProfile } from "@/services/user.service"
-import { canCreateProject } from "@/modules/projects/lib/access"
+import { canCreateInteradmin } from "@/modules/projects/lib/access"
 
 // ── Actualizar estado de un interadministrativo (kanban) ──────────────────────
 
@@ -72,7 +72,7 @@ export async function createInteradminProject(
 ): Promise<{ error: string | null; projectId?: string }> {
   // ── Permisos ─────────────────────────────────────────────
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canCreateProject(profile?.role)) {
+  if (!canCreateInteradmin(profile?.role)) {
     return { error: "No tiene permisos para crear contratos interadministrativos." }
   }
 
@@ -228,7 +228,7 @@ export async function createDerivedContract(
   if (!numeroContrato) return { error: "numero_contrato es requerido" }
 
   const profile = await getCurrentUserProfile().catch(() => null)
-  if (!canCreateProject(profile?.role)) return { error: "Sin permiso para crear contratos" }
+  if (!canCreateInteradmin(profile?.role)) return { error: "Sin permiso para crear contratos" }
 
   const { data, error } = await supabase
     .from("contratos")
@@ -328,7 +328,7 @@ export async function createFuncionamientoContract(
   if (!numeroContrato) return { error: "numero_contrato es requerido" }
 
   const profile2 = await getCurrentUserProfile().catch(() => null)
-  if (!canCreateProject(profile2?.role)) return { error: "Sin permiso para crear contratos" }
+  if (!canCreateInteradmin(profile2?.role)) return { error: "Sin permiso para crear contratos" }
 
   const { data, error } = await supabase
     .from("contratos")

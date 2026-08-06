@@ -6,6 +6,7 @@ import {
   canViewAllInteradmins,
   canWriteInteradmin,
 } from "@/modules/projects/lib/access"
+import { canViewAllContracts } from "@/lib/auth/permissions"
 import { getCurrentUserProfile } from "@/services/user.service"
 import type { UserRole } from "@/types/project"
 
@@ -99,8 +100,8 @@ export async function assertFinancialWriteAccess(
     }
   }
 
-  // ADMIN y GERENTE tienen visibilidad global — acceso financiero garantizado.
-  if (ctx.role === "ADMIN" || ctx.role === "GERENTE") {
+  // ADMIN, GERENTE y SECRETARIA_GENERAL tienen visibilidad global — acceso financiero garantizado.
+  if (ctx.role === "ADMIN" || ctx.role === "GERENTE" || ctx.role === "SECRETARIA_GENERAL") {
     return { error: null }
   }
 
@@ -136,7 +137,7 @@ export async function assertContratoWriteAccess(
   const ctx = await loadAccessContext()
   if (!ctx) return { error: "Sin permisos para editar." }
 
-  if (ctx.role === "ADMIN" || ctx.role === "GERENTE") return { error: null }
+  if (canViewAllContracts(ctx.role)) return { error: null }  // ADMIN, GERENTE, SECRETARIA_GENERAL
 
   if (ctx.role === "GERENTE_PROYECTO") {
     const supabase = await createSupabaseServerClient()

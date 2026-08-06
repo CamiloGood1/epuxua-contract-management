@@ -5,10 +5,8 @@ import {
 } from "@/services/derived-contracts.service"
 import { DerivedContractsClient } from "@/modules/derived-contracts/components/derived-contracts-client"
 import { getCurrentUserProfile } from "@/services/user.service"
-import { canCreateProject } from "@/modules/projects/lib/access"
+import { canCreateDerivado } from "@/modules/projects/lib/access"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-
-const CAN_CREATE_FUNC_ROLES = new Set(["ADMIN", "GERENTE"])
 
 export default async function ContratacionDerivadosPage() {
   const [contracts, profile] = await Promise.all([
@@ -17,8 +15,8 @@ export default async function ContratacionDerivadosPage() {
   ])
 
   const kpis    = await getDerivedContractsKPIs(contracts)
-  const canCreate = canCreateProject(profile?.role)
-  const canCreateFuncionamiento = CAN_CREATE_FUNC_ROLES.has(profile?.role ?? "")
+  const canCreate = canCreateDerivado(profile?.role)
+  const canCreateFuncionamiento = canCreateDerivado(profile?.role)
 
   // Only fetch interadmins if the user can create derivados
   let interadmins: { id: number; id_contrato: string; objeto_contrato: string | null }[] = []

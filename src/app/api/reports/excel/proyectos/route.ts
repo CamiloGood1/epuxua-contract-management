@@ -8,8 +8,7 @@ import type { Factura } from "@/types/facturas"
 import type { FinancialReturn } from "@/types/financial-returns"
 import type { Tarea } from "@/types/seguimiento"
 import { calcInteradminFinancials } from "@/modules/projects/lib/interadmin-financials"
-
-const REPORT_ROLES = new Set(["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO"])
+import { canDownloadReport } from "@/modules/projects/lib/access"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -48,7 +47,7 @@ function groupById<T extends { interadministrativo_id: number }>(arr: T[]): Map<
 export async function GET(req: NextRequest) {
   const supabase = await createSupabaseServerClient()
   const profile  = await getCurrentUserProfile().catch(() => null)
-  if (!profile || !REPORT_ROLES.has(profile.role)) {
+  if (!profile || !canDownloadReport(profile.role)) {
     return NextResponse.json({ error: "Sin permiso" }, { status: 403 })
   }
 

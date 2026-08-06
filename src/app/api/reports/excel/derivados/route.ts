@@ -11,10 +11,7 @@ import type {
   ContractAclaratorio,
   ContractPago,
 } from "@/types/contract-derivado"
-
-// ── Auth ──────────────────────────────────────────────────────────────────────
-
-const REPORT_ROLES = new Set(["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO"])
+import { canDownloadReport } from "@/modules/projects/lib/access"
 
 // ── Formateo ──────────────────────────────────────────────────────────────────
 
@@ -49,7 +46,7 @@ export async function GET(req: NextRequest) {
   if (!profile) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   }
-  if (!REPORT_ROLES.has(profile.role)) {
+  if (!canDownloadReport(profile.role)) {
     return NextResponse.json({ error: "Sin permisos para generar reportes" }, { status: 403 })
   }
 

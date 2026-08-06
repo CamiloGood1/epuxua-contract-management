@@ -22,11 +22,12 @@ export type ProjectAssignmentRole = "GERENTE_PROYECTO" | "CONSULTOR_PROYECTO"
 export type UserRole =
   | "ADMIN"
   | "GERENTE"
-  | "GERENTE_PROYECTO"
   | "DIRECTIVO"
+  | "SECRETARIA_GENERAL"
+  | "GERENTE_PROYECTO"
+  | "ESTRUCTURADOR"
   | "CONSULTOR_PROYECTO"
   | "ESPECTADOR"
-  | "ESTRUCTURADOR"
   | "SUBADMINISTRATIVA"
 
 // ── v_project_detail ──────────────────────────────────────────────────────────
