@@ -39,14 +39,22 @@ export interface Interadministrativo {
   fecha_suscripcion: string | null
   fecha_inicio_ejecucion: string | null
   prorroga: string | null
+  /** Canónico — valor de Bolsa de Inversión inicial. Fuente de verdad para calcInteradminFinancials. */
   valor_inicial: number | null
+  /** @legacy Suma desnormalizada de adiciones. Usar interadmin_adiciones + calcInteradminFinancials en su lugar. */
   adicion: number | null
+  /** @legacy Total desnormalizado (valor_inicial + adicion). Usar calcInteradminFinancials.valorTotalActual. */
   total_contrato: number | null
+  /** Canónico — Cuota de Gerencia inicial. Fuente de verdad para calcInteradminFinancials. */
   cuota_admin_inicial: number | null
+  /** @legacy Suma desnormalizada de adiciones de Cuota de Gerencia. Usar calcInteradminFinancials.adicionesCuotaGerencia. */
   adicion_cuota_admin: number | null
+  /** @legacy Total desnormalizado de Cuota de Gerencia. Usar calcInteradminFinancials.cuotaGerenciaVigente. */
   total_cuota_admin: number | null
   bolsa_gerencia_inicial: number | null
+  /** @legacy Suma desnormalizada de adiciones de Bolsa de Inversión. Usar calcInteradminFinancials.adicionesBolsaInversion. */
   adicion_bolsa_mandato: number | null
+  /** @legacy Total desnormalizado de Bolsa de Inversión. Usar calcInteradminFinancials.bienesServiciosVigente. */
   total_bolsa_mandato: number | null
   valor_pendiente_cobrar: number | null
   vigencias_futuras: number | null

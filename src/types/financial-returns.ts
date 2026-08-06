@@ -58,8 +58,6 @@ export interface FinancialReturnsKPIs {
   valorTotalDevuelto: number
   principalBeneficiario: string | null
   valorPrincipalBeneficiario: number
-  /** @deprecated usar valorTotalDevuelto */
-  rendimientosDevueltos: number
 }
 
 export interface FinanciadorResumen {
@@ -128,8 +126,6 @@ export function calcFinancialReturnsKPIs(data: FinancialReturnsData): FinancialR
     .filter((r) => r.repayment_status === "DEVUELTO")
     .reduce((s, r) => s + (r.repayment_value ?? r.gross_return_value), 0)
 
-  const rendimientosDevueltos = valorTotalDevuelto
-
   const bySource = new Map<string, number>()
   for (const d of distributions) {
     bySource.set(d.source_name, (bySource.get(d.source_name) ?? 0) + d.distributed_value)
@@ -155,7 +151,6 @@ export function calcFinancialReturnsKPIs(data: FinancialReturnsData): FinancialR
     valorTotalDevuelto,
     principalBeneficiario,
     valorPrincipalBeneficiario,
-    rendimientosDevueltos,
   }
 }
 

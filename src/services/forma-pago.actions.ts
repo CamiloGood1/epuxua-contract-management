@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "./user.service"
 import { assertInteradminWriteAccess } from "./interadmin-access"
 import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
+import { logAuditEvent } from "./audit"
 import type { DestinoHito } from "@/types/forma-pago"
 
 type Res = { error: string | null }
@@ -24,13 +25,6 @@ export interface CreateMilestoneInput {
   scheduled_value: number
   payment_condition: string
   observations?: string | null
-}
-
-async function audit(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  payload: Record<string, unknown>,
-) {
-  supabase.from("interadmin_audit_log" as never).insert(payload as never).then(() => {})
 }
 
 export async function createMilestone(input: CreateMilestoneInput): Promise<Res> {
@@ -67,7 +61,7 @@ export async function createMilestone(input: CreateMilestoneInput): Promise<Res>
     return { error: error.message }
   }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: input.interadministrativo_id,
     action:        "CREATE_PAYMENT_MILESTONE",
     new_value:     JSON.stringify({ milestone_number: input.milestone_number, milestone_name: input.milestone_name, scheduled_value: input.scheduled_value }),
@@ -117,7 +111,7 @@ export async function updateMilestone(
     return { error: error.message }
   }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: interadministrativoId,
     action:        "UPDATE_PAYMENT_MILESTONE",
     old_value:     JSON.stringify(prevSnapshot),
@@ -149,7 +143,7 @@ export async function deleteMilestone(
 
   if (error) return { error: error.message }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: interadministrativoId,
     action:        "DELETE_PAYMENT_MILESTONE",
     old_value:     JSON.stringify(snapshot),

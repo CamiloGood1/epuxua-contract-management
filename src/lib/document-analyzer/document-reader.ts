@@ -13,6 +13,7 @@ export async function readDocument(file: File): Promise<DocumentReadResult> {
   const name = file.name.toLowerCase()
 
   if (name.endsWith(".pdf") || file.type === "application/pdf") {
+    await assertPdfMagicBytes(file)
     return readPDF(file)
   }
 
@@ -31,6 +32,18 @@ export async function readDocument(file: File): Promise<DocumentReadResult> {
   throw new Error(
     `Formato no soportado: "${file.name}". Sube un archivo PDF (.pdf) con texto seleccionable.`,
   )
+}
+
+async function assertPdfMagicBytes(file: File): Promise<void> {
+  if (file.type && file.type !== "application/pdf") {
+    throw new Error(`Tipo de archivo inválido (${file.type}). Solo se aceptan archivos PDF.`)
+  }
+  const header = await file.slice(0, 4).arrayBuffer()
+  const bytes = new Uint8Array(header)
+  // PDF magic bytes: 0x25 0x50 0x44 0x46 → "%PDF"
+  if (bytes[0] !== 0x25 || bytes[1] !== 0x50 || bytes[2] !== 0x44 || bytes[3] !== 0x46) {
+    throw new Error("El archivo no es un PDF válido. Verifica que no esté corrupto o renombrado.")
+  }
 }
 
 async function readPDF(file: File): Promise<DocumentReadResult> {

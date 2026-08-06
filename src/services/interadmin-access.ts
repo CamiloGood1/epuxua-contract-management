@@ -78,20 +78,46 @@ export async function getAccessContextForCurrentUser(): Promise<AccessContext | 
 /**
  * Verifica acceso de escritura exclusivamente para pestañas financieras
  * (Fuentes de Financiación y Rendimientos Financieros).
- * Roles permitidos: ADMIN, GERENTE, SUBADMINISTRATIVA.
+ *
+ * Modelo de acceso financiero:
+ * - ADMIN    → acceso global a todos los contratos.
+ * - GERENTE  → acceso global a todos los contratos.
+ * - SUBADMINISTRATIVA → acceso global (equipo financiero de la organización).
+ *   Si en el futuro se requiere restringir por proyecto asignado,
+ *   agregar aquí la misma lógica de assignedIds que en assertInteradminWriteAccess.
  */
 export async function assertFinancialWriteAccess(
-  _interadminId: number
+  interadminId: number
 ): Promise<{ error: string | null }> {
   const ctx = await loadAccessContext()
   if (!ctx) return { error: "Sin permisos para editar datos financieros." }
+
   if (!canEditFinancialTabs(ctx.role)) {
     return {
       error:
-        "Sin permisos para editar información financiera. Esta sección es exclusiva de ADMIN y SUBADMINISTRATIVA.",
+        "Sin permisos para editar información financiera. Esta sección es exclusiva de Administrador, Gerente y Subadministrativa.",
     }
   }
-  return { error: null }
+
+  // ADMIN y GERENTE tienen visibilidad global — acceso financiero garantizado.
+  if (ctx.role === "ADMIN" || ctx.role === "GERENTE") {
+    return { error: null }
+  }
+
+  // SUBADMINISTRATIVA: acceso financiero global por diseño.
+  // Verificación mínima: el contrato debe existir y ser accesible al usuario.
+  if (ctx.role === "SUBADMINISTRATIVA") {
+    const supabase = await createSupabaseServerClient()
+    const { data } = await supabase
+      .from("interadministrativos")
+      .select("id")
+      .eq("id", interadminId)
+      .maybeSingle()
+    if (!data) return { error: "Contrato interadministrativo no encontrado." }
+    return { error: null }
+  }
+
+  return { error: "Su rol no tiene permisos de escritura financiera." }
 }
 
 export function shouldFilterProjectsByAssignment(role: UserRole | null | undefined): boolean {

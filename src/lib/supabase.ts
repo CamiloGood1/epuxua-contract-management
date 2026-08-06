@@ -1,12 +1,18 @@
-import { createClient } from "@supabase/supabase-js"
+/**
+ * @deprecated Este archivo crea un cliente Supabase estático sin cookies de sesión.
+ * Usarlo en el servidor bypasea las RLS Policies porque las queries se ejecutan
+ * sin el contexto de autenticación del usuario.
+ *
+ * Usa en su lugar:
+ *  - Server Components / Server Actions → import { createSupabaseServerClient } from "@/lib/supabase/server"
+ *  - Browser (acciones sin sesión)      → import { createBrowserClient } from "@supabase/ssr"
+ *
+ * Este archivo puede eliminarse de forma segura: ningún módulo lo importa actualmente.
+ */
+throw new Error(
+  "[supabase.ts] Este cliente legacy fue deshabilitado. " +
+  "Usa createSupabaseServerClient() en el servidor o createBrowserClient() en el cliente. " +
+  "Ver src/lib/supabase/server.ts"
+)
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-if (!url || !key) {
-  throw new Error(
-    "Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY en .env.local"
-  )
-}
-
-export const supabase = createClient(url, key)
+export const supabase = null as never

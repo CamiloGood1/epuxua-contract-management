@@ -695,7 +695,7 @@ export function InfoGeneralTab({
           <div className="grid grid-cols-2 gap-3">
             {[
               { l: "Rendimientos Generados", v: returnsKPIs.rendimientosAcumulados > 0 ? fmtCOP(returnsKPIs.rendimientosAcumulados) : "—", accent: "text-[#0B3D91]" },
-              { l: "Rendimientos Devueltos", v: returnsKPIs.rendimientosDevueltos > 0 ? fmtCOP(returnsKPIs.rendimientosDevueltos) : "—", accent: "text-emerald-700" },
+              { l: "Rendimientos Devueltos", v: returnsKPIs.valorTotalDevuelto > 0 ? fmtCOP(returnsKPIs.valorTotalDevuelto) : "—", accent: "text-emerald-700" },
               { l: "Rendimientos Pendientes", v: returnsKPIs.pendientePorDevolver > 0 ? fmtCOP(returnsKPIs.pendientePorDevolver) : "—", accent: "text-amber-600" },
               { l: "Principal Beneficiario", v: returnsKPIs.principalBeneficiario ?? "—", sub: returnsKPIs.valorPrincipalBeneficiario > 0 ? fmtCOP(returnsKPIs.valorPrincipalBeneficiario) : undefined, accent: "text-violet-700" },
             ].map(item => (

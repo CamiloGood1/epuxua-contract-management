@@ -1,0 +1,1188 @@
+<title>EPUXUA — Auditoría Técnica Integral 2026</title>
+<style>
+/* ── TOKENS ──────────────────────────────────────────────────────────────── */
+:root {
+  --bg:        #F0F4FA;
+  --surface:   #FFFFFF;
+  --border:    #D4DCEC;
+  --text:      #1A2744;
+  --muted:     #5A6880;
+  --accent:    #1A56DB;
+  --accent-dk: #0F3BA0;
+
+  --c-red:    #D93025;
+  --c-orange: #C05827;
+  --c-yellow: #997000;
+  --c-green:  #1E7C4A;
+
+  --f-display: Georgia, 'Times New Roman', serif;
+  --f-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --f-mono:    'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+
+  --r-sm: 3px;
+  --r-md: 5px;
+  --shadow: 0 1px 4px rgba(26,39,68,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #090E1A;
+    --surface:   #111827;
+    --border:    #1F2D47;
+    --text:      #E2EAF8;
+    --muted:     #7B90B8;
+    --accent:    #5B8DEE;
+    --accent-dk: #7AAAFF;
+
+    --c-red:    #F87171;
+    --c-orange: #FB923C;
+    --c-yellow: #FCD34D;
+    --c-green:  #4ADE80;
+
+    --shadow: 0 1px 4px rgba(0,0,0,0.35);
+  }
+}
+:root[data-theme="light"] {
+  --bg:#F0F4FA; --surface:#FFFFFF; --border:#D4DCEC; --text:#1A2744; --muted:#5A6880;
+  --accent:#1A56DB; --accent-dk:#0F3BA0;
+  --c-red:#D93025; --c-orange:#C05827; --c-yellow:#997000; --c-green:#1E7C4A;
+  --shadow: 0 1px 4px rgba(26,39,68,0.08);
+}
+:root[data-theme="dark"] {
+  --bg:#090E1A; --surface:#111827; --border:#1F2D47; --text:#E2EAF8; --muted:#7B90B8;
+  --accent:#5B8DEE; --accent-dk:#7AAAFF;
+  --c-red:#F87171; --c-orange:#FB923C; --c-yellow:#FCD34D; --c-green:#4ADE80;
+  --shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+
+/* ── RESET ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--f-body);
+  font-size: 14px;
+  line-height: 1.65;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── PAGE SHELL ──────────────────────────────────────────────────────────── */
+.page { display: flex; min-height: 100vh; }
+
+/* TOC sidebar */
+.toc {
+  width: 220px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 32px 16px 32px 24px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+.toc-brand {
+  font-family: var(--f-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.toc-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 28px;
+  line-height: 1.4;
+}
+.toc-section {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 20px 0 6px;
+}
+.toc a {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 3px 0;
+  transition: color 0.15s;
+}
+.toc a:hover { color: var(--accent); text-decoration: none; }
+.toc a.active { color: var(--accent); font-weight: 600; }
+
+/* Main content */
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 48px 56px 80px 56px;
+  max-width: 860px;
+}
+
+/* ── TYPOGRAPHY ──────────────────────────────────────────────────────────── */
+h1 {
+  font-family: var(--f-display);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-wrap: balance;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+h2 {
+  font-family: var(--f-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  text-wrap: balance;
+  margin: 56px 0 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+h3 {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 32px 0 12px;
+}
+p { margin-bottom: 12px; max-width: 68ch; }
+ul, ol { padding-left: 20px; margin-bottom: 12px; }
+li { margin-bottom: 4px; }
+strong { font-weight: 600; }
+code {
+  font-family: var(--f-mono);
+  font-size: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: var(--r-sm);
+  color: var(--text);
+}
+
+/* ── HEADER BLOCK ────────────────────────────────────────────────────────── */
+.report-header {
+  margin-bottom: 40px;
+  padding-bottom: 32px;
+  border-bottom: 2px solid var(--border);
+}
+.report-meta {
+  display: flex;
+  gap: 24px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.report-meta-item {
+  font-size: 12px;
+  color: var(--muted);
+}
+.report-meta-item span {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+
+/* ── KPI STRIP ───────────────────────────────────────────────────────────── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+  margin: 28px 0 36px;
+}
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+.kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--text);
+}
+.kpi-card.red   .kpi-value { color: var(--c-red); }
+.kpi-card.orange .kpi-value { color: var(--c-orange); }
+.kpi-card.yellow .kpi-value { color: var(--c-yellow); }
+.kpi-card.green  .kpi-value { color: var(--c-green); }
+
+/* ── STRENGTH / WEAKNESS GRID ────────────────────────────────────────────── */
+.sw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+.sw-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+}
+.sw-box h4 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.sw-box.strengths h4 { color: var(--c-green); }
+.sw-box.weaknesses h4 { color: var(--c-red); }
+.sw-box ul { font-size: 13px; padding-left: 16px; }
+.sw-box li { margin-bottom: 6px; }
+
+/* ── FINDINGS ────────────────────────────────────────────────────────────── */
+.finding {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: var(--r-md);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  position: relative;
+}
+.finding.critical { border-left-color: var(--c-red); }
+.finding.high     { border-left-color: var(--c-orange); }
+.finding.medium   { border-left-color: var(--c-yellow); }
+.finding.low      { border-left-color: var(--c-green); }
+
+.finding-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+  justify-content: space-between;
+}
+.finding-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+.finding-body { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.finding-body p { margin-bottom: 6px; max-width: none; }
+.finding-detail {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  color: var(--muted);
+  overflow-x: auto;
+}
+.finding-detail code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--text);
+  font-family: var(--f-mono);
+}
+.finding-detail strong { color: var(--text); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.badge.critical { background: color-mix(in srgb, var(--c-red) 12%, transparent); color: var(--c-red); }
+.badge.high     { background: color-mix(in srgb, var(--c-orange) 12%, transparent); color: var(--c-orange); }
+.badge.medium   { background: color-mix(in srgb, var(--c-yellow) 12%, transparent); color: var(--c-yellow); }
+.badge.low      { background: color-mix(in srgb, var(--c-green) 12%, transparent); color: var(--c-green); }
+
+.badge.module-badge {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.03em;
+  text-transform: none; background: var(--bg); color: var(--muted);
+  border: 1px solid var(--border); border-radius: 2px; padding: 1px 6px;
+}
+
+/* ── SECTION DIVIDER ─────────────────────────────────────────────────────── */
+.section-intro {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 24px;
+  max-width: 68ch;
+}
+
+/* ── RECOMMENDATIONS TABLE ───────────────────────────────────────────────── */
+.rec-table-wrap { overflow-x: auto; margin: 20px 0; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 2px solid var(--border);
+  background: var(--surface);
+}
+tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--bg); }
+
+/* ── ROADMAP ─────────────────────────────────────────────────────────────── */
+.roadmap-phase {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 32px;
+}
+.roadmap-phase::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: -32px;
+  width: 2px;
+  background: var(--border);
+}
+.roadmap-phase:last-child::before { display: none; }
+.phase-dot {
+  position: absolute;
+  left: -4px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+}
+.phase-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.phase-title {
+  font-family: var(--f-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.phase-items { font-size: 13px; color: var(--muted); }
+.phase-items li { margin-bottom: 5px; }
+
+/* ── ARCH DIAGRAM ────────────────────────────────────────────────────────── */
+.arch-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 20px;
+  margin: 20px 0;
+  font-size: 13px;
+}
+.arch-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.arch-layer {
+  flex: 1; min-width: 140px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+}
+.arch-layer-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+}
+.arch-item {
+  font-size: 12px; color: var(--text);
+  padding: 3px 6px; border-radius: 2px;
+  background: var(--bg); margin-bottom: 3px;
+  border: 1px solid var(--border);
+}
+.arch-item.new { border-color: var(--accent); color: var(--accent); }
+.arch-item.warn { border-color: var(--c-orange); color: var(--c-orange); }
+
+/* ── RESPONSIVE ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page { flex-direction: column; }
+  .toc { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); padding: 20px; }
+  .main { padding: 28px 20px 60px; }
+  .sw-grid { grid-template-columns: 1fr; }
+  h1 { font-size: 22px; }
+  h2 { font-size: 17px; }
+}
+
+/* ── MISC ────────────────────────────────────────────────────────────────── */
+.tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 10px; }
+.no-finding { color: var(--muted); font-size: 13px; font-style: italic; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+.callout {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: var(--r-md);
+  padding: 14px 18px;
+  font-size: 13px;
+  color: var(--text);
+  margin: 20px 0;
+}
+.callout strong { color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+
+<!-- ── TOC ──────────────────────────────────────────────────────────────── -->
+<nav class="toc" aria-label="Tabla de contenido">
+  <div class="toc-brand">EPUXUA Platform</div>
+  <div class="toc-sub">Auditoría Técnica Integral<br>Agosto 2026</div>
+
+  <div class="toc-section">Resumen</div>
+  <a href="#ejecutivo">Resumen Ejecutivo</a>
+  <a href="#fortalezas">Fortalezas y Debilidades</a>
+
+  <div class="toc-section">Hallazgos</div>
+  <a href="#criticos">🔴 Críticos (4)</a>
+  <a href="#altos">🟠 Altos (5)</a>
+  <a href="#medios">🟡 Medios (6)</a>
+  <a href="#bajos">🟢 Bajos (4)</a>
+
+  <div class="toc-section">Análisis</div>
+  <a href="#arquitectura">Arquitectura</a>
+  <a href="#base-datos">Base de Datos</a>
+  <a href="#seguridad">Seguridad</a>
+  <a href="#rendimiento">Rendimiento</a>
+  <a href="#financiero">Modelo Financiero</a>
+  <a href="#ia">Asistente IA</a>
+  <a href="#exportaciones">Exportaciones</a>
+  <a href="#logging">Logging</a>
+
+  <div class="toc-section">Plan</div>
+  <a href="#recomendaciones">Recomendaciones</a>
+  <a href="#arquitectura-futura">Arquitectura Futura</a>
+  <a href="#roadmap">Roadmap</a>
+</nav>
+
+<!-- ── MAIN ──────────────────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- HEADER -->
+  <div class="report-header">
+    <h1>Auditoría Técnica Integral<br>EPUXUA Contracts Platform</h1>
+    <div class="report-meta">
+      <div class="report-meta-item"><span>Fecha</span>6 de agosto de 2026</div>
+      <div class="report-meta-item"><span>Versión analizada</span>Next.js 16.2.6 · React 19 · Supabase</div>
+      <div class="report-meta-item"><span>Contexto</span>Plataforma de gestión de contratos interadministrativos para entidades públicas colombianas</div>
+    </div>
+  </div>
+
+  <!-- RESUMEN EJECUTIVO -->
+  <section id="ejecutivo">
+    <h2>Resumen Ejecutivo</h2>
+    <p class="section-intro">
+      El sistema presenta una base de ingeniería sólida y un nivel de madurez funcional avanzado. Sin embargo, se identificaron <strong>4 vulnerabilidades críticas</strong> — dos de ellas de seguridad directa — que deben corregirse antes de cualquier expansión a múltiples entidades o exposición a auditorías externas (Contraloría, Procuraduría, Control Interno, Revisoría Fiscal).
+    </p>
+
+    <div class="kpi-strip">
+      <div class="kpi-card">
+        <div class="kpi-label">Hallazgos totales</div>
+        <div class="kpi-value">19</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Críticos</div>
+        <div class="kpi-value">4</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">Altos</div>
+        <div class="kpi-value">5</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Medios</div>
+        <div class="kpi-value">6</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Bajos</div>
+        <div class="kpi-value">4</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Veredicto de madurez:</strong> El sistema está listo para uso interno controlado con roles asignados. <strong>No está listo para producción multi-entidad</strong> hasta resolver los hallazgos críticos C01–C04. Una vez corregidos, la arquitectura base soporta el crecimiento proyectado.
+    </div>
+  </section>
+
+  <!-- FORTALEZAS / DEBILIDADES -->
+  <section id="fortalezas">
+    <h2>Fortalezas y Debilidades</h2>
+    <div class="sw-grid">
+      <div class="sw-box strengths">
+        <h4>✓ Fortalezas</h4>
+        <ul>
+          <li>Arquitectura Next.js App Router bien aplicada — Server Actions, Server Components, rutas API diferenciadas</li>
+          <li>Sistema de roles bien modelado (8 roles, funciones de acceso centralizadas en <code>access.ts</code>)</li>
+          <li>Audit log en <em>todas</em> las operaciones de escritura críticas (<code>interadmin_audit_log</code>)</li>
+          <li>Centro de Integridad de Datos: 13 reglas financieras de validación pura, con SQL fix sugerido por hallazgo</li>
+          <li>Módulo de IA modular (<code>document-reader → content-cleaner → openai-analyzer → result-normalizer</code>)</li>
+          <li>Tipos TypeScript por dominio bien separados (<code>/types</code>): contrato, modificaciones, rendimientos, facturas…</li>
+          <li>Validación de acceso por proyecto (<code>interadmin_assignments</code>) en escritura general</li>
+          <li>Rollback manual en <code>createFinancialReturn</code> (aunque mejorable con transacciones reales)</li>
+        </ul>
+      </div>
+      <div class="sw-box weaknesses">
+        <h4>✗ Debilidades</h4>
+        <ul>
+          <li>Middleware de autenticación nombrado incorrectamente — no ejecuta en Next.js</li>
+          <li>Endpoint de IA expuesto sin autenticación</li>
+          <li><code>assertFinancialWriteAccess</code> no verifica acceso por proyecto</li>
+          <li>Tipos Supabase no generados — <code>as never</code> en 50+ lugares bypasea TypeScript</li>
+          <li>Overfetch masivo: <code>select("*")</code> + <code>limit(20000)</code> sin paginación</li>
+          <li>Sin transacciones DB — datos financieros pueden quedar en estado inconsistente</li>
+          <li>Modelo financiero dual (campos legacy en DB + cálculo dinámico)</li>
+          <li>Cliente Supabase legacy (<code>src/lib/supabase.ts</code>) sin sesión — puede bypassear RLS</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- HALLAZGOS CRÍTICOS -->
+  <section id="criticos">
+    <h2>🔴 Hallazgos Críticos</h2>
+    <p class="section-intro">Pueden generar pérdida de datos, acceso no autorizado o incumplimiento normativo. Deben corregirse antes de cualquier despliegue ampliado.</p>
+
+    <div class="finding critical">
+      <div class="finding-head">
+        <div class="finding-title">C01 — Middleware de autenticación inactivo</div>
+        <span class="badge critical">Crítico · Seguridad</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge module-badge">src/proxy.ts</span>
+        <span class="badge module-badge">Arquitectura</span>
+      </div>
+      <div class="finding-body">
+        <p>Next.js App Router requiere que el middleware se llame exactamente <code>middleware.ts</code> y esté en <code>src/</code> o en la raíz del proyecto. El archivo actual se llama <code>proxy.ts</code> y exporta una función <code>proxy()</code> — Next.js lo ignora completamente como middleware. Esto significa que <strong>ninguna ruta está protegida a nivel Edge/middleware</strong>.</p>
+        <p>El sistema funciona porque cada Server Component llama individualmente a <code>getCurrentUserProfile()</code>. Pero esto es frágil: cualquier ruta API o Server Component que no llame explícitamente a esa función queda expuesta.</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución:</strong> Renombrar <code>src/proxy.ts</code> → <code>src/middleware.ts</code> y renombrar la función exportada de <code>proxy</code> a <code>middleware</code>.<br>
+        <code>export async function middleware(request: NextRequest) { ... }</code>
+      </div>
+    </div>
+
+    <div class="finding critical">
+      <div class="finding-head">
+        <div class="finding-title">C02 — Endpoint de IA sin autenticación</div>
+        <span class="badge critical">Crítico · Seguridad</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge module-badge">src/app/api/document-analysis/extracto-bancario/route.ts</span>
+      </div>
+      <div class="finding-body">
+        <p>El endpoint <code>POST /api/document-analysis/extracto-bancario</code> no verifica sesión antes de procesar el archivo y llamar a la API de OpenAI. Cualquier agente externo puede enviar peticiones ilimitadas, generando costos no controlados en la cuenta de OpenAI y exponiendo la capacidad de análisis documental sin control.</p>
+        <p>Por contraste, el endpoint <code>/api/document-analysis/unified</code> sí verifica sesión correctamente. Este endpoint fue agregado posteriormente y el patrón no se copió.</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución:</strong> Agregar al inicio del handler:<br>
+        <code>const profile = await getCurrentUserProfile().catch(() =&gt; null)<br>
+        if (!profile) return NextResponse.json(&#123; error: "No autorizado" &#125;, &#123; status: 401 &#125;)</code>
+      </div>
+    </div>
+
+    <div class="finding critical">
+      <div class="finding-head">
+        <div class="finding-title">C03 — Aislamiento por proyecto ignorado en rendimientos financieros</div>
+        <span class="badge critical">Crítico · Integridad</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge module-badge">src/services/interadmin-access.ts:84</span>
+        <span class="badge module-badge">Rendimientos Financieros</span>
+      </div>
+      <div class="finding-body">
+        <p>La función <code>assertFinancialWriteAccess(_interadminId)</code> tiene el parámetro <code>interadminId</code> prefijado con guion bajo (<code>_</code>), indicando que <strong>nunca se usa</strong>. La función solo valida el <em>rol</em> del usuario (ADMIN, GERENTE, SUBADMINISTRATIVA), pero no si el usuario tiene acceso al contrato específico.</p>
+        <p>Resultado: un usuario con rol SUBADMINISTRATIVA puede crear, editar o eliminar rendimientos de <strong>cualquier contrato interadministrativo</strong>, incluyendo los de otras secretarías o áreas, sin estar asignado a ellos.</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución:</strong> Agregar verificación de asignación dentro de <code>assertFinancialWriteAccess</code>, similar a <code>assertInteradminWriteAccess</code>, para roles que no son ADMIN o GERENTE. Definir si SUBADMINISTRATIVA debe tener acceso global o solo a sus asignaciones.
+      </div>
+    </div>
+
+    <div class="finding critical">
+      <div class="finding-head">
+        <div class="finding-title">C04 — Sin transacción DB: datos financieros pueden quedar incompletos</div>
+        <span class="badge critical">Crítico · Integridad de Datos</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge module-badge">src/services/financial-returns.actions.ts:127</span>
+        <span class="badge module-badge">Base de Datos</span>
+      </div>
+      <div class="finding-body">
+        <p>El flujo de creación de un rendimiento financiero realiza dos inserciones separadas: primero en <code>interadmin_financial_returns</code>, luego en <code>interadmin_financial_return_distribution</code>. Si la segunda falla, se intenta un DELETE manual sobre el primero — pero ese DELETE también puede fallar silenciosamente.</p>
+        <p>Esto puede dejar registros de rendimiento sin su distribución de fuentes, rompiendo el modelo financiero y generando discrepancias que serían detectadas por una auditoría de la Contraloría.</p>
+        <p>El mismo riesgo existe en actualizaciones que requieren borrar y recriar distribuciones (<code>updateFinancialReturn</code> línea 255).</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución inmediata:</strong> Agregar manejo de error en el rollback y retornar error explícito si el DELETE falla.<br>
+        <strong>Solución definitiva:</strong> Usar una función PostgreSQL (RPC) en Supabase que encapsule ambas inserciones en una transacción atómica.
+      </div>
+    </div>
+  </section>
+
+  <!-- HALLAZGOS ALTOS -->
+  <section id="altos">
+    <h2>🟠 Hallazgos Altos</h2>
+    <p class="section-intro">Deben corregirse antes de escalar a producción o a múltiples entidades.</p>
+
+    <div class="finding high">
+      <div class="finding-head">
+        <div class="finding-title">A01 — Tipos Supabase no generados: <code>as never</code> en 50+ queries</div>
+        <span class="badge high">Alto · Calidad</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge module-badge">Todos los servicios</span>
+      </div>
+      <div class="finding-body">
+        <p>Todas las queries a tablas propias (como <code>interadmin_financial_returns</code>, <code>interadmin_adiciones</code>, etc.) usan el cast <code>as never</code> para suprimir errores de TypeScript. Esto significa que cualquier cambio en el schema de la base de datos — agregar, renombrar o eliminar una columna — no produce error de compilación. Los errores aparecen solo en tiempo de ejecución.</p>
+        <p>Supabase CLI genera tipos completos de todas las tablas automáticamente con un solo comando. Es la solución oficial y elimina la necesidad de <code>as never</code>.</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución:</strong> <code>npx supabase gen types typescript --project-id [PROJECT_ID] &gt; src/types/supabase.generated.ts</code><br>
+        Luego crear un cliente tipado y reemplazar gradualmente los <code>as never</code> con tipos reales.
+      </div>
+    </div>
+
+    <div class="finding high">
+      <div class="finding-head">
+        <div class="finding-title">A02 — Overfetch masivo sin paginación</div>
+        <span class="badge high">Alto · Rendimiento</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge module-badge">src/services/projects.service.ts</span>
+        <span class="badge module-badge">src/app/(app)/administracion/integridad/page.tsx</span>
+      </div>
+      <div class="finding-body">
+        <p>El sistema carga datos con <code>select("*")</code> sin especificar columnas (transfiere todo el row) y con límites como <code>.limit(5000)</code> y <code>.limit(20000)</code> sin paginación real. La página de Integridad carga hasta 20.000 adiciones y 5.000 contratos en una sola petición.</p>
+        <p>A medida que crezca el número de contratos y modificaciones, estas queries agotarán el timeout de Supabase (30s por defecto) y degradarán drásticamente el tiempo de carga.</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución a corto plazo:</strong> Especificar solo las columnas necesarias en cada query.<br>
+        <strong>Solución a largo plazo:</strong> Implementar paginación cursor-based y carga progresiva en tablas grandes.
+      </div>
+    </div>
+
+    <div class="finding high">
+      <div class="finding-head">
+        <div class="finding-title">A03 — Sin rate limiting en endpoints de IA</div>
+        <span class="badge high">Alto · Seguridad / Costos</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge module-badge">src/app/api/document-analysis/</span>
+      </div>
+      <div class="finding-body">
+        <p>Los endpoints de análisis documental no tienen control de tasa de llamadas. Un usuario con sesión válida puede enviar cientos de PDFs por minuto, generando costos elevados en OpenAI y potencialmente agotando las cuotas de la cuenta.</p>
+        <p>Para una entidad pública que debe rendir cuentas de sus gastos tecnológicos, los costos de IA sin control son un riesgo de Control Interno.</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución:</strong> Implementar rate limiting por usuario (ej. máximo 20 análisis/hora) usando Upstash Redis o una tabla de cuotas en Supabase. Registrar cada uso de IA en el audit log con el costo estimado en tokens.
+      </div>
+    </div>
+
+    <div class="finding high">
+      <div class="finding-head">
+        <div class="finding-title">A04 — Cliente Supabase legacy sin sesión activo en código</div>
+        <span class="badge high">Alto · Seguridad</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge module-badge">src/lib/supabase.ts</span>
+      </div>
+      <div class="finding-body">
+        <p>El archivo <code>src/lib/supabase.ts</code> crea un cliente Supabase estático (<code>createClient</code>) con la anon key, sin cookies de sesión. Este cliente ignora la sesión del usuario autenticado. Si cualquier Server Component lo importa en lugar del cliente correcto (<code>createSupabaseServerClient()</code>), las queries pueden ejecutarse con anonimato, <strong>bypasseando completamente las RLS Policies</strong>.</p>
+        <p>Adicionalmente, el archivo lanza un error a nivel de módulo si las env vars no están — esto puede romper el proceso de build en CI/CD.</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución:</strong> Verificar que ningún Server Component importa desde <code>src/lib/supabase.ts</code>. Si el archivo no se usa, eliminarlo. Si se usa en el cliente (browser), mantenerlo solo para operaciones que no requieran sesión de usuario.
+      </div>
+    </div>
+
+    <div class="finding high">
+      <div class="finding-head">
+        <div class="finding-title">A05 — <code>syncFundingGroups</code> como side effect en render de página</div>
+        <span class="badge high">Alto · Fiabilidad</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge module-badge">src/app/(app)/proyectos/[id]/page.tsx:80</span>
+      </div>
+      <div class="finding-body">
+        <p>La función <code>syncFundingGroups()</code> (que crea o actualiza grupos de financiación) se llama en el cuerpo de un Server Component de página, durante el render. Su error es silenciado con <code>.catch(() => {})</code>.</p>
+        <p>Esto implica: (1) cada visita a la página de detalle ejecuta una escritura en base de datos, (2) si falla, el usuario no recibe ningún aviso y las fuentes de financiación pueden quedar desincronizadas, (3) el render no debería tener side effects de escritura según el modelo de React Server Components.</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución:</strong> Mover <code>syncFundingGroups</code> a un Server Action explícito que se llame solo cuando haya un cambio real en adiciones (no en cada render). Usar un campo <code>needs_sync</code> o un timestamp de comparación.
+      </div>
+    </div>
+  </section>
+
+  <!-- HALLAZGOS MEDIOS -->
+  <section id="medios">
+    <h2>🟡 Hallazgos Medios</h2>
+    <p class="section-intro">Conviene corregir antes de escalar. No son urgentes, pero generan deuda técnica que se acumula.</p>
+
+    <div class="finding medium">
+      <div class="finding-head">
+        <div class="finding-title">M01 — Modelo financiero dual: campos legacy + cálculo dinámico</div>
+        <span class="badge medium">Medio · Integridad</span>
+      </div>
+      <div class="finding-body">
+        <p>La tabla <code>interadministrativos</code> tiene campos denormalizados (<code>adicion</code>, <code>total_cuota_admin</code>, <code>bolsa_gerencia_inicial</code>, <code>adicion_bolsa_mandato</code>, <code>total_bolsa_mandato</code>) que duplican valores que también se calculan dinámicamente desde <code>interadmin_adiciones</code>. El módulo de Integridad ya detecta inconsistencias (reglas R01–R07), lo que confirma que <strong>la divergencia ocurre en producción</strong>.</p>
+        <p>Para una auditoría fiscal, la existencia de dos fuentes de verdad para el mismo valor (ej: total de adiciones) es un hallazgo de riesgo alto.</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución a largo plazo:</strong> Definir formalmente cuál es la fuente de verdad para cada valor. Deprecar los campos legacy en la DB y alimentarlos solo mediante vistas computadas o triggers. Documentar la decisión.
+      </div>
+    </div>
+
+    <div class="finding medium">
+      <div class="finding-head">
+        <div class="finding-title">M02 — Sin paginación en ninguna tabla de la UI</div>
+        <span class="badge medium">Medio · Rendimiento / UX</span>
+      </div>
+      <div class="finding-body">
+        <p>Todas las tablas de datos (modificaciones, rendimientos, facturas, contratos derivados) cargan todos los registros de una vez y los renderizan en el DOM. Actualmente esto funciona por el volumen moderado de datos, pero con el crecimiento proyectado (miles de modificaciones, cientos de contratos por entidad), degradará la experiencia notablemente.</p>
+      </div>
+    </div>
+
+    <div class="finding medium">
+      <div class="finding-head">
+        <div class="finding-title">M03 — Validación de archivo solo por extensión</div>
+        <span class="badge medium">Medio · Seguridad</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge module-badge">src/lib/document-analyzer/document-reader.ts</span>
+      </div>
+      <div class="finding-body">
+        <p>El document-reader verifica el tipo de archivo únicamente por el nombre (<code>file.name.endsWith('.pdf')</code>). Un archivo con extensión <code>.pdf</code> pero contenido arbitrario pasará la validación y se enviará al parser. Si <code>pdf-parse</code> tiene vulnerabilidades en su manejo de payloads malformados, este es el vector de entrada.</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución:</strong> Verificar el MIME type real del archivo (<code>file.type === 'application/pdf'</code>) y los primeros bytes mágicos del buffer (<code>%PDF</code>) antes de procesarlo.
+      </div>
+    </div>
+
+    <div class="finding medium">
+      <div class="finding-head">
+        <div class="finding-title">M04 — <code>maxDuration = 45s</code> puede exceder límites de hosting</div>
+        <span class="badge medium">Medio · Infraestructura</span>
+      </div>
+      <div class="tag-row">
+        <span class="badge module-badge">src/app/api/document-analysis/unified/route.ts:9</span>
+      </div>
+      <div class="finding-body">
+        <p>La ruta de análisis unificado declara <code>export const maxDuration = 45</code>. En Vercel Free Tier, el límite es 10 segundos; en Pro, 60 segundos. Si la plataforma está en Free Tier, las funciones de análisis de documentos complejos serán terminadas antes de completar. El análisis de un PDF de 40 páginas puede superar 20–30 segundos.</p>
+      </div>
+    </div>
+
+    <div class="finding medium">
+      <div class="finding-head">
+        <div class="finding-title">M05 — Audit log fire-and-forget sin captura de errores</div>
+        <span class="badge medium">Medio · Auditoría</span>
+      </div>
+      <div class="finding-body">
+        <p>La función <code>audit()</code>, duplicada en múltiples archivos de acciones, usa <code>.then(() => {})</code> para ignorar silenciosamente todos los errores del audit log. Para una plataforma sujeta a auditorías gubernamentales, la integridad del log de auditoría es crítica. Si el insert al log falla, ningún sistema de alerta lo detecta.</p>
+      </div>
+      <div class="finding-detail">
+        <strong>Solución:</strong> Centralizar la función <code>audit()</code> en un servicio compartido, registrar errores del audit log en un sistema de monitoreo separado (Sentry, Loki, etc.) y considerar una cola de reintentos para logs fallidos.
+      </div>
+    </div>
+
+    <div class="finding medium">
+      <div class="finding-head">
+        <div class="finding-title">M06 — Campo deprecated <code>rendimientosDevueltos</code> en interfaz activa</div>
+        <span class="badge medium">Medio · Calidad</span>
+      </div>
+      <div class="finding-body">
+        <p>La interfaz <code>FinancialReturnsKPIs</code> contiene el campo <code>rendimientosDevueltos</code> marcado con <code>@deprecated usar valorTotalDevuelto</code>. Mantener campos deprecated en interfaces activas obliga a los consumidores a elegir entre dos fuentes de datos y aumenta la probabilidad de usar el incorrecto en nuevas funcionalidades.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HALLAZGOS BAJOS -->
+  <section id="bajos">
+    <h2>🟢 Hallazgos Bajos</h2>
+    <p class="section-intro">Mejoras recomendadas sin urgencia operativa.</p>
+
+    <div class="finding low">
+      <div class="finding-head">
+        <div class="finding-title">B01 — Función <code>audit()</code> duplicada en múltiples archivos de acciones</div>
+        <span class="badge low">Bajo · Calidad</span>
+      </div>
+      <div class="finding-body">
+        <p>La función helper <code>audit(supabase, payload)</code> está copiada manualmente en <code>modificaciones.actions.ts</code>, <code>financial-returns.actions.ts</code>, <code>update-interadmin.actions.ts</code> y otros. Cualquier cambio en la lógica de auditoría (agregar un campo, cambiar el nombre de la tabla) debe replicarse en cada copia.</p>
+      </div>
+    </div>
+
+    <div class="finding low">
+      <div class="finding-head">
+        <div class="finding-title">B02 — Dependencia <code>xlsx@0.18.5</code> con vulnerabilidades conocidas</div>
+        <span class="badge low">Bajo · Seguridad</span>
+      </div>
+      <div class="finding-body">
+        <p>La librería <code>xlsx</code> versión <code>0.18.5</code> tiene vulnerabilidades de prototipo contaminado (prototype pollution) conocidas. Aunque el riesgo es bajo dado que solo se usa en generación server-side de reportes (no en parsing de input de usuarios), debe actualizarse. Considerar migrar a <code>exceljs</code> como alternativa más activamente mantenida.</p>
+      </div>
+    </div>
+
+    <div class="finding low">
+      <div class="finding-head">
+        <div class="finding-title">B03 — Archivos <code>.gitkeep</code> y cliente Supabase legacy no utilizados</div>
+        <span class="badge low">Bajo · Limpieza</span>
+      </div>
+      <div class="finding-body">
+        <p>Múltiples carpetas contienen archivos <code>.gitkeep</code> de la estructura de scaffolding inicial (<code>src/components/shared/</code>, <code>src/hooks/</code>, <code>src/modules/users/</code>, etc.) que no se utilizan. El archivo <code>src/lib/supabase.ts</code> (cliente legacy sin sesión) parece no tener consumidores activos y puede eliminarse tras verificación.</p>
+      </div>
+    </div>
+
+    <div class="finding low">
+      <div class="finding-head">
+        <div class="finding-title">B04 — Sin archivo <code>.env.example</code> documentando variables requeridas</div>
+        <span class="badge low">Bajo · Operaciones</span>
+      </div>
+      <div class="finding-body">
+        <p>El proyecto requiere al menos 4 variables de entorno (<code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>OPENAI_API_KEY</code>) y opcionalmente <code>OPENAI_ANALYSIS_MODEL</code>. No existe un <code>.env.example</code>. El onboarding de nuevos desarrolladores o el despliegue en nuevas instancias depende de documentación verbal, lo que es un riesgo operativo.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ANÁLISIS DETALLADO POR CATEGORÍA -->
+  <section id="arquitectura">
+    <h2>Análisis: Arquitectura</h2>
+    <p>La organización de carpetas sigue un patrón por dominio (<code>modules/</code>) bien aplicado. Cada módulo tiene su capa de componentes, librería de lógica y tipos. Los Server Actions (<code>*.actions.ts</code>) están correctamente separados de los servicios de lectura (<code>*.service.ts</code>).</p>
+    <p><strong>Puntos fuertes:</strong> La separación entre Server Components y Client Components es consistente. El uso de <code>"use server"</code> y <code>"use client"</code> está bien aplicado. Los componentes de página son Server Components que pasan datos a Client Components.</p>
+    <p><strong>Oportunidad de mejora:</strong> Algunos componentes son excesivamente grandes (<code>interadministrativo-detail.tsx</code> gestiona estado global del expediente). Considerar un Context Provider o Zustand store para el estado del expediente, reduciendo la propagación de props a través de múltiples niveles.</p>
+    <p><strong>Código muerto identificado:</strong> <code>src/modules/dashboard/.gitkeep</code>, <code>src/modules/financial/.gitkeep</code>, <code>src/modules/contracts/.gitkeep</code> (la lógica de contratos derivados está en <code>modules/contracts/</code> pero parecen ser carpetas de scaffolding).</p>
+  </section>
+
+  <section id="base-datos">
+    <h2>Análisis: Base de Datos</h2>
+    <p><strong>Modelo:</strong> La DB tiene un diseño razonablemente bien normalizado para las entidades core (<code>interadmin_adiciones</code>, <code>interadmin_prorrogas</code>, etc. como tablas separadas). La excepción es la tabla <code>interadministrativos</code> que conserva campos calculados legacy (<code>adicion</code>, <code>total_cuota_admin</code>, etc.) — ver hallazgo M01.</p>
+    <p><strong>Integridad referencial:</strong> No verificable desde el código, pero el uso de <code>interadministrativo_id</code> como FK en todas las tablas de detalle sugiere que las FK están configuradas. A verificar en el schema de Supabase.</p>
+    <p><strong>Índices:</strong> No hay gestión de índices en el código (correctamente, eso es responsabilidad del schema de DB). A verificar: <code>return_year</code> y <code>return_month</code> en <code>interadmin_financial_returns</code> deben tener índice compuesto, especialmente dado que el módulo filtra por año/mes frecuentemente.</p>
+    <p><strong>Tabla sin usar:</strong> <code>interadmin_financial_return_repayments</code> existe en la DB pero no tiene uso en el código. Puede eliminarse o documentarse como reservada para una fase futura de multi-pagos de devolución.</p>
+    <p><strong>Enums:</strong> <code>EstadoInteradministrativo</code> y <code>RepaymentStatus</code> están definidos como tipos TypeScript. Si también están como enums en PostgreSQL, cualquier nuevo valor debe migrarse en ambos lados. La nota en <code>database.ts</code> sobre ejecutar <code>MIGRATION_INTERADMIN_FORM.sql</code> sugiere que esto ha ocurrido antes.</p>
+  </section>
+
+  <section id="seguridad">
+    <h2>Análisis: Seguridad</h2>
+    <p><strong>Modelo de roles:</strong> Bien definido y centralizado en <code>src/modules/projects/lib/access.ts</code>. Las 8 funciones de acceso (<code>canEdit</code>, <code>canCreate</code>, <code>canDelete</code>, <code>canEditFinancialTabs</code>, etc.) son puras y testeables.</p>
+    <p><strong>Validaciones backend:</strong> Todas las Server Actions validan permisos antes de operar. Las validaciones de negocio (ej. mes válido, valor > 0) están presentes en las acciones. Las URL-fields tienen validación de formato (<code>validateUrl()</code>).</p>
+    <p><strong>Variables de entorno:</strong> <code>SUPABASE_SERVICE_ROLE_KEY</code> solo se usa en el servidor (<code>admin.ts</code>). <code>OPENAI_API_KEY</code> solo en Server Actions y API Routes. No hay exposición de claves al cliente.</p>
+    <p><strong>Sesiones:</strong> El manejo de cookies de sesión usa <code>@supabase/ssr</code> correctamente. El refresh de tokens está en el middleware (cuando funcione — ver C01).</p>
+    <p><strong>Pendiente de verificar:</strong> Las RLS Policies en Supabase. El código confía en que RLS está activo para todas las tablas propias. Si una tabla no tiene RLS activa, cualquier query con la anon key tiene acceso completo.</p>
+    <p><strong>Inyección SQL:</strong> No hay construcción manual de SQL en el código TypeScript. Todas las queries usan el cliente tipado de Supabase. Sin riesgo de SQLi.</p>
+  </section>
+
+  <section id="rendimiento">
+    <h2>Análisis: Rendimiento</h2>
+    <p><strong>Problema de carga inicial:</strong> La página <code>/proyectos/[id]</code> realiza 12+ queries en paralelo al cargar. Aunque son paralelas (<code>Promise.all</code>), la respuesta de la página espera que todas terminen, incluyendo queries secundarias (tareas, avances) que podrían cargarse de forma diferida.</p>
+    <p><strong>Re-renderizados:</strong> Los componentes grandes como <code>rendimientos-financieros-tab.tsx</code> calculan KPIs con <code>useMemo</code> (correcto). Sin embargo, algunos componentes de lista renderan filas con funciones anónimas en el render (<code>onClick={() => ...}</code>), lo que puede generar re-renders innecesarios en listas largas.</p>
+    <p><strong>Server Components:</strong> El uso de Server Components está bien aplicado para la carga inicial de datos. La separación de <code>"use client"</code> solo donde hay interactividad es correcta.</p>
+    <p><strong>Caché:</strong> Se usa <code>revalidatePath</code> después de cada mutación (correcto). No hay evidencia de caché adicional (ISR, Redis) para datos que cambian poco (listas de secretarías, categorías).</p>
+  </section>
+
+  <section id="financiero">
+    <h2>Análisis: Modelo Financiero</h2>
+    <p>El motor financiero central (<code>calcInteradminFinancials</code>) es puro, determinista y bien documentado. Opera sobre las adiciones de la tabla normalizada, no sobre los campos legacy. Este es el enfoque correcto.</p>
+    <p><strong>Cadena de cálculo:</strong> Valor Original → Adiciones (normalizadas) → Valor Total Actual → Distribución por fuente → Rendimientos → KPIs. Cada paso está en funciones puras y reutilizables.</p>
+    <p><strong>Pendiente de devolución:</strong> <code>pendientePorDevolver</code> se calcula como la suma de <code>gross_return_value</code> de registros no DEVUELTO. Si un rendimiento está en estado PARCIAL (devolución en proceso), el valor total bruto se cuenta como pendiente, sin descontar lo ya devuelto. Esto sobreestima la deuda.</p>
+    <p><strong>Valor devuelto:</strong> El patrón <code>repayment_value ?? gross_return_value</code> para <code>valorTotalDevuelto</code> es inteligente como migración, pero crea una inconsistencia: registros marcados como DEVUELTO antes de capturar <code>repayment_value</code> pueden mostrar un valor incorrecto si el monto real devuelto fue diferente al bruto. Recomendable agregar una bandera de migración o una nota en el registro.</p>
+    <p><strong>Redondeo:</strong> <code>computeDistributionRows</code> usa <code>Math.round(...* 100) / 100</code>, lo que puede generar diferencias de centavos por errores de punto flotante en distribuciones de múltiples fuentes. Para contabilidad pública, se recomienda aritmética de precisión exacta (uso de enteros en centavos o librería <code>decimal.js</code>).</p>
+  </section>
+
+  <section id="ia">
+    <h2>Análisis: Asistente IA</h2>
+    <p>La arquitectura del módulo de IA es modular y bien diseñada: <code>document-reader</code> → <code>content-cleaner</code> → <code>openai-analyzer</code> → <code>result-normalizer</code> → <code>result-validator</code>. Cada paso es independiente y testeable.</p>
+    <p><strong>Modelo usado:</strong> <code>gpt-4o-mini</code> (configurable vía <code>OPENAI_ANALYSIS_MODEL</code>). Buena elección: costo-efectivo para extracción estructurada.</p>
+    <p><strong>Schemas:</strong> Los prompts de sistema en <code>/schemas/</code> están bien estructurados con instrucciones claras. El sistema de confianza (<code>ConfidenceBadge</code>, <code>result-validator</code>) es una buena práctica para manejar extracción imprecisa.</p>
+    <p><strong>Hub de IA:</strong> La arquitectura del <code>IaHubModal</code> con registro de capacidades (<code>CAPABILITIES[]</code>) es extensible. Agregar una nueva capacidad solo requiere añadir una entrada al array y su handler correspondiente.</p>
+    <p><strong>Limitaciones actuales sin resolver:</strong> (1) No soporta DOCX ni imágenes escaneadas (mensajes claros al usuario, pero es una limitación real para documentos públicos). (2) No hay reintentos automáticos en fallo de OpenAI. (3) No hay caché de análisis previos del mismo documento.</p>
+    <p><strong>Roadmap recomendado para IA:</strong> Implementar soporte DOCX (librería <code>mammoth</code>), OCR para imágenes escaneadas (<code>tesseract.js</code> o servicio externo), y un sistema de caché basado en hash del documento.</p>
+  </section>
+
+  <section id="exportaciones">
+    <h2>Análisis: Exportaciones</h2>
+    <p>Las exportaciones Excel, Word y PowerPoint utilizan los mismos datos que el sistema de visualización. El Excel Maestro de interadministrativo usa <code>calcInteradminFinancials</code> y <code>calcFacturacionKPIs</code> — las mismas funciones que la UI. Hay consistencia.</p>
+    <p><strong>Control de acceso:</strong> Las rutas de reporte verifican rol (<code>REPORT_ROLES = ["ADMIN", "GERENTE", "DIRECTIVO", "GERENTE_PROYECTO"]</code>). Sin embargo, no verifican si el usuario tiene acceso al <em>interadminId</em> específico, solo el rol. Un GERENTE_PROYECTO podría generar el reporte de un contrato que no le está asignado.</p>
+    <p><strong>CORS:</strong> Las rutas API de reportes no tienen headers CORS. Si en el futuro hay integraciones desde otras aplicaciones, esto será un bloqueo.</p>
+  </section>
+
+  <section id="logging">
+    <h2>Análisis: Logging y Observabilidad</h2>
+    <p>El logging es coherente: se usa <code>console.warn</code> para errores recuperables (query fallida, asignación no encontrada) y <code>console.error</code> para errores críticos (proxy sin configuración, error de autenticación).</p>
+    <p>Todos los <code>console.*</code> incluyen prefijos entre corchetes (<code>[proxy]</code>, <code>[interadmin-access]</code>, <code>[document-reader]</code>) lo que facilita la búsqueda en logs de producción. Esta es una buena práctica.</p>
+    <p><strong>Observabilidad faltante:</strong> No hay integración con un sistema de monitoreo de errores (Sentry, Datadog, etc.). En producción, los errores solo aparecen en los logs del servidor. No hay alertas automáticas cuando un Server Action falla repetidamente.</p>
+    <p>El audit log a la tabla <code>interadmin_audit_log</code> es bueno pero fire-and-forget — ver hallazgo M05.</p>
+  </section>
+
+  <hr class="divider">
+
+  <!-- RECOMENDACIONES -->
+  <section id="recomendaciones">
+    <h2>Recomendaciones Priorizadas</h2>
+    <div class="rec-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Acción</th>
+            <th>Prioridad</th>
+            <th>Esfuerzo</th>
+            <th>Impacto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>Renombrar <code>proxy.ts</code> → <code>middleware.ts</code>, exportar como <code>middleware</code></td>
+            <td><span class="badge critical">Crítico</span></td>
+            <td>30 min</td>
+            <td>Protección real a nivel Edge</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>Agregar autenticación al endpoint de extracto bancario</td>
+            <td><span class="badge critical">Crítico</span></td>
+            <td>15 min</td>
+            <td>Cierra acceso no autorizado a IA</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>Corregir <code>assertFinancialWriteAccess</code> para verificar acceso por proyecto</td>
+            <td><span class="badge critical">Crítico</span></td>
+            <td>2h</td>
+            <td>Aislamiento real entre proyectos</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>Crear RPC Supabase para <code>createFinancialReturn</code> con transacción atómica</td>
+            <td><span class="badge critical">Crítico</span></td>
+            <td>4h</td>
+            <td>Integridad financiera garantizada</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td>Generar tipos Supabase (<code>supabase gen types</code>) y reemplazar <code>as never</code></td>
+            <td><span class="badge high">Alto</span></td>
+            <td>1 día</td>
+            <td>Type safety en todo el stack</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Eliminar o aislar <code>src/lib/supabase.ts</code></td>
+            <td><span class="badge high">Alto</span></td>
+            <td>1h</td>
+            <td>Previene bypass de RLS</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>Implementar rate limiting en endpoints de IA (Upstash o tabla de cuotas)</td>
+            <td><span class="badge high">Alto</span></td>
+            <td>4h</td>
+            <td>Control de costos OpenAI</td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Mover <code>syncFundingGroups</code> fuera del render de página</td>
+            <td><span class="badge high">Alto</span></td>
+            <td>3h</td>
+            <td>Elimina side effects en render</td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>Centralizar función <code>audit()</code> en servicio compartido</td>
+            <td><span class="badge medium">Medio</span></td>
+            <td>2h</td>
+            <td>Consistencia de auditoría</td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>Agregar validación de bytes mágicos en document-reader</td>
+            <td><span class="badge medium">Medio</span></td>
+            <td>1h</td>
+            <td>Hardening de IA</td>
+          </tr>
+          <tr>
+            <td>11</td>
+            <td>Implementar paginación cursor-based en tablas principales</td>
+            <td><span class="badge medium">Medio</span></td>
+            <td>1 semana</td>
+            <td>Escalabilidad a largo plazo</td>
+          </tr>
+          <tr>
+            <td>12</td>
+            <td>Crear <code>.env.example</code> con todas las variables requeridas documentadas</td>
+            <td><span class="badge low">Bajo</span></td>
+            <td>15 min</td>
+            <td>Operaciones y onboarding</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ARQUITECTURA FUTURA -->
+  <section id="arquitectura-futura">
+    <h2>Arquitectura Futura</h2>
+    <p class="section-intro">Para soportar múltiples entidades públicas y crecer a la escala de miles de contratos, la arquitectura debe evolucionar en estas tres direcciones.</p>
+
+    <h3>1 — Multi-tenancy por entidad</h3>
+    <p>Actualmente el sistema asume una sola organización. Para múltiples entidades, agregar una dimensión <code>entity_id</code> (o <code>org_id</code>) a todas las tablas, con RLS Policies que filtren por entidad. El middleware de autenticación debe resolver <code>entity_id</code> desde el perfil del usuario y propagarlo al contexto Supabase.</p>
+
+    <div class="arch-box">
+      <div class="arch-row">
+        <div class="arch-layer">
+          <div class="arch-layer-label">Edge / Middleware</div>
+          <div class="arch-item new">middleware.ts → resolve entity</div>
+          <div class="arch-item new">rate-limiter (Upstash)</div>
+          <div class="arch-item">auth redirect</div>
+        </div>
+        <div class="arch-layer">
+          <div class="arch-layer-label">Server Actions</div>
+          <div class="arch-item new">RPC transactions</div>
+          <div class="arch-item">write access checks</div>
+          <div class="arch-item new">entity_id propagation</div>
+        </div>
+        <div class="arch-layer">
+          <div class="arch-layer-label">Supabase DB</div>
+          <div class="arch-item new">generated types</div>
+          <div class="arch-item new">RLS por entity_id</div>
+          <div class="arch-item warn">legacy fields → migrate</div>
+        </div>
+        <div class="arch-layer">
+          <div class="arch-layer-label">IA Hub</div>
+          <div class="arch-item">document-reader</div>
+          <div class="arch-item new">docx + OCR support</div>
+          <div class="arch-item new">analysis cache (Redis)</div>
+          <div class="arch-item new">usage tracking</div>
+        </div>
+      </div>
+      <div style="font-size:11px; color: var(--muted); margin-top:8px;">
+        <span style="color: var(--accent)">■</span> Nuevo/a mejorar &nbsp;·&nbsp;
+        <span style="color: var(--c-orange)">■</span> A migrar/deprecar
+      </div>
+    </div>
+
+    <h3>2 — Capa de observabilidad</h3>
+    <p>Integrar Sentry para captura de errores en Server Actions y API Routes. Agregar structured logging con un identificador de correlación (<code>request-id</code>) para trazar el flujo de una operación de principio a fin. Implementar alertas automáticas para fallos del audit log.</p>
+
+    <h3>3 — Modelo financiero unificado</h3>
+    <p>Migrar progresivamente los campos legacy de <code>interadministrativos</code> a vistas computadas o triggers de PostgreSQL que los mantengan sincronizados automáticamente. La fuente de verdad debe ser siempre la tabla normalizada (<code>interadmin_adiciones</code>, etc.). Los campos legacy solo deben existir por compatibilidad hacia atrás y ser deprecados explícitamente en el roadmap.</p>
+  </section>
+
+  <!-- ROADMAP -->
+  <section id="roadmap">
+    <h2>Roadmap de Mejoras</h2>
+
+    <div class="roadmap-phase">
+      <div class="phase-dot"></div>
+      <div class="phase-label">Fase 1 — Ahora (Semana 1–2)</div>
+      <div class="phase-title">Seguridad y correcciones críticas</div>
+      <ul class="phase-items">
+        <li>Renombrar middleware (<strong>C01</strong>) — 30 min</li>
+        <li>Autenticación en endpoint extracto bancario (<strong>C02</strong>) — 15 min</li>
+        <li>Eliminar/aislar <code>src/lib/supabase.ts</code> (<strong>A04</strong>) — 1h</li>
+        <li>Corregir <code>assertFinancialWriteAccess</code> (<strong>C03</strong>) — 2h</li>
+        <li>Crear <code>.env.example</code> (<strong>B04</strong>) — 15 min</li>
+        <li>Manejo de error en rollback de <code>createFinancialReturn</code> (<strong>C04 parcial</strong>) — 1h</li>
+      </ul>
+    </div>
+
+    <div class="roadmap-phase">
+      <div class="phase-dot"></div>
+      <div class="phase-label">Fase 2 — Corto plazo (Semanas 3–6)</div>
+      <div class="phase-title">Calidad técnica y fundamentos</div>
+      <ul class="phase-items">
+        <li>Generar tipos Supabase y eliminar <code>as never</code> (<strong>A01</strong>)</li>
+        <li>Mover <code>syncFundingGroups</code> fuera del render (<strong>A05</strong>)</li>
+        <li>Centralizar función <code>audit()</code> (<strong>M05, B01</strong>)</li>
+        <li>RPC Supabase para transacciones financieras (<strong>C04 definitivo</strong>)</li>
+        <li>Agregar validación de MIME type en document-reader (<strong>M03</strong>)</li>
+        <li>Rate limiting en endpoints de IA (<strong>A03</strong>)</li>
+      </ul>
+    </div>
+
+    <div class="roadmap-phase">
+      <div class="phase-dot"></div>
+      <div class="phase-label">Fase 3 — Mediano plazo (Meses 2–3)</div>
+      <div class="phase-title">Escalabilidad y observabilidad</div>
+      <ul class="phase-items">
+        <li>Implementar paginación cursor-based en todas las tablas (<strong>M02, A02</strong>)</li>
+        <li>Integrar Sentry para monitoreo de errores en producción</li>
+        <li>Implementar caché Redis para análisis de documentos repetidos (IA)</li>
+        <li>Soporte DOCX en document-reader (librería mammoth)</li>
+        <li>Eliminar <code>rendimientosDevueltos</code> deprecated (<strong>M06</strong>)</li>
+        <li>Migración de campos legacy financieros a vistas computadas (<strong>M01</strong>)</li>
+      </ul>
+    </div>
+
+    <div class="roadmap-phase">
+      <div class="phase-dot"></div>
+      <div class="phase-label">Fase 4 — Largo plazo (Meses 4–6)</div>
+      <div class="phase-title">Multi-entidad y certificación institucional</div>
+      <ul class="phase-items">
+        <li>Arquitectura multi-tenant con <code>entity_id</code> y RLS por entidad</li>
+        <li>Dashboard ejecutivo consolidado multi-entidad</li>
+        <li>Integración SECOP II para sincronización automática de contratos</li>
+        <li>Módulo de reportes para Contraloría (formatos estándar CGN)</li>
+        <li>Soporte OCR para documentos escaneados (IA)</li>
+        <li>Trazabilidad completa: toda acción financiera enlazada a su documento soporte</li>
+      </ul>
+    </div>
+  </section>
+
+  <hr class="divider">
+  <p style="font-size:12px; color: var(--muted); text-align:center; margin-top:32px;">
+    EPUXUA Platform · Auditoría Técnica Integral · 6 de agosto de 2026<br>
+    Análisis basado en revisión completa del código fuente, servicios, tipos y configuración del proyecto.
+  </p>
+
+</main>
+</div>
+
+<script>
+// TOC active state on scroll
+const headings = document.querySelectorAll('section[id]')
+const links = document.querySelectorAll('.toc a')
+const obs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'))
+      const active = document.querySelector(`.toc a[href="#${e.target.id}"]`)
+      if (active) active.classList.add('active')
+    }
+  })
+}, { rootMargin: '-20% 0px -70% 0px' })
+headings.forEach(h => obs.observe(h))
+</script>

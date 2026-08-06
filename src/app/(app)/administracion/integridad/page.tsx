@@ -21,20 +21,56 @@ function groupById<T extends { interadministrativo_id: number }>(arr: T[]): Map<
   return m
 }
 
+/** Recupera todos los registros de una tabla paginando de 1000 en 1000. */
+async function fetchAll<T>(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  table: string,
+  columns: string,
+): Promise<T[]> {
+  const PAGE = 1000
+  const result: T[] = []
+  let from = 0
+  while (true) {
+    const { data, error } = await (supabase as never as {
+      from: (t: string) => { select: (c: string) => { range: (a: number, b: number) => Promise<{ data: T[] | null; error: unknown }> } }
+    }).from(table).select(columns).range(from, from + PAGE - 1)
+    if (error || !data || data.length === 0) break
+    result.push(...data)
+    if (data.length < PAGE) break
+    from += PAGE
+  }
+  return result
+}
+
 async function runAudit(): Promise<AuditReport> {
   const supabase = await createSupabaseServerClient()
 
-  const [iaRes, adRes, prRes, hiRes] = await Promise.all([
-    supabase.from("interadministrativos").select("*").order("id_contrato").limit(5000),
-    supabase.from("interadmin_adiciones").select("*").limit(20000),
-    supabase.from("interadmin_prorrogas").select("*").limit(20000),
-    supabase.from("contract_payment_schedule").select("*").limit(20000),
+  // Contratos: select(*) justificado — las 13 reglas usan ~15 campos distintos del modelo.
+  const { data: contractsRaw } = await supabase
+    .from("interadministrativos")
+    .select("*")
+    .order("id_contrato")
+
+  // Tablas de detalle: solo columnas usadas por las reglas de auditoría.
+  const [adiciones, prorrogas, hitos] = await Promise.all([
+    fetchAll<Adicion>(
+      supabase,
+      "interadmin_adiciones",
+      "id, interadministrativo_id, numero_adicion, valor_total, valor_bienes_servicios, valor_cuota_gerencia",
+    ),
+    fetchAll<Prorroga>(
+      supabase,
+      "interadmin_prorrogas",
+      "id, interadministrativo_id, numero_prorroga, nueva_fecha_terminacion",
+    ),
+    fetchAll<PaymentMilestone>(
+      supabase,
+      "contract_payment_schedule",
+      "interadministrativo_id, scheduled_value, destination, percentage",
+    ),
   ])
 
-  const contracts  = (iaRes.data ?? [])  as Interadministrativo[]
-  const adiciones  = (adRes.data ?? [])  as Adicion[]
-  const prorrogas  = (prRes.data ?? [])  as Prorroga[]
-  const hitos      = (hiRes.data ?? [])  as PaymentMilestone[]
+  const contracts = (contractsRaw ?? []) as Interadministrativo[]
 
   const adicionesMap  = groupById(adiciones)
   const prorrogasMap  = groupById(prorrogas)

@@ -34,7 +34,7 @@ export async function getContracts(filters?: {
     query = query.eq("contract_type", filters.type)
   }
 
-  const { data, error } = await query
+  const { data, error } = await query.limit(2000) // cap de seguridad — paginar en UI si supera 2000 contratos
   if (error) throw new Error(error.message)
   return (data ?? []) as Contract[]
 }

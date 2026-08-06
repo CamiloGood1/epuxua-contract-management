@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUserProfile } from "@/services/user.service"
+import { checkAndLogAiUsage } from "@/lib/ai-rate-limiter"
 import { readDocument } from "@/lib/document-analyzer/document-reader"
 import { cleanDocumentText } from "@/lib/document-analyzer/content-cleaner"
 import { analyzeWithOpenAI } from "@/lib/document-analyzer/openai-analyzer"
 import { normalizeUnifiedResult } from "@/lib/document-analyzer/result-normalizer"
 import { UNIFIED_MODIFICATIONS_PROMPT } from "@/lib/document-analyzer/schemas/unified-modifications"
 
+// 45s: requerido por Vercel Pro/Enterprise (Hobby limita a 10s). Reducir si se migra a streaming.
 export const maxDuration = 45
 
 export async function POST(req: NextRequest) {
@@ -13,6 +15,12 @@ export async function POST(req: NextRequest) {
   const profile = await getCurrentUserProfile().catch(() => null)
   if (!profile) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+  }
+
+  // ── Rate limit ────────────────────────────────────────────────────────────
+  const rateLimit = await checkAndLogAiUsage(profile.id, profile.email, "unified")
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: rateLimit.error, code: "RATE_LIMIT" }, { status: 429 })
   }
 
   // ── File ─────────────────────────────────────────────────────────────────

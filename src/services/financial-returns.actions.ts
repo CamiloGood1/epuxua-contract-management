@@ -6,6 +6,7 @@ import { getCurrentUserProfile } from "@/services/user.service"
 import { assertFinancialWriteAccess } from "@/services/interadmin-access"
 import { canEditFinancialTabs, canDeleteProject } from "@/modules/projects/lib/access"
 import { computeDistributionRows, monthName } from "@/types/financial-returns"
+import { logAuditEvent } from "./audit"
 import type { RepaymentStatus } from "@/types/financial-returns"
 
 type Res = { error: string | null; id?: number }
@@ -19,13 +20,6 @@ async function requireWrite(interadminId: number): Promise<Res | null> {
 function revalidate(projectId: number) {
   revalidatePath(`/proyectos/${projectId}`)
   revalidatePath("/proyectos")
-}
-
-async function audit(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  payload: Record<string, unknown>,
-) {
-  supabase.from("interadmin_audit_log" as never).insert(payload as never).then(() => {})
 }
 
 async function loadFundingSourcesForGroup(
@@ -163,8 +157,25 @@ export async function createFinancialReturn(input: CreateFinancialReturnInput): 
     )
 
   if (distError) {
-    await supabase.from("interadmin_financial_returns" as never).delete().eq("id", returnId)
-    return { error: distError.message }
+    const { error: rollbackError } = await supabase
+      .from("interadmin_financial_returns" as never)
+      .delete()
+      .eq("id", returnId)
+
+    if (rollbackError) {
+      console.error(
+        `[createFinancialReturn] ROLLBACK FALLIDO: rendimiento id=${returnId} quedó sin distribución. ` +
+        `distError=${distError.message} | rollbackError=${rollbackError.message}`
+      )
+      return {
+        error:
+          `Error al guardar la distribución (${distError.message}). ` +
+          `El registro id=${returnId} quedó incompleto y debe eliminarse manualmente. ` +
+          `Contacta al administrador del sistema.`,
+      }
+    }
+
+    return { error: `Error al guardar la distribución: ${distError.message}` }
   }
 
   const { data: interadmin } = await supabase
@@ -173,7 +184,7 @@ export async function createFinancialReturn(input: CreateFinancialReturnInput): 
     .eq("id", input.interadministrativo_id)
     .single()
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: input.interadministrativo_id,
     id_contrato: interadmin?.id_contrato ?? null,
     action: "CREATE_FINANCIAL_RETURN",
@@ -253,12 +264,17 @@ export async function updateFinancialReturn(
   if (error) return { error: error.message }
 
   if (distRows) {
-    await supabase
+    const { error: deleteDistError } = await supabase
       .from("interadmin_financial_return_distribution" as never)
       .delete()
       .eq("financial_return_id", id)
 
-    await supabase
+    if (deleteDistError) {
+      console.error(`[updateFinancialReturn] Error borrando distribución anterior id=${id}:`, deleteDistError.message)
+      return { error: `Error al actualizar la distribución: ${deleteDistError.message}` }
+    }
+
+    const { error: insertDistError } = await supabase
       .from("interadmin_financial_return_distribution" as never)
       .insert(
         distRows.map((d) => ({
@@ -270,6 +286,18 @@ export async function updateFinancialReturn(
           distributed_value: d.distributed_value,
         })) as never,
       )
+
+    if (insertDistError) {
+      console.error(
+        `[updateFinancialReturn] DISTRIBUCIÓN PERDIDA id=${id}: la distribución anterior fue borrada ` +
+        `pero la nueva no pudo insertarse. Error: ${insertDistError.message}`
+      )
+      return {
+        error:
+          `Error al guardar la nueva distribución (${insertDistError.message}). ` +
+          `El rendimiento id=${id} puede estar sin distribución. Contacta al administrador.`,
+      }
+    }
   }
 
   const { data: interadmin } = await supabase
@@ -278,7 +306,7 @@ export async function updateFinancialReturn(
     .eq("id", interadministrativoId)
     .single()
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: interadministrativoId,
     id_contrato: interadmin?.id_contrato ?? null,
     action: "UPDATE_FINANCIAL_RETURN",
@@ -325,7 +353,7 @@ export async function deleteFinancialReturn(
     .eq("id", interadministrativoId)
     .single()
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: interadministrativoId,
     id_contrato: interadmin?.id_contrato ?? null,
     action: "DELETE_FINANCIAL_RETURN",

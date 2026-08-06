@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "./user.service"
 import { assertInteradminWriteAccess } from "./interadmin-access"
 import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
+import { logAuditEvent } from "./audit"
 import type { TareaPrioridad, TareaStatus } from "@/types/seguimiento"
 
 type Res = { error: string | null }
@@ -13,13 +14,6 @@ async function requireWrite(interadminId: number): Promise<Res | null> {
   const access = await assertInteradminWriteAccess(interadminId)
   if (access.error) return { error: access.error }
   return null
-}
-
-async function audit(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  payload: Record<string, unknown>,
-) {
-  supabase.from("interadmin_audit_log" as never).insert(payload as never).then(() => {})
 }
 
 function revalidatePaths(interadminId: number) {
@@ -66,7 +60,7 @@ export async function createTarea(input: CreateTareaInput): Promise<Res> {
 
   if (error) return { error: error.message }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: input.interadministrativo_id,
     action:        "CREATE_TAREA",
     new_value:     JSON.stringify({ nombre: input.nombre, prioridad: input.prioridad, responsable: input.responsable }),
@@ -97,7 +91,7 @@ export async function startTarea(
 
   if (error) return { error: error.message }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: interadministrativoId,
     action:        "START_TAREA",
     old_value:     JSON.stringify({ status: "PENDIENTE" }),
@@ -141,7 +135,7 @@ export async function completeTarea(input: CompleteTareaInput): Promise<Res> {
 
   if (error) return { error: error.message }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: input.interadministrativo_id,
     action:        "COMPLETE_TAREA",
     new_value:     JSON.stringify({ status: "COMPLETADA", enlace: input.enlace_evidencia_cierre }),
@@ -180,7 +174,7 @@ export async function deleteTarea(
 
   if (error) return { error: error.message }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: interadministrativoId,
     action:        "DELETE_TAREA",
     old_value:     JSON.stringify(snapshot),

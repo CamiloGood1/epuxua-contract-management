@@ -6,6 +6,7 @@ import { getCurrentUserProfile } from "@/services/user.service"
 import { assertInteradminWriteAccess } from "@/services/interadmin-access"
 import { removeFundingGroupForAdicion } from "@/services/funding.actions"
 import { canEditProjects, canDeleteProject } from "@/modules/projects/lib/access"
+import { logAuditEvent } from "./audit"
 import type { EstadoInteradministrativo } from "@/types/database"
 
 type Res = { error: string | null }
@@ -19,14 +20,6 @@ async function requireWrite(interadminId: number): Promise<Res | null> {
 function revalidate(projectId: number) {
   revalidatePath(`/proyectos/${projectId}`)
   revalidatePath("/proyectos")
-}
-
-async function audit(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  payload: Record<string, unknown>
-) {
-  // fire-and-forget
-  supabase.from("interadmin_audit_log" as never).insert(payload as never).then(() => {})
 }
 
 function validateUrl(url: string | null | undefined): Res | null {
@@ -74,7 +67,7 @@ export async function updateInteradminBasicInfo(input: UpdateBasicInfoInput): Pr
   if (error) return { error: error.message }
 
   if (prev) {
-    await audit(supabase, {
+    await logAuditEvent(supabase, {
       interadmin_id: input.id,
       id_contrato:   prev.id_contrato,
       action:        "UPDATE_BASIC",
@@ -129,7 +122,7 @@ export async function createAdicion(input: CreateAdicionInput): Promise<Res> {
   })
   if (error) return { error: error.message }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: input.interadministrativo_id,
     id_contrato:   String(input.interadministrativo_id),
     action:        "CREATE_ADICION",
@@ -210,7 +203,7 @@ export async function deleteAdicion(id: number, interadministrativo_id: number):
     .eq("id", interadministrativo_id)
     .maybeSingle()
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: interadministrativo_id,
     id_contrato:   interadmin?.id_contrato ?? String(interadministrativo_id),
     action:        "DELETE_ADICION",
@@ -261,7 +254,7 @@ export async function createProrroga(input: CreateProrrogaInput): Promise<Res> {
   })
   if (error) return { error: error.message }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: input.interadministrativo_id,
     id_contrato:   String(input.interadministrativo_id),
     action:        "CREATE_PRORROGA",
@@ -354,7 +347,7 @@ export async function createSuspension(input: CreateSuspensionInput): Promise<Re
   })
   if (error) return { error: error.message }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: input.interadministrativo_id,
     id_contrato:   String(input.interadministrativo_id),
     action:        "CREATE_SUSPENSION",
@@ -445,7 +438,7 @@ export async function createReinicio(input: CreateReinicioInput): Promise<Res> {
   })
   if (error) return { error: error.message }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: input.interadministrativo_id,
     id_contrato:   String(input.interadministrativo_id),
     action:        "CREATE_REINICIO",
@@ -532,7 +525,7 @@ export async function createAclaratorio(input: CreateAclaratorioInput): Promise<
   })
   if (error) return { error: error.message }
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: input.interadministrativo_id,
     id_contrato:   String(input.interadministrativo_id),
     action:        "CREATE_ACLARATORIO",

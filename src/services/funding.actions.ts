@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getCurrentUserProfile } from "@/services/user.service"
 import { assertFinancialWriteAccess } from "@/services/interadmin-access"
 import { canEditFinancialTabs, canDeleteProject } from "@/modules/projects/lib/access"
+import { logAuditEvent } from "./audit"
 import type { Adicion } from "@/types/modificaciones"
 
 type Res = { error: string | null }
@@ -20,13 +21,6 @@ async function requireWrite(interadminId: number): Promise<Res | null> {
 function revalidate(projectId: number) {
   revalidatePath(`/proyectos/${projectId}`)
   revalidatePath("/proyectos")
-}
-
-async function audit(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  payload: Record<string, unknown>,
-) {
-  supabase.from("interadmin_audit_log" as never).insert(payload as never).then(() => {})
 }
 
 async function getGroupTotal(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, groupId: number) {
@@ -122,11 +116,38 @@ export async function syncFundingGroups(
 
   const { data: existing } = await supabase
     .from("interadmin_funding_groups" as never)
-    .select("id, group_type, related_modification_id")
+    .select("id, group_type, related_modification_id, total_value")
     .eq("interadministrativo_id", interadministrativoId)
 
-  const groups = (existing ?? []) as { id: number; group_type: string; related_modification_id: number | null }[]
+  const groups = (existing ?? []) as {
+    id: number
+    group_type: string
+    related_modification_id: number | null
+    total_value: number | null
+  }[]
+
   const adicionIds = new Set(adiciones.map((a) => a.id))
+
+  // ── Fast path: salir sin escribir si el estado ya es correcto ──────────────
+  const hasOrphans = groups.some(
+    (g) => g.group_type === "ADICION" && g.related_modification_id !== null && !adicionIds.has(g.related_modification_id),
+  )
+  if (!hasOrphans) {
+    const originalGroup = groups.find((g) => g.group_type === "ORIGINAL")
+    const originalOk =
+      originalGroup !== undefined &&
+      Number(originalGroup.total_value ?? 0) === Number(valorInicial ?? 0)
+
+    const adicionesOk =
+      adiciones.length === groups.filter((g) => g.group_type === "ADICION").length &&
+      adiciones.every((ad) => {
+        const g = groups.find((g) => g.related_modification_id === ad.id)
+        return g !== undefined && Number(g.total_value ?? 0) === Number(ad.valor_total ?? 0)
+      })
+
+    if (originalOk && adicionesOk) return { error: null }
+  }
+  // ── Fin fast path ─────────────────────────────────────────────────────────
 
   const orphanRes = await removeOrphanAdicionFundingGroups(
     supabase,
@@ -242,7 +263,7 @@ export async function createFundingSource(input: CreateFundingSourceInput): Prom
     .eq("id", input.interadministrativo_id)
     .single()
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: input.interadministrativo_id,
     id_contrato: interadmin?.id_contrato ?? null,
     action: "CREATE_FUNDING_SOURCE",
@@ -327,7 +348,7 @@ export async function updateFundingSource(
     .eq("id", interadministrativoId)
     .single()
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: interadministrativoId,
     id_contrato: interadmin?.id_contrato ?? null,
     action: "UPDATE_FUNDING_SOURCE",
@@ -374,7 +395,7 @@ export async function deleteFundingSource(
     .eq("id", interadministrativoId)
     .single()
 
-  await audit(supabase, {
+  await logAuditEvent(supabase, {
     interadmin_id: interadministrativoId,
     id_contrato: interadmin?.id_contrato ?? null,
     action: "DELETE_FUNDING_SOURCE",

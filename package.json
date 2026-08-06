@@ -7,7 +7,8 @@
     "dev:turbo": "next dev --turbopack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "gen:types": "supabase gen types typescript --project-id TU_PROJECT_ID_AQUI > src/types/supabase.generated.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
@@ -17,7 +18,7 @@
     "docx": "^9.7.1",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.16.0",
-    "next": "16.2.6",
+    "next": "16.2.12",
     "openai": "^6.49.0",
     "pdf-parse": "^2.4.5",
     "pptxgenjs": "^4.0.1",
@@ -38,7 +39,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.2.12",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
